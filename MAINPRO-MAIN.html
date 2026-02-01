@@ -554,6 +554,7 @@
 
 <script src="./src/core/storage.js"></script>
 <script src="./src/core/taskFilter.js"></script>
+<script src="./src/core/documentsStore.js"></script>
 
 </head>
 
@@ -1985,29 +1986,13 @@ Time: start at ${start}.`;
     const [dmShowAdvancedSearch, setDmShowAdvancedSearch] = useState(false);
     const [dmBackupStatus, setDmBackupStatus] = useState('idle'); // idle, backing_up, completed, error
     
-    const DEFAULT_FOLDERS = [
-      { id: 1, name: 'General' },
-      { id: 2, name: 'RAMS' },
-      { id: 3, name: 'Certificates' },
-      { id: 4, name: 'Contracts' }
-    ];
-
-    const [dmFolders, setDmFolders] = useState(() => {
-      const saved = safeParse('mainpro_folders', []);
-      if (saved.length === 0) {
-        localStorage.setItem('mainpro_folders', JSON.stringify(DEFAULT_FOLDERS));
-        return DEFAULT_FOLDERS;
-      }
-      return saved;
-    });
+    const [dmFolders, setDmFolders] = useState(() => (window.DocumentsStore && window.DocumentsStore.loadFolders) ? window.DocumentsStore.loadFolders() : []);
     const [dmActive,setDmActive] = useState('General');
     const [dmNewFolder,setDmNewFolder] = useState('');
     const [dmRenamingId,setDmRenamingId] = useState(null);
     const [dmRenameValue,setDmRenameValue] = useState('');
 
-    // Initialize folders if empty - moved to state initialization
-
-    useEffect(()=>{ localStorage.setItem('mainpro_folders', JSON.stringify(dmFolders)); },[dmFolders]);
+    useEffect(()=>{ if (window.DocumentsStore && window.DocumentsStore.saveFolders) window.DocumentsStore.saveFolders(dmFolders); },[dmFolders]);
 
     const dmHadSelectionRef = useRef(false);
     useEffect(()=>{
@@ -2020,35 +2005,9 @@ Time: start at ${start}.`;
       if (!has) dmHadSelectionRef.current = false;
     },[dmSelectedDocs.length, dmActive]);
 
-    // Documents can be huge (data: URLs). To avoid OOM (especially inside Electron/Cursor),
-    // we strip very large embedded URLs on load + when persisting to localStorage.
-    const DM_MAX_STORED_DATAURL_CHARS = 200000; // ~200KB string (safe-ish)
-    const [dmDocs, setDmDocs] = useState(() => {
-      const parsed = safeParse('mainpro_documents', []);
-      if (!Array.isArray(parsed)) return [];
-      return parsed.map(d => {
-        try {
-          const url = d && d.url;
-          if (typeof url === 'string' && url.startsWith('data:') && url.length > DM_MAX_STORED_DATAURL_CHARS) {
-            return { ...d, url: null, urlStripped: true };
-          }
-        } catch {}
-        return d;
-      });
-    });
+    const [dmDocs, setDmDocs] = useState(() => (window.DocumentsStore && window.DocumentsStore.loadDocuments) ? window.DocumentsStore.loadDocuments() : []);
     useEffect(()=>{
-      try {
-        const safe = Array.isArray(dmDocs) ? dmDocs.map(d => {
-          try {
-            const url = d && d.url;
-            if (typeof url === 'string' && url.startsWith('data:') && url.length > DM_MAX_STORED_DATAURL_CHARS) {
-              return { ...d, url: null, urlStripped: true };
-            }
-          } catch {}
-          return d;
-        }) : [];
-        localStorage.setItem('mainpro_documents', JSON.stringify(safe));
-      } catch {}
+      if (window.DocumentsStore && window.DocumentsStore.saveDocuments) window.DocumentsStore.saveDocuments(dmDocs);
     },[dmDocs]);
 
     // Drag&Drop highlight
@@ -7032,7 +6991,7 @@ Time: start at ${start}.`;
         const safeDocsForBackup = Array.isArray(dmDocs) ? dmDocs.map(d => {
           try {
             const url = d && d.url;
-            if (typeof url === 'string' && url.startsWith('data:') && url.length > (DM_MAX_STORED_DATAURL_CHARS || 200000)) {
+            if (typeof url === 'string' && url.startsWith('data:') && url.length > ((window.DocumentsStore && window.DocumentsStore.DM_MAX_STORED_DATAURL_CHARS) || 200000)) {
               return { ...d, url: null, urlStripped: true };
             }
           } catch {}
