@@ -552,6 +552,9 @@
 
 </style>
 
+<script src="./src/core/storage.js"></script>
+<script src="./src/core/taskFilter.js"></script>
+
 </head>
 
 <body>
@@ -3392,21 +3395,19 @@ Time: start at ${start}.`;
 
       cal.removeAllEvents();
 
-      let src = (filter==='all') ? list : list.filter(e=> e.status===filter);
-
-      const q = (search||'').trim().toLowerCase();
-
-      if(q){
-
-        src = src.filter(e=>{
-
-          const catName = (categories.find(c=>c.id===e.catId)?.name)||'';
-
-          return [e.title,e.taskType,e.location,e.notes,catName].some(v=> (v||'').toLowerCase().includes(q));
-
-        });
-
-      }
+      let src = (typeof window.filterTasks === 'function')
+        ? window.filterTasks(list, { filter, search, categories })
+        : (function(){
+            let s = (filter==='all') ? list : list.filter(e=> e.status===filter);
+            const q = (search||'').trim().toLowerCase();
+            if(q){
+              s = s.filter(e=>{
+                const catName = (categories.find(c=>c.id===e.catId)?.name)||'';
+                return [e.title,e.taskType,e.location,e.notes,catName].some(v=> (v||'').toLowerCase().includes(q));
+              });
+            }
+            return s;
+          })();
       
       // Apply sorting
       if (sortBy !== 'none') {
@@ -7533,15 +7534,20 @@ Time: start at ${start}.`;
       }
     }
     function mpFilterSearch(list){
-      let src = Array.isArray(list) ? list : [];
-      src = (filter==='all') ? src : src.filter(e=> (e.status||'pending')===filter);
-      const q = (search||'').trim().toLowerCase();
-      if(q){
-        src = src.filter(e=>{
-          const catName = (categories.find(c=>c.id===e.catId)?.name)||'';
-          return [e.title,e.taskType,e.location,e.notes,catName].some(v=> (v||'').toLowerCase().includes(q));
-        });
-      }
+      const src = (typeof window.filterTasks === 'function')
+        ? window.filterTasks(list, { filter, search, categories })
+        : (function(){
+            let s = Array.isArray(list) ? list : [];
+            s = (filter==='all') ? s : s.filter(e=> (e.status||'pending')===filter);
+            const q = (search||'').trim().toLowerCase();
+            if(q){
+              s = s.filter(e=>{
+                const catName = (categories.find(c=>c.id===e.catId)?.name)||'';
+                return [e.title,e.taskType,e.location,e.notes,catName].some(v=> (v||'').toLowerCase().includes(q));
+              });
+            }
+            return s;
+          })();
       return src;
     }
     function mpTimeStr(ev){
