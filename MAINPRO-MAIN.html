@@ -555,6 +555,8 @@
 <script src="./src/core/storage.js"></script>
 <script src="./src/core/taskFilter.js"></script>
 <script src="./src/core/documentsStore.js"></script>
+<script src="./src/core/documentsUI.js"></script>
+<script src="./src/core/documentsAI.js"></script>
 
 </head>
 
@@ -6643,16 +6645,11 @@ Time: start at ${start}.`;
     // Document Manager PRO v68.0 – Enhanced Features (Gold UI)
     // ==========================
     
-    // === Folder ops
+    // === Folder ops (logic in documentsUI.js)
     function dmAddFolder(){
-      const name = (dmNewFolder||'').trim();
-      if(!name) return showToast('Enter folder name');
-      if(dmFolders.some(f=>f.name.toLowerCase()===name.toLowerCase())) return showToast('Folder exists');
-      const id = Date.now();
-      setDmFolders(prev=>[...prev,{id,name}]);
-      setDmNewFolder('');
-      setDmActive(name);
-      showToast(`📁 "${name}" added`);
+      if (window.DocumentsUI && window.DocumentsUI.dmAddFolder) {
+        window.DocumentsUI.dmAddFolder({ dmNewFolder, dmFolders, setDmFolders, setDmNewFolder, setDmActive, showToast });
+      }
     }
     function dmStartRename(folder){ setDmRenamingId(folder.id); setDmRenameValue(folder.name); }
     function dmCommitRename(){
@@ -6683,103 +6680,6 @@ Time: start at ${start}.`;
     }
 
     // === AI Smart Categorization ===
-    function aiCategorizeFile(fileName, fileType) {
-      const name = fileName.toLowerCase();
-      const type = fileType.toLowerCase();
-      
-      // RAMS Documents
-      if (name.includes('ram') || name.includes('risk') || name.includes('assessment') || 
-          name.includes('method') || name.includes('statement')) {
-        return 'RAMS';
-      }
-      
-      // Certificates
-      if (name.includes('cert') || name.includes('licence') || name.includes('permit') || 
-          name.includes('insurance') || name.includes('policy') || type.includes('certificate')) {
-        return 'Certificates';
-      }
-      
-      // Contracts
-      if (name.includes('contract') || name.includes('agreement') || name.includes('service') || 
-          name.includes('maintenance') || name.includes('invoice') || name.includes('quote')) {
-        return 'Contracts';
-      }
-      
-      // Fire Safety
-      if (name.includes('fire') || name.includes('alarm') || name.includes('sprinkler') || 
-          name.includes('extinguisher') || name.includes('evacuation')) {
-        return 'Fire Safety';
-      }
-      
-      // CCTV & Security
-      if (name.includes('cctv') || name.includes('camera') || name.includes('security') || 
-          name.includes('access') || name.includes('monitoring')) {
-        return 'CCTV & Security';
-      }
-      
-      // HVAC
-      if (name.includes('hvac') || name.includes('heating') || name.includes('ventilation') || 
-          name.includes('air conditioning') || name.includes('cooling')) {
-        return 'HVAC';
-      }
-      
-      // Electrical
-      if (name.includes('electrical') || name.includes('electric') || name.includes('wiring') || 
-          name.includes('panel') || name.includes('power')) {
-        return 'Electrical';
-      }
-      
-      // Plumbing
-      if (name.includes('plumbing') || name.includes('water') || name.includes('pipe') || 
-          name.includes('drain') || name.includes('toilet')) {
-        return 'Plumbing';
-      }
-      
-      // Default to General
-      return 'General';
-    }
-
-    // === Enhanced Document Manager Functions ===
-    
-    // AI Document Analysis
-    function aiAnalyzeDocument(doc) {
-      const analysis = {
-        keywords: [],
-        summary: '',
-        tags: [],
-        riskLevel: 'low',
-        category: doc.aiCategory || 'General',
-        lastAnalyzed: new Date().toISOString()
-      };
-      
-      // Extract keywords from filename
-      const words = doc.name.toLowerCase()
-        .replace(/[^\w\s]/g, ' ')
-        .split(/\s+/)
-        .filter(w => w.length > 3);
-      
-      analysis.keywords = [...new Set(words)].slice(0, 10);
-      
-      // Generate summary based on file type and name
-      if (doc.type.includes('pdf')) {
-        analysis.summary = `PDF document: ${doc.name}`;
-        analysis.tags.push('document', 'pdf');
-      } else if (doc.type.includes('image')) {
-        analysis.summary = `Image file: ${doc.name}`;
-        analysis.tags.push('image', 'visual');
-      } else if (doc.type.includes('word') || doc.type.includes('document')) {
-        analysis.summary = `Word document: ${doc.name}`;
-        analysis.tags.push('document', 'text');
-      }
-      
-      // Risk assessment based on keywords
-      const riskKeywords = ['accident', 'injury', 'hazard', 'risk', 'emergency', 'fire', 'safety'];
-      const hasRiskKeywords = analysis.keywords.some(k => riskKeywords.includes(k));
-      analysis.riskLevel = hasRiskKeywords ? 'high' : 'medium';
-      
-      return analysis;
-    }
-    
     // Document Search and Filtering
     function dmSearchDocuments(query, filterType = 'all', sortBy = 'date') {
       let filtered = dmDocs.filter(doc => {
@@ -7037,82 +6937,11 @@ Time: start at ${start}.`;
       showToast(`🔗 Document linked to task ${taskId}`);
     }
 
-    // === Files with AI Categorization ===
+    // === Files with AI Categorization (logic in documentsUI.js) ===
     function dmAddFilesTo(folder, fileList){
-      const files = Array.from(fileList||[]);
-      if(!files.length) return;
-      // Prevent OOM: don't embed large files into state/localStorage as data: URLs.
-      const DM_MAX_EMBED_BYTES = 1024 * 1024; // 1MB
-      let skippedLarge = 0;
-      
-      const jobs = files.map(file => new Promise(res=>{
-        if ((file?.size || 0) > DM_MAX_EMBED_BYTES) {
-          skippedLarge++;
-          const aiCategory = aiCategorizeFile(file.name, file.type);
-          const targetFolder = folder === 'General' ? aiCategory : folder;
-          if (!dmFolders.some(f => f.name === aiCategory) && folder === 'General') {
-            setDmFolders(prev => [...prev, {id: Date.now() + Math.random(), name: aiCategory}]);
-          }
-          const newDoc = {
-            id: Date.now()+Math.random(),
-            name: file.name,
-            type: file.type || 'application/octet-stream',
-            size: file.size,
-            date: new Date().toISOString(),
-            folder: targetFolder,
-            url: null,
-            urlStripped: true,
-            tooLarge: true,
-            aiCategory: aiCategory,
-            uploadedTo: folder,
-            analysis: aiAnalyzeDocument({name: file.name, type: file.type, aiCategory: aiCategory})
-          };
-          setDmDocs(prev => [...prev, newDoc]);
-          return res();
-        }
-        const r = new FileReader();
-        r.onload = ev=>{
-          // AI Auto-categorization
-          const aiCategory = aiCategorizeFile(file.name, file.type);
-          const targetFolder = folder === 'General' ? aiCategory : folder;
-          
-          // Create folder if it doesn't exist
-          if (!dmFolders.some(f => f.name === aiCategory) && folder === 'General') {
-            setDmFolders(prev => [...prev, {id: Date.now() + Math.random(), name: aiCategory}]);
-          }
-          
-          const newDoc = {
-            id: Date.now()+Math.random(),
-            name: file.name,
-            type: file.type || 'application/octet-stream',
-            size: file.size,
-            date: new Date().toISOString(),
-            folder: targetFolder,
-            url: ev.target.result, // data: URL
-            aiCategory: aiCategory, // Store AI suggestion
-            uploadedTo: folder, // Store original upload folder
-            analysis: aiAnalyzeDocument({name: file.name, type: file.type, aiCategory: aiCategory}) // AI analysis
-          };
-          setDmDocs(prev=>{
-            const updated = [...prev, newDoc];
-            return updated;
-          });
-          res();
-        };
-        r.readAsDataURL(file);
-      }));
-      
-      Promise.all(jobs).then(()=> {
-        const aiCategorized = files.filter(f => aiCategorizeFile(f.name, f.type) !== 'General');
-        if (aiCategorized.length > 0 && folder === 'General') {
-          showToast(`🤖 AI categorized ${aiCategorized.length} file(s) automatically`);
-        } else {
-          showToast(`📄 ${files.length} file(s) → "${folder}"`);
-        }
-        if (skippedLarge > 0) {
-          showToast(`⚠️ ${skippedLarge} file(s) too large (>1MB) — saved without content to avoid crashes`);
-        }
-      });
+      if (window.DocumentsUI && window.DocumentsUI.dmAddFilesTo) {
+        window.DocumentsUI.dmAddFilesTo(folder, fileList, { dmFolders, setDmFolders, setDmDocs, showToast });
+      }
     }
     function dmOnUploadInput(e){ 
       dmAddFilesTo(dmActive, e.target.files); 
@@ -7411,7 +7240,7 @@ Time: start at ${start}.`;
       let movedCount = 0;
       
       generalFiles.forEach(doc => {
-        const aiCategory = doc.aiCategory || aiCategorizeFile(doc.name, doc.type);
+        const aiCategory = doc.aiCategory || (window.DocumentsAI && window.DocumentsAI.aiCategorizeFile ? window.DocumentsAI.aiCategorizeFile(doc.name, doc.type) : 'General');
         if (aiCategory !== 'General') {
           setDmDocs(prev => prev.map(d => 
             d.id === doc.id ? { ...d, folder: aiCategory } : d

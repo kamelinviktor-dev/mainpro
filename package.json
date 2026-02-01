@@ -8,7 +8,8 @@
     "start": "live-server --port=5500 --ignore=\"**/AppData/**\"",
     "dev": "live-server --port=5500 --ignore=\"**/AppData/**\"",
     "build": "echo \"Build complete - static files ready\"",
-    "serve": "live-server --port=3000"
+    "serve": "node serve-mainpro.js",
+    "serve-live": "live-server --port=3000"
   },
   "keywords": [],
   "author": "",
