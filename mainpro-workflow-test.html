@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MainPro Workflow Test</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+
+        function MainProWorkflowTest() {
+            const [step, setStep] = useState(0);
+
+            const steps = [
+                {
+                    title: "1. Откройте MainPro Calendar",
+                    description: "Перейдите по адресу http://localhost:3000/index.html",
+                    action: () => setStep(1),
+                    image: "🌐"
+                },
+                {
+                    title: "2. Найдите кнопку AI Workflow",
+                    description: "В главном меню найдите кнопку '🧬 AI Workflow'",
+                    action: () => setStep(2),
+                    image: "🔍"
+                },
+                {
+                    title: "3. Нажмите на кнопку",
+                    description: "Кликните на кнопку AI Workflow Builder",
+                    action: () => setStep(3),
+                    image: "👆"
+                },
+                {
+                    title: "4. Выберите шаблон",
+                    description: "Выберите один из готовых шаблонов или введите свой запрос",
+                    action: () => setStep(4),
+                    image: "📝"
+                },
+                {
+                    title: "5. Нажмите Generate",
+                    description: "Нажмите кнопку '🚀 Generate' для создания плана",
+                    action: () => setStep(5),
+                    image: "⚡"
+                },
+                {
+                    title: "6. Просмотрите план",
+                    description: "Посмотрите на сгенерированный план задач с расписанием",
+                    action: () => setStep(6),
+                    image: "👀"
+                },
+                {
+                    title: "7. Нажмите Apply",
+                    description: "Нажмите '✅ Apply' чтобы добавить задачи в календарь",
+                    action: () => setStep(7),
+                    image: "✅"
+                },
+                {
+                    title: "8. Проверьте календарь",
+                    description: "Задачи появятся в календаре с правильным расписанием",
+                    action: () => setStep(8),
+                    image: "📅"
+                }
+            ];
+
+            return (
+                <div className="p-6 max-w-4xl mx-auto">
+                    <h1 className="text-3xl font-bold mb-6 text-center">🎯 MainPro AI Workflow - Пошаговое руководство</h1>
+                    
+                    {/* Progress */}
+                    <div className="mb-8">
+                        <div className="flex justify-between items-center mb-2">
+                            {steps.map((_, index) => (
+                                <div key={index} className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                                    index <= step ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-600'
+                                }`}>
+                                    {index + 1}
+                                </div>
+                            ))}
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div 
+                                className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                                style={{ width: `${(step + 1) * 12.5}%` }}
+                            ></div>
+                        </div>
+                    </div>
+
+                    {/* Current Step */}
+                    <div className="mb-8">
+                        <div className="p-6 bg-blue-50 rounded-lg border-2 border-blue-200">
+                            <div className="flex items-center gap-4 mb-4">
+                                <div className="text-4xl">{steps[step].image}</div>
+                                <div>
+                                    <h2 className="text-2xl font-bold">{steps[step].title}</h2>
+                                    <p className="text-gray-600 text-lg">{steps[step].description}</p>
+                                </div>
+                            </div>
+                            
+                            {step < steps.length - 1 && (
+                                <button
+                                    onClick={steps[step].action}
+                                    className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-lg"
+                                >
+                                    Следующий шаг →
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Step Details */}
+                    {step === 0 && (
+                        <div className="p-4 bg-green-50 rounded-lg">
+                            <h3 className="font-semibold mb-2">🌐 Шаг 1: Откройте MainPro Calendar</h3>
+                            <p className="text-gray-600 mb-2">Перейдите по ссылке:</p>
+                            <div className="bg-white p-3 rounded border font-mono text-blue-600">
+                                http://localhost:3000/index.html
+                            </div>
+                        </div>
+                    )}
+
+                    {step === 1 && (
+                        <div className="p-4 bg-green-50 rounded-lg">
+                            <h3 className="font-semibold mb-2">🔍 Шаг 2: Найдите кнопку AI Workflow</h3>
+                            <p className="text-gray-600 mb-2">В главном меню найдите кнопку с иконкой:</p>
+                            <div className="bg-white p-3 rounded border text-center">
+                                <span className="text-2xl">🧬 AI Workflow</span>
+                            </div>
+                        </div>
+                    )}
+
+                    {step === 2 && (
+                        <div className="p-4 bg-green-50 rounded-lg">
+                            <h3 className="font-semibold mb-2">👆 Шаг 3: Нажмите на кнопку</h3>
+                            <p className="text-gray-600 mb-2">Кликните на кнопку "🧬 AI Workflow" чтобы открыть AI Workflow Builder</p>
+                        </div>
+                    )}
+
+                    {step === 3 && (
+                        <div className="p-4 bg-green-50 rounded-lg">
+                            <h3 className="font-semibold mb-2">📝 Шаг 4: Выберите шаблон</h3>
+                            <p className="text-gray-600 mb-2">Вы можете:</p>
+                            <ul className="list-disc list-inside text-gray-600 space-y-1">
+                                <li>Выбрать готовый шаблон (Hotel Safety Plan, Maintenance Routine, etc.)</li>
+                                <li>Или ввести свой запрос в поле "Custom Workflow"</li>
+                            </ul>
+                        </div>
+                    )}
+
+                    {step === 4 && (
+                        <div className="p-4 bg-green-50 rounded-lg">
+                            <h3 className="font-semibold mb-2">⚡ Шаг 5: Нажмите Generate</h3>
+                            <p className="text-gray-600 mb-2">Нажмите кнопку "🚀 Generate" чтобы AI создал план задач</p>
+                        </div>
+                    )}
+
+                    {step === 5 && (
+                        <div className="p-4 bg-green-50 rounded-lg">
+                            <h3 className="font-semibold mb-2">👀 Шаг 6: Просмотрите план</h3>
+                            <p className="text-gray-600 mb-2">AI покажет:</p>
+                            <ul className="list-disc list-inside text-gray-600 space-y-1">
+                                <li>Название плана</li>
+                                <li>Частоту выполнения (daily/weekly/monthly)</li>
+                                <li>Список задач с расписанием</li>
+                                <li>День и время для каждой задачи</li>
+                            </ul>
+                        </div>
+                    )}
+
+                    {step === 6 && (
+                        <div className="p-4 bg-green-50 rounded-lg">
+                            <h3 className="font-semibold mb-2">✅ Шаг 7: Нажмите Apply</h3>
+                            <p className="text-gray-600 mb-2">Нажмите "✅ Apply" чтобы добавить все задачи в календарь</p>
+                        </div>
+                    )}
+
+                    {step === 7 && (
+                        <div className="p-4 bg-green-50 rounded-lg">
+                            <h3 className="font-semibold mb-2">📅 Шаг 8: Проверьте календарь</h3>
+                            <p className="text-gray-600 mb-2">Задачи появятся в календаре с правильным расписанием:</p>
+                            <ul className="list-disc list-inside text-gray-600 space-y-1">
+                                <li>Сегодня: 3 задачи (09:00, 12:00, 15:00)</li>
+                                <li>Завтра: 3 задачи (09:00, 12:00, 15:00)</li>
+                                <li>День 3: остальные задачи</li>
+                            </ul>
+                        </div>
+                    )}
+
+                    {step === 8 && (
+                        <div className="p-6 bg-yellow-50 rounded-lg border-2 border-yellow-200">
+                            <h2 className="text-2xl font-bold mb-4 text-center">🎉 Готово!</h2>
+                            <p className="text-center text-gray-600 mb-4">
+                                Теперь вы знаете, как использовать AI Workflow Builder в MainPro!
+                            </p>
+                            <div className="text-center">
+                                <button
+                                    onClick={() => setStep(0)}
+                                    className="px-6 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+                                >
+                                    🔄 Начать заново
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Quick Links */}
+                    <div className="mt-8 p-4 bg-gray-50 rounded-lg">
+                        <h3 className="font-semibold mb-2">🔗 Быстрые ссылки:</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <a 
+                                href="http://localhost:3000/index.html" 
+                                target="_blank"
+                                className="p-3 bg-blue-500 text-white rounded hover:bg-blue-600 text-center"
+                            >
+                                🌐 MainPro Calendar
+                            </a>
+                            <a 
+                                href="http://localhost:3000/workflow-with-calendar.html" 
+                                target="_blank"
+                                className="p-3 bg-green-500 text-white rounded hover:bg-green-600 text-center"
+                            >
+                                📅 Демо с календарем
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<MainProWorkflowTest />, document.getElementById('root'));
+    </script>
+</body>
+</html>

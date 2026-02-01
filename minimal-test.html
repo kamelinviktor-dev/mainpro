@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minimal Test</title>
+</head>
+<body>
+    <div id="root">
+        <h1 style="color: red; font-size: 24px;">🔧 MINIMAL TEST - If you see this, HTML is working!</h1>
+        <p>Server: <span id="server-info"></span></p>
+        <p>Time: <span id="time-info"></span></p>
+    </div>
+
+    <script>
+        console.log('🚀 Minimal test started');
+        
+        document.getElementById('server-info').textContent = window.location.href;
+        document.getElementById('time-info').textContent = new Date().toLocaleString();
+        
+        console.log('✅ Basic JavaScript working');
+        
+        // Test if we can access external resources
+        fetch('https://unpkg.com/react@18/umd/react.development.js')
+            .then(() => console.log('✅ External CDN accessible'))
+            .catch(e => console.error('❌ External CDN blocked:', e));
+    </script>
+</body>
+</html>

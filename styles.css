@@ -1,0 +1,231 @@
+/* ==== MAINPRO CALENDAR v65.3 – Classic Header (Gold/White Theme) ==== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: "Segoe UI", sans-serif;
+  }
+  
+  body {
+    background: #f9f9f9;
+    color: #333;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  /* ==== HEADER ==== */
+  header {
+    background: linear-gradient(90deg, #b89b4f, #f6e8b1);
+    color: #fff;
+    padding: 12px 20px;
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: bold;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  }
+  
+  /* ==== CALENDAR CONTAINER ==== */
+  #calendar {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    grid-auto-rows: 110px;
+    gap: 4px;
+    padding: 10px;
+  }
+  
+  .day {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 0 4px rgba(0,0,0,0.1);
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .day:hover {
+    transform: scale(1.03);
+    box-shadow: 0 0 10px rgba(0,0,0,0.2);
+  }
+  
+  .day-number {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #b89b4f;
+  }
+  
+  .task {
+    background: #fff4cc;
+    color: #444;
+    font-size: 0.8rem;
+    border-left: 4px solid #b89b4f;
+    padding: 2px 6px;
+    margin-top: 2px;
+    border-radius: 4px;
+  }
+  
+  /* ==== FOOTER ==== */
+  footer {
+    background: #fff;
+    text-align: center;
+    padding: 10px;
+    font-size: 0.85rem;
+    color: #666;
+    border-top: 1px solid #ddd;
+  }
+  /* === MAINPRO v65.3 – Classic Header – Stable Build === */
+
+body {
+    margin: 0;
+    font-family: "Segoe UI", sans-serif;
+    background: #fdfdfd;
+    color: #222;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  /* Header */
+  header {
+    background: linear-gradient(to right, #c9a33f, #f3e8b5);
+    color: #000;
+    text-align: center;
+    padding: 12px 0;
+    font-size: 1.4rem;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+  
+  /* Calendar container */
+  #app {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* Task cards */
+  .task {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 14px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    padding: 16px 20px;
+    margin: 10px;
+    width: 260px;
+    text-align: left;
+    transition: 0.3s;
+  }
+  
+  .task:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  }
+  
+  .status {
+    font-size: 0.85rem;
+    color: #666;
+    margin-top: 6px;
+  }
+
+/* === v66.7 Document Manager (Gold UI) === */
+.dm-modal { 
+  max-height: 90vh; 
+  display: flex; 
+  flex-direction: column; 
+}
+
+.dm-head { 
+  border-bottom: 1px solid rgba(0,0,0,.06); 
+}
+
+.dm-gold { 
+  height: 3px; 
+  background: linear-gradient(90deg, #f6d365, #fda085); 
+}
+
+.dm-tab { 
+  display: inline-flex; 
+  align-items: center; 
+  gap: 6px; 
+  padding: 6px 10px;
+  border: 1px solid #e5e7eb; 
+  border-radius: 9999px; 
+  background: #fff; 
+  font-size: 12px;
+  transition: .15s ease; 
+  cursor: pointer; 
+}
+
+.dm-tab:hover { 
+  background: #f9fafb; 
+}
+
+.dm-tab.active { 
+  background: #f59e0b; 
+  color: #fff; 
+  border-color: #f59e0b; 
+}
+
+.dm-input { 
+  border: 1px solid #e5e7eb; 
+  border-radius: 8px; 
+  padding: 6px 8px; 
+  font-size: 12px; 
+}
+
+.dm-grid { 
+  display: grid; 
+  grid-template-columns: repeat(1, minmax(0, 1fr)); 
+  gap: 14px; 
+}
+
+@media (min-width: 640px) { 
+  .dm-grid { 
+    grid-template-columns: repeat(2, minmax(0, 1fr)); 
+  } 
+}
+
+@media (min-width: 920px) { 
+  .dm-grid { 
+    grid-template-columns: repeat(3, minmax(0, 1fr)); 
+  } 
+}
+
+.dm-card { 
+  background: #fff; 
+  border: 1px solid #e5e7eb; 
+  border-radius: 14px; 
+  padding: 14px; 
+  box-shadow: 0 4px 14px rgba(0,0,0,.05);
+}
+
+.dm-ddrop { 
+  border: 2px dashed #e5e7eb; 
+  border-radius: 14px; 
+  padding: 28px;
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  flex-direction: column; 
+  gap: 6px;
+  color: #6b7280; 
+  background: #fff; 
+}
+
+.dm-ddrop.compact { 
+  padding: 18px; 
+} /* компактнее */
+
+.dm-ddrop.drag { 
+  background: #fff8e6; 
+  border-color: #f59e0b; 
+  color: #b45309; 
+}    

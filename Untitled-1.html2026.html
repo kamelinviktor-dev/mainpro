@@ -1,0 +1,603 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>MainPro Calendar – v75.8 Stable Gold Restore</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<!-- FullCalendar (CDN) -->
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+<!-- interaction для drag&drop -->
+<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/interaction@6.1.15/index.global.min.js"></script>
+<!-- daygrid / timegrid -->
+<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.15/index.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/timegrid@6.1.15/index.global.min.js"></script>
+
+<style>
+  :root{
+    --gold:#f4c14f;
+    --gold-2:#f0b429;
+    --bg:#faf9f6;
+    --card:#ffffff;
+    --muted:#8b8b8b;
+    --green:#22c55e;
+    --red:#ef4444;
+    --yellow:#facc15;
+    --blue:#3b82f6;
+    --violet:#8b5cf6;
+    --shadow:0 8px 24px rgba(0,0,0,.08);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#222}
+  .header{
+    position:sticky;top:0;z-index:30;
+    background:linear-gradient(180deg,#ffd95a,#f6c546);
+    border-bottom:3px solid #dba11c;
+    box-shadow:var(--shadow);
+  }
+  .header-inner{
+    max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:16px;
+    padding:14px 16px;
+  }
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:24px;color:#6a4c0b;letter-spacing:.3px}
+  .brand small{font-weight:700;color:#99750f;font-size:12px;margin-left:6px}
+  .badges{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .badge{
+    display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;
+    font-size:12px;background:#fff;border:1px solid #eee;color:#444;box-shadow:0 1px 0 rgba(0,0,0,.04)
+  }
+  .badge.offline{background:#ffe8e8;color:#b42318;border-color:#f8c5c5}
+  .toolbar{
+    max-width:1200px;margin:12px auto;display:flex;gap:10px;align-items:center;padding:0 16px;flex-wrap:wrap
+  }
+  .btn{
+    padding:8px 12px;border-radius:10px;border:1px solid #e7e7e7;background:#fff;cursor:pointer;
+    font-weight:600;box-shadow:0 1px 0 rgba(0,0,0,.04)
+  }
+  .btn:hover{background:#f7f7f7}
+  .btn.gold{background:var(--gold);border-color:#e2b33e;color:#382c00}
+  .btn.gold:hover{background:var(--gold-2)}
+  .btn.ghost{background:transparent;border-color:#e7e7e7}
+  .filter-dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:6px;vertical-align:-1px}
+  .panel{max-width:1200px;margin:0 auto;padding:0 16px 16px}
+  .card{background:var(--card);border:1px solid #eee;border-radius:14px;box-shadow:var(--shadow);padding:12px}
+
+  /* календарь */
+  #calendar{background:#fff;border:1px solid #eee;border-radius:14px;box-shadow:var(--shadow);padding:8px}
+  .fc .fc-toolbar-title{font-weight:800;color:#222}
+  .fc .fc-button{border-radius:8px;border:1px solid #e7e7e7;background:#fff;color:#333}
+  .fc .fc-button-primary:not(:disabled).fc-button-active,
+  .fc .fc-button-primary:not(:disabled):active{background:#f5f5f5;border-color:#dcdcdc}
+  .fc .fc-daygrid-day.fc-day-today{background:#fff7da}
+  .fc .fc-event{border:0;border-radius:10px;padding:2px 6px;box-shadow:0 1px 0 rgba(0,0,0,.05)}
+  .fc .fc-event .fc-event-time{font-weight:700}
+  .legend{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+  .legend .btn{display:flex;align-items:center;gap:8px}
+  /* тосты */
+  .toast{
+    position:fixed;right:16px;bottom:16px;min-width:220px;max-width:340px;background:#111;color:#fff;
+    padding:12px 14px;border-radius:12px;box-shadow:var(--shadow);opacity:.95;z-index:50
+  }
+  /* модалка Add Task */
+  .modal{
+    position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:40
+  }
+  .modal-card{
+    width:min(760px,94vw);max-height:90vh;overflow:auto;background:#fff;border-radius:16px;border:1px solid #eee;box-shadow:var(--shadow)
+  }
+  .modal-head{
+    padding:14px 16px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;
+    background:linear-gradient(180deg,#fffef9,#fff7d8)
+  }
+  .modal-body{padding:16px;display:grid;gap:10px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .field{display:flex;flex-direction:column;gap:6px}
+  .label{font-size:12px;color:#555;font-weight:700}
+  .input,.select,.textarea{border:1px solid #e7e7e7;border-radius:10px;padding:10px 12px;background:#fff;font:inherit}
+  .textarea{min-height:72px}
+  .rec-box{border:1px dashed #e7e7e7;border-radius:12px;padding:12px;background:#fffdf2}
+  .days{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{padding:6px 10px;border:1px solid #e7e7e7;border-radius:999px;background:#fff;cursor:pointer;font-size:12px}
+  .chip.active{background:#ffe8a3;border-color:#f0c04d}
+  .modal-foot{padding:14px 16px;border-top:1px solid #eee;display:flex;justify-content:flex-end;gap:8px;background:#fafafa}
+</style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="header-inner">
+      <div class="brand">MainPro Calendar <small>v75.8 • Stable</small></div>
+
+      <div class="badges">
+        <span class="badge offline">● Offline</span>
+        <span class="badge">✓ Free</span>
+        <span class="badge">🔒 Secure</span>
+        <span class="badge">🏢 Office Management</span>
+      </div>
+
+      <div style="margin-left:auto;display:flex;gap:8px;">
+        <button id="btnNewCal" class="btn">➕ New Calendar</button>
+        <button id="btnVoice" class="btn">🎙 Voice</button>
+        <button id="btnAI" class="btn">🟣 AI Chat</button>
+        <button id="btnLogin" class="btn">🔐 Login</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="legend">
+      <button class="btn" data-filter="pending"><span class="filter-dot" style="background:var(--yellow)"></span>Pending</button>
+      <button class="btn" data-filter="done"><span class="filter-dot" style="background:var(--green)"></span>Done</button>
+      <button class="btn" data-filter="missed"><span class="filter-dot" style="background:var(--red)"></span>Missed</button>
+      <button class="btn gold" data-filter="all">✏ All</button>
+    </div>
+
+    <div style="margin-left:auto;display:flex;gap:8px;">
+      <button class="btn gold" id="btnMonth">Month</button>
+      <button class="btn" id="btnWeek">Week</button>
+      <button class="btn" id="btnDay">Day</button>
+      <button class="btn gold" id="btnAdd">Add Task</button>
+      <button class="btn" id="btnClear">Clear All Tasks</button>
+      <button class="btn" id="btnDocs">📄 Documents</button>
+    </div>
+  </div>
+
+  <!-- Calendar panel -->
+  <div class="panel">
+    <div id="calendar" class="card"></div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast" style="display:none"></div>
+
+  <!-- Modal Add Task (runtime рендер) -->
+  <template id="tpl-modal">
+    <div class="modal">
+      <div class="modal-card">
+        <div class="modal-head">
+          <div style="font-weight:800">Add Event</div>
+          <button class="btn" data-close>✕</button>
+        </div>
+        <div class="modal-body">
+
+          <div class="row">
+            <div class="field">
+              <label class="label">Title</label>
+              <input class="input" data-f="title" placeholder="Example: Chiller 1 service">
+            </div>
+            <div class="field">
+              <label class="label">Status</label>
+              <select class="select" data-f="status">
+                <option value="pending">Pending</option>
+                <option value="done">Done</option>
+                <option value="missed">Missed</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="field">
+              <label class="label">Date</label>
+              <input class="input" type="date" data-f="date">
+            </div>
+            <div class="field">
+              <label class="label">Time (optional)</label>
+              <div class="row" style="grid-template-columns:1fr 1fr">
+                <input class="input" type="time" data-f="startTime">
+                <input class="input" type="time" data-f="endTime" placeholder="optional">
+              </div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="label">Note</label>
+            <textarea class="textarea" data-f="note" placeholder="Internal note (optional)"></textarea>
+          </div>
+
+          <div class="rec-box">
+            <div class="row">
+              <div class="field">
+                <label class="label">Repeat</label>
+                <select class="select" data-f="repeatMode">
+                  <option value="one-off">One-off</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                  <option value="quarterly">Every 3 months</option>
+                  <option value="semiannual">Every 6 months</option>
+                  <option value="yearly">Yearly</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label class="label">End options</label>
+                <select class="select" data-f="endMode">
+                  <option value="none">No end</option>
+                  <option value="count">End after number of occurrences</option>
+                  <option value="date">End by date</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="row" id="endControls">
+              <div class="field" data-end="count" style="display:none">
+                <label class="label">Occurrences</label>
+                <input class="input" type="number" min="1" max="200" value="12" data-f="endCount">
+              </div>
+              <div class="field" data-end="date" style="display:none">
+                <label class="label">End date</label>
+                <input class="input" type="date" data-f="endDate">
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="label">On days (for Weekly/Monthly patterns)</label>
+              <div class="days" id="daysBox">
+                <!-- chips Sun..Sat – заполню скриптом -->
+              </div>
+              <small style="color:#777">For monthly / quarterly / semiannual / yearly you can still choose weekday(s) to repeat (e.g. every month on Monday).</small>
+            </div>
+
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn" data-close>Cancel</button>
+          <button class="btn gold" data-save>Save Event</button>
+        </div>
+      </div>
+    </div>
+  </template>
+  <script>
+    /* ===== Helpers / Storage ===== */
+    const STORAGE_KEY = 'mainpro_calendar_v75_8';
+    const readLS = (k, d) => { try{ return JSON.parse(localStorage.getItem(k) || JSON.stringify(d)); }catch{ return d; } };
+    const writeLS = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+    
+    function showToast(msg){
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.style.display = 'block';
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(()=>{ el.style.display='none'; }, 1800);
+    }
+    
+    /* ===== Цвета по статусам (точно как на твоём скрине) ===== */
+    const STATUS_COLORS = {
+      pending:   {bg:'var(--yellow)', dot:'#eab308'},
+      done:      {bg:'var(--green)',  dot:'#15803d'},
+      missed:    {bg:'var(--red)',    dot:'#b91c1c'},
+      contractor:{bg:'var(--blue)',   dot:'#1d4ed8'},
+      service:   {bg:'var(--violet)', dot:'#6d28d9'}
+    };
+    const statusColor = (status)=>{
+      const s = (status||'pending').toLowerCase();
+      return (STATUS_COLORS[s]||STATUS_COLORS['pending']).bg;
+    };
+    
+    /* ===== Формат AM/PM (как в UK) ===== */
+    function toAmPm(timeHHMM){ // "09:00" -> "9:00am"
+      if(!timeHHMM || !/^\d{2}:\d{2}$/.test(timeHHMM)) return '';
+      let [h,m] = timeHHMM.split(':').map(x=>parseInt(x,10));
+      const am = h < 12;
+      const h12 = h%12===0 ? 12 : h%12;
+      return `${h12}:${String(m).padStart(2,'0')}${am?'am':'pm'}`;
+    }
+    
+    /* ===== День недели хелперы ===== */
+    const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    function nextDateByWeekday(fromDate, weekday){ // weekday: 0..6
+      const d = new Date(fromDate);
+      const diff = (weekday + 7 - d.getDay()) % 7;
+      d.setDate(d.getDate()+diff);
+      return d;
+    }
+    function addDays(d, n){ const x = new Date(d); x.setDate(x.getDate()+n); return x; }
+    function addMonths(d, n){ const x = new Date(d); x.setMonth(x.getMonth()+n); return x; }
+    function ymd(d){ return d.toISOString().slice(0,10); }
+    </script>
+    <script>
+      let CAL;                // FullCalendar instance
+      let EVENTS = readLS(STORAGE_KEY, []); // [{id,title,start,end,status,allDay,...}]
+      let CURRENT_FILTER = 'all';
+      
+      function saveEvents(){ writeLS(STORAGE_KEY, EVENTS); }
+      
+      /* ===== Инициализация календаря ===== */
+      document.addEventListener('DOMContentLoaded', () => {
+        const calendarEl = document.getElementById('calendar');
+        CAL = new FullCalendar.Calendar(calendarEl, {
+          height: 'auto',
+          initialView: 'dayGridMonth',
+          selectable: true,
+          editable: true,
+          droppable: false,
+          dayMaxEventRows: 4,
+          headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: ''
+          },
+          events: (info, success) => {
+            const filtered = EVENTS.filter(ev => {
+              if(CURRENT_FILTER==='all') return true;
+              return (ev.status||'pending')===CURRENT_FILTER;
+            });
+            success(filtered);
+          },
+          eventDidMount(info){
+            // покраска
+            const st = (info.event.extendedProps.status||'pending');
+            info.el.style.background = statusColor(st);
+            info.el.style.borderColor = 'rgba(0,0,0,.06)';
+            info.el.style.color = '#111';
+            // tooltip-like title
+            info.el.setAttribute('title', `${info.event.title}\n${info.event.startStr}`);
+          },
+          eventDrop(info){
+            // перенос между днями
+            const e = EVENTS.find(x=>x.id==info.event.id);
+            if(!e) return;
+            e.start = info.event.start.toISOString().slice(0,19);
+            if(info.event.end) e.end = info.event.end.toISOString().slice(0,19);
+            saveEvents();
+            showToast('📆 Moved');
+          },
+          eventResize(info){
+            const e = EVENTS.find(x=>x.id==info.event.id);
+            if(!e) return;
+            e.end = info.event.end.toISOString().slice(0,19);
+            saveEvents();
+            showToast('↔ Resized');
+          },
+          dateClick(arg){
+            openAddModal({ date: arg.dateStr });
+          }
+        });
+        CAL.render();
+      
+        // Переключатели видов
+        document.getElementById('btnMonth').onclick=()=>CAL.changeView('dayGridMonth');
+        document.getElementById('btnWeek').onclick =()=>CAL.changeView('timeGridWeek');
+        document.getElementById('btnDay').onclick  =()=>CAL.changeView('timeGridDay');
+      
+        // Фильтры
+        document.querySelectorAll('.legend .btn').forEach(b=>{
+          b.addEventListener('click',()=>{
+            CURRENT_FILTER = b.dataset.filter;
+            CAL.refetchEvents();
+          });
+        });
+      
+        // Add / Clear
+        document.getElementById('btnAdd').onclick = ()=>openAddModal({});
+        document.getElementById('btnClear').onclick = ()=>{
+          if(confirm('Delete all tasks?')){
+            EVENTS = [];
+            saveEvents();
+            CAL.refetchEvents();
+          }
+        };
+      });
+      </script>
+      <script>
+        /* ===== Рендер модалки Add Event ===== */
+        function openAddModal(opts){
+          const tpl = document.getElementById('tpl-modal').content.cloneNode(true);
+          const modal = tpl.querySelector('.modal');
+        
+          // поля
+          const $ = (sel)=>modal.querySelector(sel);
+          const set = (f,val)=>{ const el = modal.querySelector(`[data-f="${f}"]`); if(el) el.value = val; };
+        
+          // заполним дни
+          const daysBox = modal.querySelector('#daysBox');
+          const selectedDays = new Set(); // числа 0..6
+          DOW.forEach((name,idx)=>{
+            const chip = document.createElement('button');
+            chip.type='button'; chip.className='chip'; chip.textContent=name;
+            chip.onclick=()=>{
+              if(selectedDays.has(idx)){ selectedDays.delete(idx); chip.classList.remove('active'); }
+              else { selectedDays.add(idx); chip.classList.add('active'); }
+            };
+            daysBox.appendChild(chip);
+          });
+        
+          // значения по умолчанию
+          const today = (opts.date || ymd(new Date()));
+          set('date', today);
+          set('repeatMode','one-off');
+          set('status','pending');
+        
+          // переключение end options
+          const endBox = modal.querySelector('#endControls');
+          const endModeSel = modal.querySelector('[data-f="endMode"]');
+          function syncEnd(){
+            endBox.querySelectorAll('[data-end]').forEach(e=>e.style.display='none');
+            const v = endModeSel.value;
+            const need = endBox.querySelector(`[data-end="${v}"]`);
+            if(need) need.style.display='';
+          }
+          endModeSel.onchange = syncEnd; syncEnd();
+        
+          // закрытие
+          modal.querySelectorAll('[data-close]').forEach(btn=>btn.onclick=()=>modal.remove());
+        
+          // сохранение
+          modal.querySelector('[data-save]').onclick = ()=>{
+            // собрать форму
+            const get = (f)=>modal.querySelector(`[data-f="${f}"]`)?.value||'';
+            const base = {
+              title: get('title')||'Task',
+              status: get('status')||'pending',
+              date: get('date')||today,
+              startTime: get('startTime')||'',
+              endTime: get('endTime')||'',
+              note: get('note')||'',
+              repeatMode: get('repeatMode'),
+              endMode: get('endMode'),
+              endCount: parseInt(get('endCount')||'0',10)||0,
+              endDate: get('endDate')||'',
+            };
+        
+            // построить инстансы событий
+            const instances = buildRecurrence(base, selectedDays);
+        
+            // добавить
+            for(const ev of instances){
+              EVENTS.push(ev);
+            }
+            saveEvents();
+            CAL.refetchEvents();
+            modal.remove();
+            showToast(`✅ Added ${instances.length} event${instances.length>1?'s':''}`);
+          };
+        
+          document.body.appendChild(modal);
+        }
+        
+        /* ===== Генератор повторений =====
+           Логика:
+           - one-off: 1 событие
+           - weekly: каждую выбранную неделю по выбранным дням; если дни не выбраны — используем день исходной даты
+           - monthly / quarterly / semiannual / yearly: создаём шаги + применяем выбранные дни недели,
+             если дней нет — повторяем по исходной дате.
+        */
+        function buildRecurrence(form, selectedDaysSet){
+          const results = [];
+          const idBase = Date.now();
+          const startDate = new Date(form.date+'T00:00:00');
+        
+          function makeEvent(dt){
+            const dateStr = ymd(dt);
+            let startISO = dateStr;
+            let endISO   = dateStr;
+        
+            let allDay = true;
+            if(form.startTime){
+              allDay = false;
+              startISO = `${dateStr}T${form.startTime}`;
+              if(form.endTime && form.endTime > form.startTime){
+                endISO = `${dateStr}T${form.endTime}`;
+              }else{
+                // +1 час по умолчанию
+                const d = new Date(`${dateStr}T${form.startTime}:00`);
+                d.setHours(d.getHours()+1);
+                endISO = d.toISOString().slice(0,16);
+              }
+            }
+        
+            return {
+              id: String(idBase + Math.floor(Math.random()*100000) + results.length),
+              title: makeTitle(form),
+              start: startISO,
+              end: endISO,
+              allDay,
+              status: form.status,
+              color: statusColor(form.status),
+              extendedProps:{
+                status: form.status,
+                note: form.note||'',
+              }
+            };
+          }
+        
+          function makeTitle(form){
+            const t = form.title||'Task';
+            if(form.startTime){
+              return `${t}  •  ${toAmPm(form.startTime)}`;
+            }
+            return t;
+          }
+        
+          // вычислим капы
+          let maxCount = 1;
+          let untilDate = null;
+        
+          switch(form.endMode){
+            case 'count':  maxCount = Math.max(1, Math.min(200, form.endCount||1)); break;
+            case 'date':   untilDate = new Date(form.endDate||form.date); break;
+            default:       maxCount = 200; // no end — защитный лимит
+          }
+        
+          // One-off
+          if(form.repeatMode==='one-off'){
+            results.push(makeEvent(startDate));
+            return results;
+          }
+        
+          // Weekly
+          if(form.repeatMode==='weekly'){
+            const selectedDays = [...selectedDaysSet];
+            if(selectedDays.length===0){
+              selectedDays.push(startDate.getDay());
+            }
+            // пойдём вперёд неделями
+            let weekStart = new Date(startDate);
+            let count = 0;
+            while(count < maxCount){
+              for(const wd of selectedDays){
+                const d = nextDateByWeekday(weekStart, wd);
+                if(untilDate && d>untilDate) return results;
+                results.push(makeEvent(d));
+                count++;
+                if(count>=maxCount) return results;
+              }
+              weekStart = addDays(weekStart, 7);
+            }
+            return results;
+          }
+        
+          // Monthly-like helpers (stepMonths = 1 / 3 / 6 / 12)
+          const step = form.repeatMode==='monthly' ? 1 :
+                       form.repeatMode==='quarterly' ? 3 :
+                       form.repeatMode==='semiannual' ? 6 :
+                       form.repeatMode==='yearly' ? 12 : 1;
+        
+          let iter = new Date(startDate);
+          let produced = 0;
+          while(produced < maxCount){
+            if(untilDate && iter>untilDate) break;
+        
+            const days = [...selectedDaysSet];
+            if(days.length===0){
+              // нет выбранных дней — повторяем по той же дате месяца
+              results.push(makeEvent(iter));
+              produced++;
+              if(produced>=maxCount) break;
+            } else {
+              // выбраны дни недели — находим в месяце ближайшие такие дни, начиная от iter
+              const monthStart = new Date(iter.getFullYear(), iter.getMonth(), 1);
+              let cursor = new Date(monthStart);
+              // 31 проверок хватит
+              for(let i=0;i<31;i++){
+                if(cursor.getMonth()!==monthStart.getMonth()) break;
+                if(days.includes(cursor.getDay())){
+                  if(!untilDate || cursor<=untilDate){
+                    results.push(makeEvent(cursor)); produced++;
+                    if(produced>=maxCount) break;
+                  }
+                }
+                cursor = addDays(cursor,1);
+              }
+            }
+            iter = addMonths(iter, step);
+          }
+        
+          return results;
+        }
+        </script>
+        <script>
+          /* ===== Микрооптимизация ===== */
+          (function perfGuards(){
+            // лёгкий анти-мигание: отключаем анимации на 300мс
+            const s = document.createElement('style');
+            s.textContent='*{animation:none!important;transition:color .12s ease,background .12s ease}';
+            document.head.appendChild(s);
+            setTimeout(()=>s.remove(), 300);
+          })();
+          </script>
+          
+          </body>
+          </html>
+          

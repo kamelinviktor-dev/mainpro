@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MainPro Calendar v72.2 – Gold Harmony UI</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- FullCalendar -->
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+
+  <style>
+    body {
+      background-color: #FDFBF6;
+      color: #2E2E2E;
+      font-family: "Inter", sans-serif;
+    }
+    .gold-btn {
+      background: linear-gradient(90deg, #C89E14, #F5B400);
+      color: white;
+      border-radius: 12px;
+      transition: all 0.3s ease;
+    }
+    .gold-btn:hover {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+    }
+    .toolbar-btn {
+      border: 1px solid #EAE6D8;
+      border-radius: 10px;
+      background-color: white;
+      transition: all 0.3s ease;
+    }
+    .toolbar-btn:hover {
+      background-color: #FFF8E8;
+      transform: scale(1.05);
+    }
+    .fc-event {
+      border-radius: 8px !important;
+      padding: 3px !important;
+      font-size: 13px !important;
+    }
+    .fadein {
+      animation: fadein 0.6s ease-out;
+    }
+    @keyframes fadein {
+      from { opacity: 0; transform: translateY(15px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- HEADER -->
+  <header class="w-full bg-white border-b border-yellow-200 shadow-[0_2px_10px_rgba(0,0,0,0.05)] fixed top-0 left-0 z-50 fadein">
+    <div class="max-w-7xl mx-auto flex items-center justify-between px-6 py-3">
+      <h1 class="text-2xl font-bold text-[#C89E14] flex items-center gap-2">
+        🛠️ MainPro Calendar
+      </h1>
+      <div class="flex gap-3 items-center">
+        <button class="gold-btn px-4 py-2 text-sm flex items-center gap-2">
+          📅 New Calendar
+        </button>
+        <button class="toolbar-btn px-4 py-2 flex items-center gap-2">
+          ⚙️ Settings
+        </button>
+        <button class="toolbar-btn px-4 py-2 flex items-center gap-2 text-purple-700 font-medium">
+          🤖 AI Chat
+        </button>
+        <button class="toolbar-btn px-4 py-2 flex items-center gap-2 text-blue-600 font-medium">
+          🔐 Login
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT -->
+  <main class="flex-1 w-full max-w-7xl mx-auto pt-24 pb-20 px-4 fadein">
+
+    <!-- FILTER BAR -->
+    <div class="flex flex-wrap items-center justify-between mb-6 gap-3">
+      <div class="flex flex-wrap gap-2">
+        <button class="toolbar-btn px-3 py-1 flex items-center gap-1"><span>🟡</span>Pending</button>
+        <button class="toolbar-btn px-3 py-1 flex items-center gap-1"><span>🟢</span>Done</button>
+        <button class="toolbar-btn px-3 py-1 flex items-center gap-1"><span>🔴</span>Missed</button>
+        <button class="toolbar-btn px-3 py-1 flex items-center gap-1"><span>✏️</span>All</button>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button class="toolbar-btn px-3 py-1 flex items-center gap-1">📆 Month</button>
+        <button class="toolbar-btn px-3 py-1 flex items-center gap-1">📅 Week</button>
+        <button class="toolbar-btn px-3 py-1 flex items-center gap-1">📅 Day</button>
+        <button class="gold-btn px-3 py-1 flex items-center gap-1">➕ Add Task</button>
+        <button class="toolbar-btn px-3 py-1 flex items-center gap-1 text-orange-600 font-medium">🧹 Clear All</button>
+        <button class="toolbar-btn px-3 py-1 flex items-center gap-1">📁 Documents</button>
+      </div>
+    </div>
+
+    <!-- SEARCH -->
+    <div class="flex justify-end mb-4">
+      <input type="text" placeholder="🔍 Search tasks..." class="border border-yellow-200 rounded-lg px-3 py-2 w-64 focus:border-yellow-400 outline-none bg-[#FFF8E8]" />
+    </div>
+
+    <!-- CALENDAR -->
+    <div id="calendar" class="bg-white border border-yellow-200 rounded-2xl shadow-md p-3"></div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="fixed bottom-4 left-1/2 -translate-x-1/2 bg-white/90 border border-yellow-200 shadow-lg rounded-full px-8 py-3 flex gap-6 backdrop-blur-md fadein">
+    <button class="text-[#C89E14] hover:scale-125 transition-transform" title="Documents">📁</button>
+    <button class="text-[#C89E14] hover:scale-125 transition-transform" title="Reports">📊</button>
+    <button class="text-[#C89E14] hover:scale-125 transition-transform" title="AI">🤖</button>
+    <button class="text-[#C89E14] hover:scale-125 transition-transform" title="Audit">🛡️</button>
+    <button class="text-[#C89E14] hover:scale-125 transition-transform" title="Emergency">🚨</button>
+  </footer>
+
+  <!-- SCRIPT -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const calendarEl = document.getElementById('calendar');
+      const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        height: 650,
+        headerToolbar: false,
+        events: [
+          { title: 'General inspection', start: '2025-10-04', color: '#F5B400' },
+          { title: 'Document findings', start: '2025-10-18', color: '#E67E22' },
+          { title: 'Update maintenance logs', start: '2025-10-18', color: '#2ECC71' },
+          { title: 'Team meeting', start: '2025-10-21', color: '#3498DB' }
+        ]
+      });
+      calendar.render();
+    });
+  </script>
+
+</body>
+</html>

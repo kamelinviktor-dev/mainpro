@@ -1,0 +1,437 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MainPro Calendar v75.8 – Smart Engine</title>
+
+  <!-- FullCalendar -->
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+
+  <style>
+    :root {
+      --pending: #facc15;
+      --done: #22c55e;
+      --missed: #ef4444;
+      --header: #ffde66;
+      --bg: #fffaf0;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      margin: 0;
+      background: var(--bg);
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--header);
+      padding: 10px 18px;
+      border-bottom: 2px solid #f2c94c;
+    }
+
+    header h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #7a5900;
+      margin: 0;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    button {
+      background: #facc15;
+      border: none;
+      border-radius: 6px;
+      padding: 6px 12px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    button:hover {
+      background: #eab308;
+    }
+
+    #calendar {
+      max-width: 1100px;
+      margin: 20px auto;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      padding: 10px;
+    }
+
+    /* Tooltip (всплывающее окно при наведении на задачу) */
+    .tooltip {
+      position: absolute;
+      background: #111;
+      color: white;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 13px;
+      pointer-events: none;
+      z-index: 9999;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>MainPro Calendar ⚙️</h1>
+    <div class="toolbar">
+      <button id="addTaskBtn">Add Task</button>
+      <button id="clearTasksBtn">Clear All Tasks</button>
+    </div>
+  </header>
+
+  <div id="calendar"></div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const STORAGE_KEY = 'mainpro_calendar_tasks_v75_8_smart';
+
+      const statusColors = {
+        pending: getComputedStyle(document.documentElement).getPropertyValue('--pending')?.trim() || '#facc15',
+        done: getComputedStyle(document.documentElement).getPropertyValue('--done')?.trim() || '#22c55e',
+        missed: getComputedStyle(document.documentElement).getPropertyValue('--missed')?.trim() || '#ef4444'
+      };
+
+      const calendarEl = document.getElementById('calendar');
+      const addTaskBtn = document.getElementById('addTaskBtn');
+      const clearTasksBtn = document.getElementById('clearTasksBtn');
+      let tooltipEl = null;
+
+      let tasks = loadTasks();
+
+      const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        height: 'auto',
+        selectable: true,
+        editable: true,
+        dayMaxEvents: true,
+        headerToolbar: {
+          left: 'prev,next today',
+          center: 'title',
+          right: 'dayGridMonth,timeGridWeek,timeGridDay'
+        },
+        events: [],
+        dateClick(info) {
+          openTaskModal({ defaultDate: info.dateStr });
+        },
+        eventClick(info) {
+          info.jsEvent.preventDefault();
+          openTaskModal({ event: info.event });
+        },
+        eventDrop(info) {
+          persistEvent(info.event);
+        },
+        eventResize(info) {
+          persistEvent(info.event);
+        },
+        eventMouseEnter(info) {
+          showTooltip(info);
+        },
+        eventMouseLeave() {
+          hideTooltip();
+        }
+      });
+
+      calendar.render();
+      renderTasks();
+
+      addTaskBtn.addEventListener('click', () => openTaskModal({}));
+
+      clearTasksBtn.addEventListener('click', () => {
+        if (!tasks.length) {
+          alert('No tasks to clear.');
+          return;
+        }
+        if (confirm('Clear all tasks from the calendar?')) {
+          tasks = [];
+          saveTasks();
+          calendar.removeAllEvents();
+        }
+      });
+
+      function loadTasks() {
+        try {
+          const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+          return Array.isArray(stored) ? stored : [];
+        } catch (err) {
+          console.warn('Unable to parse stored tasks', err);
+          return [];
+        }
+      }
+
+      function saveTasks() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+      }
+
+      function renderTasks() {
+        calendar.removeAllEvents();
+        tasks.forEach(task => addEvent(task));
+      }
+
+      function addEvent(task) {
+        calendar.addEvent({
+          id: task.id,
+          title: task.title,
+          start: task.start,
+          end: task.end,
+          allDay: task.allDay,
+          backgroundColor: statusColors[task.status] || statusColors.pending,
+          borderColor: statusColors[task.status] || statusColors.pending,
+          extendedProps: {
+            status: task.status,
+            notes: task.notes
+          }
+        });
+      }
+
+      function persistEvent(event) {
+        const idx = tasks.findIndex(t => t.id === event.id);
+        if (idx === -1) return;
+
+        tasks[idx] = {
+          ...tasks[idx],
+          start: serializeDate(event.start, event.allDay),
+          end: event.end ? serializeDate(event.end, event.allDay) : tasks[idx].end,
+          allDay: event.allDay
+        };
+        saveTasks();
+        renderTasks();
+      }
+
+      function serializeDate(date, allDay) {
+        if (!date) return null;
+        const iso = date.toISOString();
+        return allDay ? iso.slice(0, 10) : iso.slice(0, 16);
+      }
+
+      function openTaskModal({ defaultDate, event }) {
+        const editingTask = event ? tasks.find(t => t.id === event.id) : null;
+
+        const overlay = document.createElement('div');
+        overlay.style.position = 'fixed';
+        overlay.style.inset = '0';
+        overlay.style.background = 'rgba(17, 24, 39, 0.55)';
+        overlay.style.display = 'flex';
+        overlay.style.alignItems = 'center';
+        overlay.style.justifyContent = 'center';
+        overlay.style.padding = '20px';
+        overlay.style.zIndex = '9999';
+
+        overlay.innerHTML = `
+          <form style="
+            background:#fff;
+            border-radius:16px;
+            width:100%;
+            max-width:420px;
+            padding:22px 24px;
+            display:grid;
+            gap:16px;
+            box-shadow:0 20px 55px rgba(15,23,42,.25);
+            font-family:inherit;
+          ">
+            <header style="display:flex;justify-content:space-between;align-items:center;">
+              <h2 style="margin:0;font-size:1.1rem;font-weight:700;color:#7a5900;">
+                ${editingTask ? 'Edit Task' : 'Add Task'}
+              </h2>
+              <button type="button" data-close style="
+                border:none;background:transparent;font-size:1.4rem;
+                cursor:pointer;color:#7a5900;padding:0 4px;
+              ">&times;</button>
+            </header>
+
+            <label style="display:grid;gap:6px;font-size:14px;color:#4b5563;">
+              <span style="font-weight:600;text-transform:uppercase;font-size:11px;">Title</span>
+              <input name="title" type="text" required placeholder="Service visit, meeting…"
+                style="padding:10px 12px;border-radius:10px;border:1px solid #e2e8f0;font-size:15px;">
+            </label>
+
+            <label style="display:grid;gap:6px;font-size:14px;color:#4b5563;">
+              <span style="font-weight:600;text-transform:uppercase;font-size:11px;">Date</span>
+              <input name="date" type="date" required
+                style="padding:10px 12px;border-radius:10px;border:1px solid #e2e8f0;font-size:15px;">
+            </label>
+
+            <div style="display:flex;gap:12px;">
+              <label style="flex:1;display:grid;gap:6px;font-size:14px;color:#4b5563;">
+                <span style="font-weight:600;text-transform:uppercase;font-size:11px;">Start</span>
+                <input name="start" type="time"
+                  style="padding:10px 12px;border-radius:10px;border:1px solid #e2e8f0;font-size:15px;">
+              </label>
+              <label style="flex:1;display:grid;gap:6px;font-size:14px;color:#4b5563;">
+                <span style="font-weight:600;text-transform:uppercase;font-size:11px;">End</span>
+                <input name="end" type="time"
+                  style="padding:10px 12px;border-radius:10px;border:1px solid #e2e8f0;font-size:15px;">
+              </label>
+            </div>
+
+            <label style="display:grid;gap:6px;font-size:14px;color:#4b5563;">
+              <span style="font-weight:600;text-transform:uppercase;font-size:11px;">Status</span>
+              <select name="status"
+                style="padding:10px 12px;border-radius:10px;border:1px solid #e2e8f0;font-size:15px;">
+                <option value="pending">Pending</option>
+                <option value="done">Done</option>
+                <option value="missed">Missed</option>
+              </select>
+            </label>
+
+            <label style="display:grid;gap:6px;font-size:14px;color:#4b5563;">
+              <span style="font-weight:600;text-transform:uppercase;font-size:11px;">Notes</span>
+              <textarea name="notes" rows="3" placeholder="Optional details"
+                style="padding:10px 12px;border-radius:10px;border:1px solid #e2e8f0;font-size:15px;"></textarea>
+            </label>
+
+            <div style="display:flex;justify-content:flex-end;gap:10px;">
+              <button type="button" data-close style="
+                background:#f1f5f9;color:#475569;border:none;border-radius:10px;
+                padding:10px 16px;font-weight:600;cursor:pointer;
+              ">Cancel</button>
+              <button type="submit" style="
+                background:#facc15;color:#7a5900;border:none;border-radius:10px;
+                padding:10px 16px;font-weight:700;cursor:pointer;
+              ">${editingTask ? 'Update Task' : 'Save Task'}</button>
+            </div>
+          </form>
+        `;
+
+        const form = overlay.querySelector('form');
+        const closeButtons = overlay.querySelectorAll('[data-close]');
+
+        if (editingTask) {
+          form.elements.title.value = editingTask.title;
+          form.elements.date.value = editingTask.start.slice(0, 10);
+          form.elements.status.value = editingTask.status;
+          if (!editingTask.allDay && editingTask.start.length >= 16) {
+            form.elements.start.value = editingTask.start.slice(11, 16);
+          }
+          if (!editingTask.allDay && editingTask.end && editingTask.end.length >= 16) {
+            form.elements.end.value = editingTask.end.slice(11, 16);
+          }
+          form.elements.notes.value = editingTask.notes || '';
+        } else if (defaultDate) {
+          form.elements.date.value = defaultDate;
+        } else {
+          form.elements.date.value = new Date().toISOString().slice(0, 10);
+        }
+
+        document.body.appendChild(overlay);
+        form.elements.title.focus({ preventScroll: true });
+
+        const removeOverlay = () => {
+          overlay.remove();
+        };
+
+        closeButtons.forEach(btn => btn.addEventListener('click', removeOverlay));
+
+        overlay.addEventListener('click', evt => {
+          if (evt.target === overlay) removeOverlay();
+        });
+
+        overlay.addEventListener('keydown', evt => {
+          if (evt.key === 'Escape') {
+            evt.preventDefault();
+            removeOverlay();
+          }
+        });
+
+        form.addEventListener('submit', evt => {
+          evt.preventDefault();
+          const data = new FormData(form);
+          const title = data.get('title').trim();
+          const date = data.get('date');
+          const startTime = data.get('start');
+          const endTime = data.get('end');
+          const status = data.get('status');
+          const notes = data.get('notes').trim();
+
+          if (!title || !date) {
+            alert('Title and date are required.');
+            return;
+          }
+
+          const allDay = !startTime;
+          const start = allDay ? date : `${date}T${startTime}`;
+          let end = allDay ? date : (endTime ? `${date}T${endTime}` : null);
+          if (!allDay && end && end <= start) {
+            const fallback = new Date(`${date}T${startTime}:00`);
+            fallback.setHours(fallback.getHours() + 1);
+            end = `${fallback.toISOString().slice(0, 10)}T${fallback.toISOString().slice(11, 16)}`;
+          }
+
+          const payload = {
+            id: editingTask ? editingTask.id : createId(),
+            title,
+            start,
+            end: end || start,
+            allDay,
+            status,
+            notes
+          };
+
+          if (editingTask) {
+            tasks = tasks.map(task => task.id === payload.id ? payload : task);
+          } else {
+            tasks.push(payload);
+          }
+
+          saveTasks();
+          renderTasks();
+          removeOverlay();
+        });
+      }
+
+      function createId() {
+        return `task_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+      }
+
+      function showTooltip(info) {
+        const { event, jsEvent } = info;
+        const notes = event.extendedProps?.notes;
+        if (!notes) return;
+
+        if (!tooltipEl) {
+          tooltipEl = document.createElement('div');
+          tooltipEl.className = 'tooltip';
+          document.body.appendChild(tooltipEl);
+        }
+
+        tooltipEl.textContent = notes;
+        tooltipEl.style.display = 'block';
+        positionTooltip(jsEvent);
+      }
+
+      function positionTooltip(evt) {
+        if (!tooltipEl) return;
+        const padding = 12;
+        const x = evt.pageX + padding;
+        const y = evt.pageY + padding;
+        tooltipEl.style.left = `${x}px`;
+        tooltipEl.style.top = `${y}px`;
+      }
+
+      function hideTooltip() {
+        if (tooltipEl) {
+          tooltipEl.style.display = 'none';
+        }
+      }
+
+      document.addEventListener('mousemove', evt => {
+        if (tooltipEl && tooltipEl.style.display === 'block') {
+          positionTooltip(evt);
+        }
+      });
+    });
+  </script>
+</body>
+</html>
+

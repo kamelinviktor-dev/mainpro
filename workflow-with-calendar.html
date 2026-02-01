@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workflow with Real Calendar</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .calendar-day {
+            border: 1px solid #e5e7eb;
+            min-height: 100px;
+            padding: 8px;
+        }
+        .calendar-day.today {
+            background-color: #eff6ff;
+            border-color: #3b82f6;
+        }
+        .event-item {
+            background: #f3f4f6;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            padding: 4px 8px;
+            margin: 2px 0;
+            font-size: 12px;
+        }
+        .event-item.high {
+            background: #fef2f2;
+            border-color: #fca5a5;
+        }
+        .event-item.medium {
+            background: #fffbeb;
+            border-color: #fcd34d;
+        }
+        .event-item.low {
+            background: #f0fdf4;
+            border-color: #86efac;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+
+        function WorkflowWithCalendar() {
+            const [workflow, setWorkflow] = useState(null);
+            const [events, setEvents] = useState([]);
+            const [showCalendar, setShowCalendar] = useState(false);
+
+            function generateWorkflow() {
+                const workflow = {
+                    name: "План проверки безопасности",
+                    tasks: [
+                        { name: "Проверить пожарные датчики", category: "Fire Safety", priority: "high" },
+                        { name: "Тестировать аварийное освещение", category: "Fire Safety", priority: "high" },
+                        { name: "Осмотреть аварийные выходы", category: "Fire Safety", priority: "high" },
+                        { name: "Проверить огнетушители", category: "Fire Safety", priority: "medium" },
+                        { name: "Проверить HVAC фильтры", category: "HVAC", priority: "low" },
+                        { name: "Тестировать электрические панели", category: "Electrical", priority: "medium" },
+                        { name: "Проверить систему видеонаблюдения", category: "CCTV", priority: "low" },
+                        { name: "Тестировать систему контроля доступа", category: "Security", priority: "medium" }
+                    ]
+                };
+                setWorkflow(workflow);
+            }
+
+            function applyToCalendar() {
+                const today = new Date();
+                today.setHours(9, 0, 0, 0);
+                
+                const newEvents = workflow.tasks.map((task, index) => {
+                    const dayOffset = Math.floor(index / 3);
+                    const hourOffset = (index % 3) * 3;
+                    
+                    const taskDate = new Date(today);
+                    taskDate.setDate(today.getDate() + dayOffset);
+                    taskDate.setHours(9 + hourOffset, 0, 0, 0);
+                    
+                    const endDate = new Date(taskDate);
+                    endDate.setHours(taskDate.getHours() + 2);
+                    
+                    return {
+                        id: Date.now() + index,
+                        title: task.name,
+                        start: taskDate.toISOString(),
+                        end: endDate.toISOString(),
+                        category: task.category,
+                        priority: task.priority
+                    };
+                });
+                
+                setEvents(newEvents);
+                setShowCalendar(true);
+            }
+
+            function getDayEvents(dayOffset) {
+                return events.filter(event => {
+                    const eventDate = new Date(event.start);
+                    const today = new Date();
+                    const targetDate = new Date(today);
+                    targetDate.setDate(today.getDate() + dayOffset);
+                    
+                    return eventDate.toDateString() === targetDate.toDateString();
+                });
+            }
+
+            function getDayName(dayOffset) {
+                const today = new Date();
+                const targetDate = new Date(today);
+                targetDate.setDate(today.getDate() + dayOffset);
+                
+                if (dayOffset === 0) return 'Сегодня';
+                if (dayOffset === 1) return 'Завтра';
+                return `День ${dayOffset + 1}`;
+            }
+
+            return (
+                <div className="p-6 max-w-6xl mx-auto">
+                    <h1 className="text-3xl font-bold mb-6 text-center">📅 AI Workflow с реальным календарем</h1>
+                    
+                    {/* Workflow Generation */}
+                    {!workflow && (
+                        <div className="text-center mb-8">
+                            <div className="p-6 bg-blue-50 rounded-lg">
+                                <h2 className="text-xl font-semibold mb-4">Создайте план задач</h2>
+                                <p className="text-gray-600 mb-4">AI Workflow Builder создаст план и добавит его в календарь</p>
+                                <button
+                                    onClick={generateWorkflow}
+                                    className="px-8 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-lg"
+                                >
+                                    🧠 Создать план безопасности
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Workflow Review */}
+                    {workflow && !showCalendar && (
+                        <div className="mb-8">
+                            <div className="p-6 bg-green-50 rounded-lg">
+                                <h2 className="text-xl font-semibold mb-4">✅ План создан!</h2>
+                                <p className="text-gray-600 mb-4">AI сгенерировал {workflow.tasks.length} задач</p>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                    {workflow.tasks.map((task, index) => (
+                                        <div key={index} className="flex items-center gap-2 p-3 bg-white rounded border">
+                                            <span className="text-blue-500">•</span>
+                                            <div className="flex-1">
+                                                <div className="font-medium">{task.name}</div>
+                                                <div className="text-xs text-gray-500">{task.category}</div>
+                                            </div>
+                                            <span className={`px-2 py-1 rounded text-xs ${
+                                                task.priority === 'high' ? 'bg-red-100 text-red-800' :
+                                                task.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                                                'bg-green-100 text-green-800'
+                                            }`}>
+                                                {task.priority}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                                
+                                <button
+                                    onClick={applyToCalendar}
+                                    className="px-8 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 text-lg"
+                                >
+                                    📅 Применить к календарю
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Calendar View */}
+                    {showCalendar && (
+                        <div>
+                            <div className="mb-6 p-4 bg-yellow-50 rounded-lg">
+                                <h2 className="text-xl font-semibold mb-2">🎉 Задачи добавлены в календарь!</h2>
+                                <p className="text-gray-600">Все {events.length} задач распределены по дням и времени</p>
+                            </div>
+
+                            {/* Calendar Grid */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                {[0, 1, 2].map(dayOffset => {
+                                    const dayEvents = getDayEvents(dayOffset);
+                                    const today = new Date();
+                                    const isToday = dayOffset === 0;
+                                    
+                                    return (
+                                        <div key={dayOffset} className={`calendar-day ${isToday ? 'today' : ''}`}>
+                                            <div className="font-semibold mb-2 text-center">
+                                                {getDayName(dayOffset)}
+                                            </div>
+                                            <div className="text-xs text-gray-500 text-center mb-3">
+                                                {new Date(today.getTime() + dayOffset * 24 * 60 * 60 * 1000).toLocaleDateString('ru-RU')}
+                                            </div>
+                                            
+                                            {dayEvents.length > 0 ? (
+                                                <div className="space-y-1">
+                                                    {dayEvents.map(event => {
+                                                        const start = new Date(event.start);
+                                                        const time = start.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                                                        
+                                                        return (
+                                                            <div key={event.id} className={`event-item ${event.priority}`}>
+                                                                <div className="font-medium text-xs">{event.title}</div>
+                                                                <div className="text-xs text-gray-500">{time} - {event.category}</div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            ) : (
+                                                <div className="text-center text-gray-400 text-sm py-4">
+                                                    Нет задач
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Summary */}
+                            <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                                <h3 className="font-semibold mb-2">📊 Распределение задач:</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                                    {[0, 1, 2].map(dayOffset => {
+                                        const dayEvents = getDayEvents(dayOffset);
+                                        return (
+                                            <div key={dayOffset} className="text-center">
+                                                <div className="font-medium">{getDayName(dayOffset)}</div>
+                                                <div className="text-gray-600">{dayEvents.length} задач</div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Reset Button */}
+                            <div className="mt-6 text-center">
+                                <button
+                                    onClick={() => {
+                                        setWorkflow(null);
+                                        setEvents([]);
+                                        setShowCalendar(false);
+                                    }}
+                                    className="px-6 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+                                >
+                                    🔄 Создать новый план
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Instructions */}
+                    <div className="mt-8 p-4 bg-gray-50 rounded-lg">
+                        <h3 className="font-medium mb-2">📋 Как это работает в MainPro:</h3>
+                        <ol className="text-sm space-y-1 list-decimal list-inside">
+                            <li>Откройте MainPro Calendar (http://localhost:3000/index.html)</li>
+                            <li>Нажмите кнопку "🧬 AI Workflow" в главном меню</li>
+                            <li>Выберите шаблон или введите свой запрос</li>
+                            <li>Нажмите "🚀 Generate" для создания плана</li>
+                            <li>Нажмите "✅ Apply" чтобы добавить задачи в календарь</li>
+                            <li>Задачи появятся в календаре с правильным расписанием</li>
+                        </ol>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<WorkflowWithCalendar />, document.getElementById('root'));
+    </script>
+</body>
+</html>

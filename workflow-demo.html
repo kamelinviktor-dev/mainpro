@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Workflow Demo - Step by Step</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .step {
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 8px 0;
+            transition: all 0.3s ease;
+        }
+        .step.active {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+        }
+        .step.completed {
+            border-color: #10b981;
+            background-color: #f0fdf4;
+        }
+        .task-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            margin: 4px 0;
+            background: white;
+            border-radius: 4px;
+            border: 1px solid #e5e7eb;
+        }
+        .time-badge {
+            background: #dbeafe;
+            color: #1e40af;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+        .day-badge {
+            background: #dcfce7;
+            color: #166534;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+
+        function WorkflowDemo() {
+            const [currentStep, setCurrentStep] = useState(0);
+            const [workflow, setWorkflow] = useState(null);
+            const [calendarEvents, setCalendarEvents] = useState([]);
+
+            const steps = [
+                {
+                    title: "1. Откройте AI Workflow Builder",
+                    description: "Нажмите кнопку '🧬 AI Workflow' в главном меню",
+                    action: () => setCurrentStep(1)
+                },
+                {
+                    title: "2. Выберите шаблон или введите свой запрос",
+                    description: "Можете использовать готовые шаблоны или написать свой запрос",
+                    action: () => {
+                        setWorkflow({
+                            name: "План пожарной безопасности",
+                            tasks: [
+                                { name: "Проверить пожарные датчики", category: "Fire Safety", priority: "high" },
+                                { name: "Тестировать аварийное освещение", category: "Fire Safety", priority: "high" },
+                                { name: "Осмотреть аварийные выходы", category: "Fire Safety", priority: "high" },
+                                { name: "Проверить огнетушители", category: "Fire Safety", priority: "medium" },
+                                { name: "Тестировать панель управления", category: "Fire Safety", priority: "medium" },
+                                { name: "Проверить HVAC фильтры", category: "HVAC", priority: "low" }
+                            ]
+                        });
+                        setCurrentStep(2);
+                    }
+                },
+                {
+                    title: "3. AI генерирует план задач",
+                    description: "Система создает список задач с приоритетами и категориями",
+                    action: () => setCurrentStep(3)
+                },
+                {
+                    title: "4. Просмотрите расписание",
+                    description: "Каждая задача автоматически распределяется по дням и времени",
+                    action: () => setCurrentStep(4)
+                },
+                {
+                    title: "5. Примените к календарю",
+                    description: "Нажмите 'Apply' чтобы добавить все задачи в календарь",
+                    action: () => {
+                        const today = new Date();
+                        today.setHours(9, 0, 0, 0);
+                        
+                        const events = workflow.tasks.map((task, index) => {
+                            const dayOffset = Math.floor(index / 3);
+                            const hourOffset = (index % 3) * 3;
+                            
+                            const taskDate = new Date(today);
+                            taskDate.setDate(today.getDate() + dayOffset);
+                            taskDate.setHours(9 + hourOffset, 0, 0, 0);
+                            
+                            const endDate = new Date(taskDate);
+                            endDate.setHours(taskDate.getHours() + 2);
+                            
+                            return {
+                                id: Date.now() + index,
+                                title: task.name,
+                                start: taskDate.toISOString(),
+                                end: endDate.toISOString(),
+                                category: task.category,
+                                priority: task.priority
+                            };
+                        });
+                        
+                        setCalendarEvents(events);
+                        setCurrentStep(5);
+                    }
+                }
+            ];
+
+            function showToast(message) {
+                alert(message);
+            }
+
+            return (
+                <div className="p-6 max-w-4xl mx-auto">
+                    <h1 className="text-3xl font-bold mb-6 text-center">🧬 AI Workflow Builder - Демо</h1>
+                    
+                    {/* Progress Bar */}
+                    <div className="mb-8">
+                        <div className="flex justify-between items-center mb-2">
+                            {steps.map((_, index) => (
+                                <div key={index} className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                                    index <= currentStep ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-600'
+                                }`}>
+                                    {index + 1}
+                                </div>
+                            ))}
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div 
+                                className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                                style={{ width: `${(currentStep + 1) * 20}%` }}
+                            ></div>
+                        </div>
+                    </div>
+
+                    {/* Steps */}
+                    <div className="space-y-4">
+                        {steps.map((step, index) => (
+                            <div 
+                                key={index}
+                                className={`step ${index === currentStep ? 'active' : index < currentStep ? 'completed' : ''}`}
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h3 className="text-lg font-semibold mb-2">{step.title}</h3>
+                                        <p className="text-gray-600 mb-3">{step.description}</p>
+                                        
+                                        {index === 1 && workflow && (
+                                            <div className="bg-blue-50 p-3 rounded-lg">
+                                                <h4 className="font-medium mb-2">Сгенерированный план:</h4>
+                                                <div className="space-y-1">
+                                                    {workflow.tasks.map((task, i) => (
+                                                        <div key={i} className="text-sm">
+                                                            • {task.name} <span className="text-blue-600">({task.category})</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                        
+                                        {index === 3 && workflow && (
+                                            <div className="bg-green-50 p-3 rounded-lg">
+                                                <h4 className="font-medium mb-2">Расписание задач:</h4>
+                                                <div className="space-y-1">
+                                                    {workflow.tasks.map((task, i) => {
+                                                        const dayOffset = Math.floor(i / 3);
+                                                        const hourOffset = (i % 3) * 3;
+                                                        const taskDate = new Date();
+                                                        taskDate.setDate(taskDate.getDate() + dayOffset);
+                                                        taskDate.setHours(9 + hourOffset, 0, 0, 0);
+                                                        
+                                                        const dayNames = ['Сегодня', 'Завтра', 'День 3'];
+                                                        const day = dayNames[dayOffset] || `День ${dayOffset + 1}`;
+                                                        const time = taskDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                                                        
+                                                        return (
+                                                            <div key={i} className="task-item">
+                                                                <span className="text-blue-500">•</span>
+                                                                <div className="flex-1">
+                                                                    <div className="font-medium">{task.name}</div>
+                                                                    <div className="flex gap-2 mt-1">
+                                                                        <span className="day-badge">{day}</span>
+                                                                        <span className="time-badge">{time}</span>
+                                                                        <span className="text-xs text-gray-500">{task.category}</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+                                        
+                                        {index === 4 && calendarEvents.length > 0 && (
+                                            <div className="bg-yellow-50 p-3 rounded-lg">
+                                                <h4 className="font-medium mb-2">Добавлено в календарь:</h4>
+                                                <div className="text-sm text-gray-600">
+                                                    {calendarEvents.length} событий добавлено в календарь
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                    
+                                    {index === currentStep && (
+                                        <button
+                                            onClick={step.action}
+                                            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                                        >
+                                            {index === 4 ? 'Применить к календарю' : 'Далее'}
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Summary */}
+                    {currentStep === 5 && (
+                        <div className="mt-8 p-6 bg-green-50 rounded-lg">
+                            <h2 className="text-xl font-bold mb-4 text-green-800">🎉 Готово! Вот как это работает:</h2>
+                            <div className="space-y-3 text-sm">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-green-500">✅</span>
+                                    <span>AI Workflow Builder создает план задач из вашего описания</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-green-500">✅</span>
+                                    <span>Система автоматически распределяет задачи по дням и времени</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-green-500">✅</span>
+                                    <span>Все задачи добавляются в календарь с правильным расписанием</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-green-500">✅</span>
+                                    <span>Вы можете использовать готовые шаблоны или создать свой план</span>
+                                </div>
+                            </div>
+                            
+                            <div className="mt-4 p-4 bg-white rounded border">
+                                <h3 className="font-medium mb-2">📅 Результат в календаре:</h3>
+                                <div className="text-xs space-y-1">
+                                    {calendarEvents.map((event, i) => {
+                                        const start = new Date(event.start);
+                                        const day = start.toLocaleDateString('ru-RU');
+                                        const time = start.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                                        return (
+                                            <div key={i} className="flex justify-between">
+                                                <span>{event.title}</span>
+                                                <span className="text-gray-500">{day} {time}</span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Reset Button */}
+                    <div className="mt-8 text-center">
+                        <button
+                            onClick={() => {
+                                setCurrentStep(0);
+                                setWorkflow(null);
+                                setCalendarEvents([]);
+                            }}
+                            className="px-6 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+                        >
+                            🔄 Начать заново
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<WorkflowDemo />, document.getElementById('root'));
+    </script>
+</body>
+</html>

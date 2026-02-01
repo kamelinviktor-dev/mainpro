@@ -1,0 +1,577 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MainPro Calendar v75.8 – Smart Engine</title>
+
+  <!-- FullCalendar -->
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+
+  <style>
+    :root {
+      --pending: #facc15;
+      --done: #22c55e;
+      --missed: #ef4444;
+      --header: #ffde66;
+      --bg: #fffaf0;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      margin: 0;
+      background: var(--bg);
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--header);
+      padding: 10px 18px;
+      border-bottom: 2px solid #f2c94c;
+    }
+
+    header h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #7a5900;
+      margin: 0;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    button {
+      background: #facc15;
+      border: none;
+      border-radius: 6px;
+      padding: 6px 12px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    button:hover {
+      background: #eab308;
+    }
+
+    #calendar {
+      max-width: 1100px;
+      margin: 20px auto;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      padding: 10px;
+    }
+
+    /* Tooltip (всплывающее окно при наведении на задачу) */
+    .tooltip {
+      position: absolute;
+      background: #111;
+      color: white;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 13px;
+      pointer-events: none;
+      z-index: 9999;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>MainPro Calendar ⚙️</h1>
+    <div class="toolbar">
+      <button id="addTaskBtn">Add Task</button>
+      <button id="clearTasksBtn">Clear All Tasks</button>
+    </div>
+  </header>
+
+  <div id="calendar"></div>
+
+  <!-- === MODAL === -->
+  <div id="taskModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:9999; align-items:center; justify-content:center;">
+    <div style="background:#fff; border-radius:12px; width:420px; max-width:90%; padding:20px; box-shadow:0 4px 20px rgba(0,0,0,0.2);">
+      <h2 style="margin-top:0; color:#7a5900;">Add New Task</h2>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <input id="taskTitle" type="text" placeholder="Task Title" style="padding:8px; border-radius:6px; border:1px solid #ccc;">
+        <textarea id="taskDesc" placeholder="Description" rows="2" style="padding:8px; border-radius:6px; border:1px solid #ccc;"></textarea>
+        <label>Date:</label>
+        <input id="taskDate" type="date" style="padding:8px; border-radius:6px; border:1px solid #ccc;">
+        <div style="display:flex; gap:10px;">
+          <div style="flex:1;">
+            <label>Start Time:</label>
+            <input id="taskStart" type="time" style="padding:8px; border-radius:6px; border:1px solid #ccc;">
+          </div>
+          <div style="flex:1;">
+            <label>End Time:</label>
+            <input id="taskEnd" type="time" style="padding:8px; border-radius:6px; border:1px solid #ccc;">
+          </div>
+        </div>
+        <label>Status:</label>
+        <select id="taskStatus" style="padding:8px; border-radius:6px; border:1px solid #ccc;">
+          <option value="pending">🟡 Pending</option>
+          <option value="done">🟢 Done</option>
+          <option value="missed">🔴 Missed</option>
+        </select>
+        <label>Repeat:</label>
+        <select id="taskRepeat" style="padding:8px; border-radius:6px; border:1px solid #ccc;">
+          <option value="none">None</option>
+          <option value="weekly">Weekly</option>
+          <option value="monthly">Monthly</option>
+          <option value="quarterly">Every 3 Months</option>
+          <option value="halfyear">Every 6 Months</option>
+          <option value="yearly">Yearly</option>
+        </select>
+      </div>
+
+      <div style="margin-top:16px; text-align:right;">
+        <button type="button" id="cancelTask" style="padding:8px 12px; border:none; border-radius:6px; background:#ccc; margin-right:6px;">Cancel</button>
+        <button type="button" id="saveTask" style="padding:8px 12px; border:none; border-radius:6px; background:#facc15; font-weight:600;">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const STORAGE_KEY = 'mainpro_calendar_tasks_v75_8_smart';
+
+      const statusColors = {
+        pending: getComputedStyle(document.documentElement).getPropertyValue('--pending')?.trim() || '#facc15',
+        done: getComputedStyle(document.documentElement).getPropertyValue('--done')?.trim() || '#22c55e',
+        missed: getComputedStyle(document.documentElement).getPropertyValue('--missed')?.trim() || '#ef4444'
+      };
+
+      const calendarEl = document.getElementById('calendar');
+      const addTaskBtn = document.getElementById('addTaskBtn');
+      const clearTasksBtn = document.getElementById('clearTasksBtn');
+      const taskModal = document.getElementById('taskModal');
+      const saveTaskBtn = document.getElementById('saveTask');
+      const cancelTaskBtn = document.getElementById('cancelTask');
+      const titleInput = document.getElementById('taskTitle');
+      const descInput = document.getElementById('taskDesc');
+      const dateInput = document.getElementById('taskDate');
+      const startInput = document.getElementById('taskStart');
+      const endInput = document.getElementById('taskEnd');
+      const statusInput = document.getElementById('taskStatus');
+      const repeatInput = document.getElementById('taskRepeat');
+      let tooltipEl = null;
+      let editingTaskId = null;
+      let lastFocusElement = null;
+
+      let tasks = loadTasks();
+
+      const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        height: 'auto',
+        selectable: true,
+        editable: true,
+        dayMaxEvents: true,
+        headerToolbar: {
+          left: 'prev,next today',
+          center: 'title',
+          right: 'dayGridMonth,timeGridWeek,timeGridDay'
+        },
+        events: [],
+        dateClick(info) {
+          openTaskModal({ defaultDate: info.dateStr });
+        },
+        eventClick(info) {
+          info.jsEvent.preventDefault();
+          openTaskModal({ event: info.event });
+        },
+        eventDrop(info) {
+          persistEvent(info.event);
+        },
+        eventResize(info) {
+          persistEvent(info.event);
+        },
+        eventMouseEnter(info) {
+          showTooltip(info);
+        },
+        eventMouseLeave() {
+          hideTooltip();
+        }
+      });
+
+      calendar.render();
+      renderTasks();
+
+      addTaskBtn.addEventListener('click', () => openTaskModal({}));
+
+      cancelTaskBtn.addEventListener('click', () => closeTaskModal());
+      saveTaskBtn.addEventListener('click', handleSave);
+
+      taskModal.addEventListener('click', evt => {
+        if (evt.target === taskModal) {
+          closeTaskModal();
+        }
+      });
+
+      taskModal.addEventListener('keydown', evt => {
+        if (!isModalOpen()) return;
+        if (evt.key === 'Enter' && evt.target.tagName !== 'TEXTAREA') {
+          evt.preventDefault();
+          handleSave();
+        }
+      });
+
+      document.addEventListener('keydown', evt => {
+        if (evt.key === 'Escape' && isModalOpen()) {
+          evt.preventDefault();
+          closeTaskModal();
+        }
+      });
+
+      clearTasksBtn.addEventListener('click', () => {
+        if (!tasks.length) {
+          alert('No tasks to clear.');
+          return;
+        }
+        if (confirm('Clear all tasks from the calendar?')) {
+          tasks = [];
+          saveTasks();
+          calendar.removeAllEvents();
+          if (isModalOpen()) {
+            closeTaskModal();
+          }
+        }
+      });
+
+      function loadTasks() {
+        try {
+          const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+          return Array.isArray(stored) ? stored : [];
+        } catch (err) {
+          console.warn('Unable to parse stored tasks', err);
+          return [];
+        }
+      }
+
+      function saveTasks() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+      }
+
+      function renderTasks() {
+        calendar.removeAllEvents();
+        let updated = false;
+        tasks.forEach(task => {
+          const status = task.status || 'pending';
+          const repeat = task.repeat || 'none';
+          const allDay = typeof task.allDay === 'undefined' ? !(task.start && task.start.includes('T')) : task.allDay;
+          const notes = task.notes || '';
+
+          if (task.status !== status || task.repeat !== repeat || task.allDay !== allDay || task.notes !== notes) {
+            Object.assign(task, { status, repeat, allDay, notes });
+            updated = true;
+          }
+
+          addEvent(task);
+        });
+        if (updated) {
+          saveTasks();
+        }
+      }
+
+      function addEvent(task) {
+        const status = task.status || 'pending';
+        const notes = task.notes || '';
+        const repeat = task.repeat || 'none';
+        calendar.addEvent({
+          id: task.id,
+          title: task.title,
+          start: task.start,
+          end: task.end,
+          allDay: task.allDay,
+          backgroundColor: statusColors[status] || statusColors.pending,
+          borderColor: statusColors[status] || statusColors.pending,
+          extendedProps: {
+            status,
+            notes,
+            repeat
+          }
+        });
+      }
+
+      function persistEvent(event) {
+        const idx = tasks.findIndex(t => t.id === event.id);
+        if (idx === -1) return;
+
+        tasks[idx] = {
+          ...tasks[idx],
+          start: serializeDate(event.start, event.allDay),
+          end: event.end ? serializeDate(event.end, event.allDay) : tasks[idx].end,
+          allDay: event.allDay
+        };
+        saveTasks();
+        renderTasks();
+      }
+
+      function serializeDate(date, allDay) {
+        if (!date) return null;
+        const iso = date.toISOString();
+        return allDay ? iso.slice(0, 10) : iso.slice(0, 16);
+      }
+
+      function openTaskModal({ defaultDate, event } = {}) {
+        resetModal();
+        editingTaskId = null;
+
+        if (event) {
+          const task = tasks.find(t => t.id === event.id);
+          const source = task || {
+            id: event.id,
+            title: event.title,
+            notes: event.extendedProps?.notes,
+            status: event.extendedProps?.status,
+            repeat: event.extendedProps?.repeat,
+            start: event.startStr,
+            end: event.endStr,
+            allDay: event.allDay
+          };
+
+          editingTaskId = source.id;
+          titleInput.value = source.title || '';
+          descInput.value = source.notes || '';
+          dateInput.value = (source.start || '').slice(0, 10);
+          statusInput.value = source.status || 'pending';
+          repeatInput.value = source.repeat || 'none';
+
+          if (!source.allDay && source.start && source.start.includes('T')) {
+            startInput.value = source.start.split('T')[1].slice(0, 5);
+          }
+          if (!source.allDay && source.end && source.end.includes('T')) {
+            endInput.value = source.end.split('T')[1].slice(0, 5);
+          }
+        } else {
+          const today = new Date().toISOString().slice(0, 10);
+          dateInput.value = defaultDate || today;
+        }
+
+        if (!dateInput.value) {
+          dateInput.value = new Date().toISOString().slice(0, 10);
+        }
+
+        lastFocusElement = document.activeElement;
+        taskModal.style.display = 'flex';
+        setTimeout(() => titleInput.focus({ preventScroll: true }), 50);
+      }
+
+      function closeTaskModal() {
+        taskModal.style.display = 'none';
+        editingTaskId = null;
+        resetModal();
+        if (lastFocusElement && typeof lastFocusElement.focus === 'function') {
+          try {
+            lastFocusElement.focus({ preventScroll: true });
+          } catch (err) {
+            // ignore focus errors
+          }
+        }
+      }
+
+      function resetModal() {
+        const today = new Date().toISOString().slice(0, 10);
+        titleInput.value = '';
+        descInput.value = '';
+        dateInput.value = today;
+        startInput.value = '';
+        endInput.value = '';
+        statusInput.value = 'pending';
+        repeatInput.value = 'none';
+      }
+
+      function isModalOpen() {
+        return taskModal.style.display === 'flex' || taskModal.style.display === 'block';
+      }
+
+      function handleSave() {
+        const title = titleInput.value.trim();
+        const date = dateInput.value;
+        if (!title || !date) {
+          alert('Title and date are required.');
+          return;
+        }
+
+        const startTime = startInput.value;
+        const endTime = endInput.value;
+        const status = statusInput.value || 'pending';
+        const repeat = repeatInput.value || 'none';
+        const notes = descInput.value.trim();
+
+        const allDay = !startTime;
+        const start = allDay ? date : `${date}T${startTime}`;
+        let end = allDay ? date : (endTime ? `${date}T${endTime}` : null);
+
+        if (!allDay) {
+          if (end) {
+            if (end <= start) {
+              const startDateObj = parseTaskDate(start, false);
+              startDateObj.setHours(startDateObj.getHours() + 1);
+              end = formatDateLocal(startDateObj, false);
+            }
+          } else {
+            end = start;
+          }
+        }
+
+        const baseTask = {
+          id: editingTaskId || createId(),
+          title,
+          start,
+          end: end || start,
+          allDay,
+          status,
+          notes,
+          repeat
+        };
+
+        if (editingTaskId) {
+          tasks = tasks.map(task => task.id === editingTaskId ? baseTask : task);
+        } else {
+          const repeats = generateRepeats(baseTask, repeat);
+          const entries = repeat === 'none' ? [baseTask] : [baseTask, ...repeats];
+          tasks = tasks.concat(entries);
+        }
+
+        saveTasks();
+        renderTasks();
+        closeTaskModal();
+      }
+
+      function generateRepeats(baseTask, repeat) {
+        const repeatCounts = {
+          weekly: 5,
+          monthly: 5,
+          quarterly: 4,
+          halfyear: 3,
+          yearly: 3
+        };
+        const count = repeatCounts[repeat] || 0;
+        if (!count) return [];
+
+        const results = [];
+        let startCursor = parseTaskDate(baseTask.start, baseTask.allDay);
+        let endCursor = baseTask.end ? parseTaskDate(baseTask.end, baseTask.allDay) : null;
+
+        for (let i = 0; i < count; i++) {
+          startCursor = addInterval(startCursor, repeat);
+          const nextEndCursor = endCursor ? addInterval(endCursor, repeat) : null;
+          const clone = {
+            ...baseTask,
+            id: createId(),
+            start: formatDateLocal(startCursor, baseTask.allDay),
+            end: nextEndCursor
+              ? formatDateLocal(nextEndCursor, baseTask.allDay)
+              : (baseTask.allDay ? formatDateLocal(startCursor, true) : formatDateLocal(startCursor, false)),
+            repeat: 'none'
+          };
+          if (!clone.allDay && !nextEndCursor) {
+            clone.end = clone.start;
+          }
+          results.push(clone);
+          if (endCursor) {
+            endCursor = nextEndCursor;
+          }
+        }
+        return results;
+      }
+
+      function addInterval(dateObj, repeat) {
+        const next = new Date(dateObj.getTime());
+        switch (repeat) {
+          case 'weekly':
+            next.setDate(next.getDate() + 7);
+            break;
+          case 'monthly':
+            next.setMonth(next.getMonth() + 1);
+            break;
+          case 'quarterly':
+            next.setMonth(next.getMonth() + 3);
+            break;
+          case 'halfyear':
+            next.setMonth(next.getMonth() + 6);
+            break;
+          case 'yearly':
+            next.setFullYear(next.getFullYear() + 1);
+            break;
+          default:
+            break;
+        }
+        return next;
+      }
+
+      function parseTaskDate(value, allDay) {
+        if (!value) return null;
+        if (allDay && !value.includes('T')) {
+          const [y, m, d] = value.split('-').map(Number);
+          return new Date(y, m - 1, d);
+        }
+        if (value.includes('T')) {
+          const [datePart, timePart] = value.split('T');
+          const [y, m, d] = datePart.split('-').map(Number);
+          const [hh, mm] = timePart.split(':').map(Number);
+          return new Date(y, m - 1, d, hh, mm || 0);
+        }
+        return new Date(value);
+      }
+
+      function formatDateLocal(dateObj, allDay) {
+        const y = dateObj.getFullYear();
+        const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const d = String(dateObj.getDate()).padStart(2, '0');
+        if (allDay) return `${y}-${m}-${d}`;
+        const hh = String(dateObj.getHours()).padStart(2, '0');
+        const mm = String(dateObj.getMinutes()).padStart(2, '0');
+        return `${y}-${m}-${d}T${hh}:${mm}`;
+      }
+
+      function createId() {
+        return `task_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+      }
+
+      function showTooltip(info) {
+        const { event, jsEvent } = info;
+        const notes = event.extendedProps?.notes;
+        if (!notes) return;
+
+        if (!tooltipEl) {
+          tooltipEl = document.createElement('div');
+          tooltipEl.className = 'tooltip';
+          document.body.appendChild(tooltipEl);
+        }
+
+        tooltipEl.textContent = notes;
+        tooltipEl.style.display = 'block';
+        positionTooltip(jsEvent);
+      }
+
+      function positionTooltip(evt) {
+        if (!tooltipEl) return;
+        const padding = 12;
+        const x = evt.pageX + padding;
+        const y = evt.pageY + padding;
+        tooltipEl.style.left = `${x}px`;
+        tooltipEl.style.top = `${y}px`;
+      }
+
+      function hideTooltip() {
+        if (tooltipEl) {
+          tooltipEl.style.display = 'none';
+        }
+      }
+
+      document.addEventListener('mousemove', evt => {
+        if (tooltipEl && tooltipEl.style.display === 'block') {
+          positionTooltip(evt);
+        }
+      });
+    });
+  </script>
+</body>
+</html>
+

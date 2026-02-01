@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Test - MainPro</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-box { border: 2px solid #ccc; padding: 20px; margin: 10px 0; border-radius: 8px; }
+        .success { border-color: #4CAF50; background-color: #f1f8e9; }
+        .error { border-color: #f44336; background-color: #ffebee; }
+        .info { border-color: #2196F3; background-color: #e3f2fd; }
+        button { padding: 10px 20px; margin: 5px; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-primary { background-color: #2196F3; color: white; }
+        .btn-success { background-color: #4CAF50; color: white; }
+        .btn-warning { background-color: #FF9800; color: white; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Quick Test - MainPro v70.5</h1>
+    
+    <div class="test-box info">
+        <h3>📋 Test Instructions:</h3>
+        <ol>
+            <li>Click "Test MainPro" to open the main application</li>
+            <li>Test Document Manager - click "📁 Documents"</li>
+            <li>Test AI Workflow - click "🧬 AI Workflow"</li>
+            <li>Check if buttons work and text doesn't overflow</li>
+        </ol>
+    </div>
+
+    <div class="test-box">
+        <h3>🚀 Quick Actions:</h3>
+        <button class="btn-primary" onclick="openMainPro()">Open MainPro</button>
+        <button class="btn-success" onclick="testServer()">Test Server</button>
+        <button class="btn-warning" onclick="showStatus()">Show Status</button>
+    </div>
+
+    <div id="status" class="test-box" style="display: none;">
+        <h3>📊 Status:</h3>
+        <div id="status-content"></div>
+    </div>
+
+    <script>
+        function openMainPro() {
+            window.open('http://localhost:3000/index.html', '_blank');
+        }
+
+        function testServer() {
+            const statusDiv = document.getElementById('status');
+            const contentDiv = document.getElementById('status-content');
+            
+            statusDiv.style.display = 'block';
+            contentDiv.innerHTML = '🔄 Testing server...';
+            
+            fetch('http://localhost:3000/index.html')
+                .then(response => {
+                    if (response.ok) {
+                        contentDiv.innerHTML = '✅ Server is working! MainPro is accessible.';
+                        statusDiv.className = 'test-box success';
+                    } else {
+                        contentDiv.innerHTML = `❌ Server error: ${response.status}`;
+                        statusDiv.className = 'test-box error';
+                    }
+                })
+                .catch(error => {
+                    contentDiv.innerHTML = `❌ Connection failed: ${error.message}`;
+                    statusDiv.className = 'test-box error';
+                });
+        }
+
+        function showStatus() {
+            const statusDiv = document.getElementById('status');
+            const contentDiv = document.getElementById('status-content');
+            
+            statusDiv.style.display = 'block';
+            contentDiv.innerHTML = `
+                <p><strong>Server:</strong> http://localhost:3000</p>
+                <p><strong>MainPro:</strong> http://localhost:3000/index.html</p>
+                <p><strong>Test Page:</strong> http://localhost:3000/quick-test.html</p>
+                <p><strong>Status:</strong> Ready for testing</p>
+            `;
+            statusDiv.className = 'test-box info';
+        }
+
+        // Auto-test on load
+        window.onload = function() {
+            testServer();
+        };
+    </script>
+</body>
+</html>
