@@ -5313,7 +5313,7 @@ Time: start at ${start}.`;
                           })
                           .catch(() => {
                             // Network failed, return basic HTML that reloads
-                            return new Response("<!DOCTYPE html><html><head><meta http-equiv=\\"refresh\\" content=\\"2\\"><title>Loading...</title></head><body style=\\"padding:40px;text-align:center;font-family:sans-serif;\\"><h1>Loading MainPro...</h1><p>If this persists, please refresh.</p></body></html>", {
+                            return new Response("<!DOCTYPE html><html><head><!-- <meta http-equiv=\\"refresh\\" content=\\"2\\"> --><title>Loading...</title></head><body style=\\"padding:40px;text-align:center;font-family:sans-serif;\\"><h1>Loading MainPro...</h1><p>If this persists, please refresh.</p></body></html>", {
                               headers: { "Content-Type": "text/html" }
                             });
                           });
@@ -15293,13 +15293,7 @@ Time: start at ${start}.`;
 })();
 
 // Render the app after all setup is complete
-window.MainProState = window.MainProState || {};
-if (window.MainProState.initialized) {
-  console.warn("MainPro already initialized. Skipping re-init.");
-} else {
-  window.MainProState.initialized = true;
-  console.log("MainPro init start...");
-  try {
+try {
   console.log('🚀 Starting React render...');
   console.log('MainPro function available:', typeof window.MainPro);
   console.log('React available:', typeof React);
@@ -15479,7 +15473,6 @@ if (window.MainProState.initialized) {
 } catch (error) {
   console.error('❌ React render failed:', error);
   // Safe Guard will handle this error
-}
 }
 
 </script>
