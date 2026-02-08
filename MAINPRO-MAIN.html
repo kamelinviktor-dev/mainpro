@@ -1,4 +1,4 @@
-<!-- ==== MAINPRO CALENDAR v65.4 – Smart Status Engine (UI = v65.3 Classic Header) ==== -->
+ <!-- ==== MAINPRO CALENDAR v65.4 – Smart Status Engine (UI = v65.3 Classic Header) ==== -->
 
 <!DOCTYPE html>
 
@@ -1389,14 +1389,20 @@
         try{
           const key = (() => {
             try {
-              const calId = localStorage.getItem('mainpro_current_calendar_v1') || 'main';
+              const calId = (window.MainPro && window.MainPro.storage && window.MainPro.storage.get)
+                ? window.MainPro.storage.get('mainpro_current_calendar_v1') || 'main'
+                : (localStorage.getItem('mainpro_current_calendar_v1') || 'main');
               return `mainpro_calendar_${calId}`;
             } catch {
               return 'mainpro_calendar_main';
             }
           })();
           let arr=[];
-          try{ arr = JSON.parse(localStorage.getItem(key)||'[]'); }catch{}
+          try {
+            arr = (window.MainPro && window.MainPro.storage && window.MainPro.storage.getJSON)
+              ? window.MainPro.storage.getJSON(key, [])
+              : (JSON.parse(localStorage.getItem(key) || '[]') || []);
+          } catch {}
           // Queue Undo for single delete (series delete has no Undo)
           try{
             if(!deleteSeries && typeof window.mainproQueueUndoDeleteOne === 'function'){
@@ -1406,7 +1412,11 @@
             }
           }catch{}
           arr = arr.filter(e => deleteSeries ? e.seriesId !== seriesId : String(e.id) !== baseIdStr);
-          localStorage.setItem(key, JSON.stringify(arr));
+          if (window.MainPro && window.MainPro.storage && window.MainPro.storage.setJSON) {
+            window.MainPro.storage.setJSON(key, arr);
+          } else {
+            try { localStorage.setItem(key, JSON.stringify(arr)); } catch {}
+          }
         }catch(err){
           console.error('Failed to update localStorage after delete:', err);
         }
@@ -1680,14 +1690,17 @@ Time: start at ${start}.`;
         // 2) localStorage fallback
         const key = (() => {
           try {
-            const calId = localStorage.getItem('mainpro_current_calendar_v1') || 'main';
+            const calId = (window.MainPro && window.MainPro.storage && window.MainPro.storage.get)
+              ? (window.MainPro.storage.get('mainpro_current_calendar_v1') || 'main')
+              : (localStorage.getItem('mainpro_current_calendar_v1') || 'main');
             return `mainpro_calendar_${calId}`;
           } catch {
             return 'mainpro_calendar_main';
           }
         })();
-        let arr=[]; 
-        try{ arr = JSON.parse(localStorage.getItem(key)||'[]'); }catch{}
+        let arr = (window.MainPro && window.MainPro.storage && window.MainPro.storage.getJSON)
+          ? window.MainPro.storage.getJSON(key, [])
+          : (JSON.parse(localStorage.getItem(key) || '[]') || []);
         if(isEditMode){
           arr = arr.filter(e=>{
             if(previousSeriesId){
@@ -1697,7 +1710,11 @@ Time: start at ${start}.`;
           });
         }
         arr.push(...eventsToAdd);
-        localStorage.setItem(key, JSON.stringify(arr));
+        if (window.MainPro && window.MainPro.storage && window.MainPro.storage.setJSON) {
+          window.MainPro.storage.setJSON(key, arr);
+        } else {
+          try { localStorage.setItem(key, JSON.stringify(arr)); } catch {}
+        }
         window?.showToast?.(isEditMode ? '✅ Task updated' : '✅ Task saved');
       }
 
@@ -1929,7 +1946,11 @@ Time: start at ${start}.`;
       const saved = safeParse('mainpro_calendars_v1', []);
       if (saved.length === 0) {
         // Create default calendar if none exist
-        localStorage.setItem('mainpro_calendars_v1', JSON.stringify([DEFAULT_CALENDAR]));
+        if (window.MainPro && window.MainPro.storage && window.MainPro.storage.setJSON) {
+          window.MainPro.storage.setJSON('mainpro_calendars_v1', [DEFAULT_CALENDAR]);
+        } else {
+          try { localStorage.setItem('mainpro_calendars_v1', JSON.stringify([DEFAULT_CALENDAR])); } catch {}
+        }
         return [DEFAULT_CALENDAR];
       }
       return saved;
@@ -1937,25 +1958,53 @@ Time: start at ${start}.`;
 
     const [currentCalendarId, setCurrentCalendarId] = useState(() => {
       try {
-        return localStorage.getItem('mainpro_current_calendar_v1') || 'main';
+        if (window.MainPro && window.MainPro.storage && window.MainPro.storage.getJSON) {
+          const v = window.MainPro.storage.getJSON('mainpro_current_calendar_v1', 'main');
+          return (v != null && v !== '') ? String(v) : 'main';
+        }
+        const raw = localStorage.getItem('mainpro_current_calendar_v1');
+        return (raw != null && raw !== '') ? raw : 'main';
       } catch {
         return 'main';
       }
     });
 
+
+
+
     // events - lazy init reads from localStorage synchronously (no useEffect for load)
     const [events, setEvents] = useState(() => {
       try {
-        const calId = localStorage.getItem('mainpro_current_calendar_v1') || 'main';
+        let calId = 'main';
+        try {
+          if (window.MainPro && window.MainPro.storage) {
+            const v = window.MainPro.storage.get ? window.MainPro.storage.get('mainpro_current_calendar_v1') : null;
+            calId = (v != null && v !== '') ? String(v) : 'main';
+          } else {
+            const raw = localStorage.getItem('mainpro_current_calendar_v1');
+            calId = (raw != null && raw !== '') ? raw : 'main';
+          }
+        } catch {}
         const calendarKey = `mainpro_calendar_${calId}`;
-        const saved = localStorage.getItem(calendarKey);
-        const current = saved ? JSON.parse(saved) : [];
-        if (!Array.isArray(current)) return [];
+        let current = [];
+        if (window.MainPro && window.MainPro.storage && window.MainPro.storage.getJSON) {
+          current = window.MainPro.storage.getJSON(calendarKey, []) || [];
+        } else {
+          try {
+            const saved = localStorage.getItem(calendarKey);
+            current = saved ? JSON.parse(saved) : [];
+            if (!Array.isArray(current)) current = [];
+          } catch { current = []; }
+        }
         if (current.length === 0) {
           const legacySaved = localStorage.getItem('mainpro_events_v60');
-          const legacy = legacySaved ? JSON.parse(legacySaved) : [];
+          const legacy = legacySaved ? (() => { try { return JSON.parse(legacySaved); } catch { return []; } })() : [];
           if (Array.isArray(legacy) && legacy.length) {
-            try { localStorage.setItem(calendarKey, JSON.stringify(legacy)); } catch {}
+            if (window.MainPro && window.MainPro.storage && window.MainPro.storage.setJSON) {
+              window.MainPro.storage.setJSON(calendarKey, legacy);
+            } else {
+              try { localStorage.setItem(calendarKey, JSON.stringify(legacy)); } catch {}
+            }
             return legacy;
           }
         }
