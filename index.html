@@ -3651,6 +3651,7 @@ Time: start at ${start}.`;
         return;
       }
       
+      var bodyClose = '<' + '/body>';
       printWindow.document.write(`
         <!DOCTYPE html>
         <html>
@@ -3668,7 +3669,7 @@ Time: start at ${start}.`;
         <body>
           <h1>MainPro Calendar - ${monthLabel}</h1>
           ${calendarEl.innerHTML}
-        </body>
+        ` + bodyClose + `
         </html>
       `);
       printWindow.document.close();
@@ -5316,7 +5317,7 @@ Time: start at ${start}.`;
                           })
                           .catch(() => {
                             // Network failed, return basic HTML that reloads
-                            return new Response("<!DOCTYPE html><html><head><!-- <meta http-equiv=\\"refresh\\" content=\\"2\\"> --><title>Loading...</title></head><body style=\\"padding:40px;text-align:center;font-family:sans-serif;\\"><h1>Loading MainPro...</h1><p>If this persists, please refresh.</p></body></html>", {
+                            return new Response("<!DOCTYPE html><html><head><!-- <meta http-equiv=\\"refresh\\" content=\\"2\\"> --><title>Loading...</title></head><body style=\\"padding:40px;text-align:center;font-family:sans-serif;\\"><h1>Loading MainPro...</h1><p>If this persists, please refresh.</p><\/body><\/html>", {
                               headers: { "Content-Type": "text/html" }
                             });
                           });

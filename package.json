@@ -9,7 +9,8 @@
     "dev": "live-server --port=5500 --ignore=\"**/AppData/**\"",
     "build": "echo \"Build complete - static files ready\"",
     "serve": "node serve-mainpro.js",
-    "serve-live": "live-server --port=3000"
+    "serve-live": "live-server --port=3000",
+    "serve-chrome": "live-server --port=5500 --browser=chrome --ignore=\"**/AppData/**\""
   },
   "keywords": [],
   "author": "",
