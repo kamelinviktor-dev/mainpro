@@ -73,11 +73,6 @@
   // Move MainPro to global scope so it can be accessed after IIFE
   window.MainPro = function(){
 
-    useEffect(function() {
-      var el = document.getElementById('mp-loading');
-      if (el) el.style.display = 'none';
-    }, []);
-
     // Safe localStorage parser utility
     const safeParse = (key, fallback=[]) => {
       try {
@@ -14016,10 +14011,6 @@ try {
         window.__mainproReactRoot.render(
           React.createElement(window.MainPro)
         );
-        setTimeout(function() {
-          var loader = document.getElementById('mp-loading');
-          if (loader) loader.style.display = 'none';
-        }, 100);
       } catch (renderError) {
         console.error("❌ MainPro render failed:", renderError);
         const rootEl = document.getElementById("root");
