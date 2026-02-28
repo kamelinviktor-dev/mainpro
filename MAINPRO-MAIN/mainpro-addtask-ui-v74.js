@@ -114,7 +114,9 @@
                 <option value="none" selected>No repeat</option>
                 <option value="daily">Daily</option>
                 <option value="weekly">Weekly</option>
+                <option value="biweekly">Every 2 weeks</option>
                 <option value="monthly">Monthly</option>
+                <option value="bimonthly">Every 2 months</option>
                 <option value="quarterly">Every 3 months</option>
                 <option value="yearly">Yearly</option>
                 <option value="internal_daily">Internal task — daily</option>
@@ -396,11 +398,11 @@
 
     function updateRepeatUI(){
       const mode = normalizeRepeatValue(repeatSel.value);
-      repeatBox.style.display = (mode==='weekly'||mode==='monthly'||mode==='custom') ? '' : 'none';
-      weeklyBox.style.display = (mode==='weekly') ? '' : 'none';
-      monthlyBox.style.display = (mode==='monthly') ? '' : 'none';
+      repeatBox.style.display = (mode==='weekly'||mode==='biweekly'||mode==='monthly'||mode==='bimonthly'||mode==='custom') ? '' : 'none';
+      weeklyBox.style.display = (mode==='weekly'||mode==='biweekly') ? '' : 'none';
+      monthlyBox.style.display = (mode==='monthly'||mode==='bimonthly') ? '' : 'none';
       customBox.style.display = (mode==='custom') ? '' : 'none';
-      if(mode==='weekly'){
+      if(mode==='weekly'||mode==='biweekly'){
         // Preselect the weekday of chosen date if none selected yet
         const checks = overlay.querySelectorAll('[data-wday]');
         const anyChecked = Array.from(checks).some(c=>c.checked);
@@ -411,7 +413,7 @@
           checks.forEach(c=>{ c.checked = Number(c.getAttribute('data-wday'))===w; });
         }
       }
-      if(mode==='monthly'){
+      if(mode==='monthly'||mode==='bimonthly'){
         // Default to selected date's day
         if(!monthDayInput.value){
           const dateStr = overlay.querySelector('#mp_date')?.value;

@@ -1,0 +1,3733 @@
+{
+  "version": 1,
+  "exportedAt": "2026-02-28T01:25:40.446Z",
+  "kind": "mainpro-backup",
+  "scope": "current-calendar",
+  "currentCalendarId": "main",
+  "calendars": [
+    {
+      "id": "main",
+      "name": "Main Calendar",
+      "type": "maintenance",
+      "icon": "📅",
+      "color": "#3B82F6",
+      "created": "2026-02-01T23:13:49.884Z"
+    },
+    {
+      "id": "cal_1769991489566_znacenq8i",
+      "name": "PPM",
+      "type": "maintenance",
+      "icon": "🔧",
+      "color": "#3B82F6",
+      "created": "2026-02-02T00:18:09.566Z"
+    }
+  ],
+  "events": [
+    {
+      "id": "ev_1770514988258",
+      "title": "Fire alarm test",
+      "start": "2026-01-26T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "missed",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      }
+    },
+    {
+      "id": "Sev_1770514988258-1",
+      "title": "Fire alarm test",
+      "start": "2026-02-02T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "missed",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-2",
+      "title": "Fire alarm test",
+      "start": "2026-02-09T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "done",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-3",
+      "title": "Fire alarm test",
+      "start": "2026-02-16T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "missed",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-4",
+      "title": "Fire alarm test",
+      "start": "2026-02-23T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "missed",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-5",
+      "title": "Fire alarm test",
+      "start": "2026-03-02T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-6",
+      "title": "Fire alarm test",
+      "start": "2026-03-09T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-7",
+      "title": "Fire alarm test",
+      "start": "2026-03-16T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-8",
+      "title": "Fire alarm test",
+      "start": "2026-03-23T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-9",
+      "title": "Fire alarm test",
+      "start": "2026-03-30T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-10",
+      "title": "Fire alarm test",
+      "start": "2026-04-06T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-11",
+      "title": "Fire alarm test",
+      "start": "2026-04-13T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-12",
+      "title": "Fire alarm test",
+      "start": "2026-04-20T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-13",
+      "title": "Fire alarm test",
+      "start": "2026-04-27T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-14",
+      "title": "Fire alarm test",
+      "start": "2026-05-04T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-15",
+      "title": "Fire alarm test",
+      "start": "2026-05-11T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-16",
+      "title": "Fire alarm test",
+      "start": "2026-05-18T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-17",
+      "title": "Fire alarm test",
+      "start": "2026-05-25T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-18",
+      "title": "Fire alarm test",
+      "start": "2026-06-01T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-19",
+      "title": "Fire alarm test",
+      "start": "2026-06-08T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-20",
+      "title": "Fire alarm test",
+      "start": "2026-06-15T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-21",
+      "title": "Fire alarm test",
+      "start": "2026-06-22T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-22",
+      "title": "Fire alarm test",
+      "start": "2026-06-29T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-23",
+      "title": "Fire alarm test",
+      "start": "2026-07-06T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-24",
+      "title": "Fire alarm test",
+      "start": "2026-07-13T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-25",
+      "title": "Fire alarm test",
+      "start": "2026-07-20T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-26",
+      "title": "Fire alarm test",
+      "start": "2026-07-27T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-27",
+      "title": "Fire alarm test",
+      "start": "2026-08-03T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-28",
+      "title": "Fire alarm test",
+      "start": "2026-08-10T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-29",
+      "title": "Fire alarm test",
+      "start": "2026-08-17T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-30",
+      "title": "Fire alarm test",
+      "start": "2026-08-24T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-31",
+      "title": "Fire alarm test",
+      "start": "2026-08-31T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-32",
+      "title": "Fire alarm test",
+      "start": "2026-09-07T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-33",
+      "title": "Fire alarm test",
+      "start": "2026-09-14T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-34",
+      "title": "Fire alarm test",
+      "start": "2026-09-21T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-35",
+      "title": "Fire alarm test",
+      "start": "2026-09-28T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-36",
+      "title": "Fire alarm test",
+      "start": "2026-10-05T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-37",
+      "title": "Fire alarm test",
+      "start": "2026-10-12T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-38",
+      "title": "Fire alarm test",
+      "start": "2026-10-19T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-39",
+      "title": "Fire alarm test",
+      "start": "2026-10-26T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-40",
+      "title": "Fire alarm test",
+      "start": "2026-11-02T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-41",
+      "title": "Fire alarm test",
+      "start": "2026-11-09T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-42",
+      "title": "Fire alarm test",
+      "start": "2026-11-16T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-43",
+      "title": "Fire alarm test",
+      "start": "2026-11-23T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-44",
+      "title": "Fire alarm test",
+      "start": "2026-11-30T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-45",
+      "title": "Fire alarm test",
+      "start": "2026-12-07T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-46",
+      "title": "Fire alarm test",
+      "start": "2026-12-14T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-47",
+      "title": "Fire alarm test",
+      "start": "2026-12-21T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-48",
+      "title": "Fire alarm test",
+      "start": "2026-12-28T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-49",
+      "title": "Fire alarm test",
+      "start": "2027-01-04T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-50",
+      "title": "Fire alarm test",
+      "start": "2027-01-11T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-51",
+      "title": "Fire alarm test",
+      "start": "2027-01-18T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "Sev_1770514988258-52",
+      "title": "Fire alarm test",
+      "start": "2027-01-25T10:30",
+      "end": "2026-01-26T11:30",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "recur": {
+        "freq": "weekly",
+        "months": 12
+      },
+      "recurOptions": {
+        "wdays": [
+          1
+        ]
+      },
+      "seriesId": "Sev_1770514988258",
+      "extendedProps": {
+        "id": "ev_1770514988258",
+        "eventType": "task",
+        "date": "2026-01-26",
+        "hasTime": true,
+        "startTime": "10:30",
+        "endTime": "",
+        "title": "Fire alarm test",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "weekly",
+        "weekdays": [
+          1
+        ],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      },
+      "isInstance": true
+    },
+    {
+      "id": "ev_1770516750083",
+      "title": "tyse5uysus",
+      "start": "2026-02-05T09:09",
+      "end": "2026-02-05T10:09",
+      "allDay": false,
+      "status": "missed",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "seriesId": null,
+      "extendedProps": {
+        "id": "ev_1770516750083",
+        "eventType": "task",
+        "date": "2026-02-05",
+        "hasTime": true,
+        "startTime": "09:00",
+        "endTime": "",
+        "title": "tyse5uysus",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "one-off",
+        "weekdays": [],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      }
+    },
+    {
+      "id": "ev_1772235036680",
+      "title": "DDDDD",
+      "start": "2026-02-28T10:20",
+      "end": "2026-02-28T11:20",
+      "allDay": false,
+      "status": "done",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "seriesId": null,
+      "attachments": [
+        {
+          "docId": "doc_c98e2db5e841a_19ca14a7418",
+          "name": "1000042163.jpg",
+          "folder": "General",
+          "mime": "image/jpeg",
+          "size": 148428,
+          "addedAt": "2026-02-27T22:48:57.112Z"
+        },
+        {
+          "docId": "doc_705c80a382b0e8_19ca16f33c8",
+          "name": "Сканиране_20250320.jpg",
+          "folder": "General",
+          "mime": "image/jpeg",
+          "size": 268795,
+          "addedAt": "2026-02-27T23:29:05.480Z"
+        }
+      ],
+      "extendedProps": {
+        "id": "ev_1772235036680",
+        "eventType": "task",
+        "date": "2026-02-28",
+        "hasTime": true,
+        "startTime": "10:20",
+        "endTime": "",
+        "title": "DDDDD",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "one-off",
+        "weekdays": [],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": [
+          {
+            "docId": "doc_c98e2db5e841a_19ca14a7418",
+            "name": "1000042163.jpg",
+            "folder": "General",
+            "mime": "image/jpeg",
+            "size": 148428,
+            "addedAt": "2026-02-27T22:48:57.112Z"
+          },
+          {
+            "docId": "doc_705c80a382b0e8_19ca16f33c8",
+            "name": "Сканиране_20250320.jpg",
+            "folder": "General",
+            "mime": "image/jpeg",
+            "size": 268795,
+            "addedAt": "2026-02-27T23:29:05.480Z"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ev_1772235050047",
+      "title": "rtrrr",
+      "start": "2026-02-11T09:09",
+      "end": "2026-02-11T10:09",
+      "allDay": false,
+      "status": "done",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "seriesId": null,
+      "attachments": [],
+      "extendedProps": {
+        "id": "ev_1772235050047",
+        "eventType": "task",
+        "date": "2026-02-11",
+        "hasTime": true,
+        "startTime": "09:00",
+        "endTime": "",
+        "title": "rtrrr",
+        "description": "",
+        "note": "",
+        "status": "none",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "one-off",
+        "weekdays": [],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      }
+    },
+    {
+      "id": "ev_1772235230862",
+      "title": "fffff",
+      "start": "2026-02-04T09:09",
+      "end": "2026-02-04T10:09",
+      "allDay": false,
+      "status": "done",
+      "catId": "maintenance",
+      "taskType": "Contractor",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "seriesId": null,
+      "attachments": [
+        {
+          "docId": "doc_c98e2db5e841a_19ca14a7418",
+          "name": "1000042163.jpg",
+          "folder": "General",
+          "mime": "image/jpeg",
+          "size": 148428,
+          "addedAt": "2026-02-27T22:48:57.112Z"
+        }
+      ],
+      "extendedProps": {
+        "id": "ev_1772235230862",
+        "eventType": "contractor",
+        "date": "2026-02-04",
+        "hasTime": true,
+        "startTime": "09:00",
+        "endTime": "",
+        "title": "",
+        "description": "",
+        "note": "",
+        "status": "pending",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "fffff",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "one-off",
+        "weekdays": [],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": [
+          {
+            "docId": "doc_c98e2db5e841a_19ca14a7418",
+            "name": "1000042163.jpg",
+            "folder": "General",
+            "mime": "image/jpeg",
+            "size": 148428,
+            "addedAt": "2026-02-27T22:48:57.112Z"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ev_1772236008209",
+      "title": "hhhh",
+      "start": "2026-02-07T09:09",
+      "end": "2026-02-07T10:09",
+      "allDay": false,
+      "status": "missed",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "seriesId": null,
+      "attachments": [],
+      "extendedProps": {
+        "id": "ev_1772236008209",
+        "eventType": "task",
+        "date": "2026-02-07",
+        "hasTime": true,
+        "startTime": "09:00",
+        "endTime": "",
+        "title": "hhhh",
+        "description": "",
+        "note": "",
+        "status": "pending",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "one-off",
+        "weekdays": [],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      }
+    },
+    {
+      "id": "ev_1772237244061",
+      "title": "hhhhhhhh",
+      "start": "2026-02-28T09:09",
+      "end": "2026-02-28T10:09",
+      "allDay": false,
+      "status": "pending",
+      "catId": "maintenance",
+      "taskType": "Meeting",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "seriesId": null,
+      "attachments": [
+        {
+          "docId": "doc_c98e2db5e841a_19ca14a7418",
+          "name": "1000042163.jpg",
+          "folder": "General",
+          "mime": "image/jpeg",
+          "size": 148428,
+          "addedAt": "2026-02-27T22:48:57.112Z"
+        }
+      ],
+      "extendedProps": {
+        "id": "ev_1772237244061",
+        "eventType": "meeting",
+        "date": "2026-02-28",
+        "hasTime": true,
+        "startTime": "09:00",
+        "endTime": "",
+        "title": "hhhhhhhh",
+        "description": "",
+        "note": "",
+        "status": "pending",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "one-off",
+        "weekdays": [],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": [
+          {
+            "docId": "doc_c98e2db5e841a_19ca14a7418",
+            "name": "1000042163.jpg",
+            "folder": "General",
+            "mime": "image/jpeg",
+            "size": 148428,
+            "addedAt": "2026-02-27T22:48:57.112Z"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ev_1772236185501",
+      "title": "hhhhh",
+      "start": "2026-01-31T09:09",
+      "end": "2026-01-31T10:09",
+      "allDay": false,
+      "status": "done",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "seriesId": null,
+      "attachments": [],
+      "extendedProps": {
+        "id": "ev_1772236185501",
+        "eventType": "task",
+        "date": "2026-01-31",
+        "hasTime": true,
+        "startTime": "09:09",
+        "endTime": "10:09",
+        "title": "hhhhh",
+        "description": "",
+        "note": "",
+        "status": "done",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "one-off",
+        "weekdays": [],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": []
+      }
+    },
+    {
+      "id": "ev_1772236832053",
+      "title": "Ment",
+      "start": "2026-02-13T09:09",
+      "end": "2026-02-13T10:09",
+      "allDay": false,
+      "status": "missed",
+      "catId": "maintenance",
+      "taskType": "Maintenance",
+      "priority": "normal",
+      "location": "",
+      "notes": "",
+      "assignedTo": "",
+      "contractorName": "",
+      "contractorPhone": "",
+      "seriesId": null,
+      "attachments": [
+        {
+          "docId": "doc_c98e2db5e841a_19ca14a7418",
+          "name": "1000042163.jpg",
+          "folder": "General",
+          "mime": "image/jpeg",
+          "size": 148428,
+          "addedAt": "2026-02-27T22:48:57.112Z"
+        },
+        {
+          "docId": "doc_8ccad92f41108_19ca14a8516",
+          "name": "Viktor CV.docx",
+          "folder": "General",
+          "mime": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          "size": 21959,
+          "addedAt": "2026-02-27T22:49:01.462Z"
+        },
+        {
+          "docId": "doc_705c80a382b0e8_19ca16f33c8",
+          "name": "Сканиране_20250320.jpg",
+          "folder": "General",
+          "mime": "image/jpeg",
+          "size": 268795,
+          "addedAt": "2026-02-27T23:29:05.480Z"
+        }
+      ],
+      "extendedProps": {
+        "id": "ev_1772236832053",
+        "eventType": "task",
+        "date": "2026-02-13",
+        "hasTime": true,
+        "startTime": "09:09",
+        "endTime": "10:09",
+        "title": "Ment",
+        "description": "",
+        "note": "",
+        "status": "missed",
+        "catId": "maintenance",
+        "priority": "normal",
+        "assignedTo": "",
+        "companyName": "",
+        "contactPerson": "",
+        "phone": "",
+        "email": "",
+        "serviceType": "",
+        "equipment": "",
+        "frequency": "one-off",
+        "weekdays": [],
+        "duration": "60",
+        "participants": "",
+        "location": "",
+        "serialTag": "",
+        "engineer": "",
+        "nextDueDate": "",
+        "attachments": [
+          {
+            "docId": "doc_c98e2db5e841a_19ca14a7418",
+            "name": "1000042163.jpg",
+            "folder": "General",
+            "mime": "image/jpeg",
+            "size": 148428,
+            "addedAt": "2026-02-27T22:48:57.112Z"
+          },
+          {
+            "docId": "doc_8ccad92f41108_19ca14a8516",
+            "name": "Viktor CV.docx",
+            "folder": "General",
+            "mime": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "size": 21959,
+            "addedAt": "2026-02-27T22:49:01.462Z"
+          },
+          {
+            "docId": "doc_705c80a382b0e8_19ca16f33c8",
+            "name": "Сканиране_20250320.jpg",
+            "folder": "General",
+            "mime": "image/jpeg",
+            "size": 268795,
+            "addedAt": "2026-02-27T23:29:05.480Z"
+          }
+        ]
+      }
+    }
+  ],
+  "categories": [
+    {
+      "name": "Maintenance",
+      "color": "#3B82F6"
+    },
+    {
+      "name": "Compliance",
+      "color": "#10B981"
+    },
+    {
+      "name": "Contractor",
+      "color": "#F59E0B"
+    },
+    {
+      "name": "Inspection",
+      "color": "#8B5CF6"
+    },
+    {
+      "name": "Other",
+      "color": "#6B7280"
+    }
+  ],
+  "taskTypes": [
+    "Maintenance",
+    "Compliance",
+    "Contractor Visit",
+    "Inspection",
+    "Other"
+  ],
+  "templates": [
+    {
+      "id": "daily_walk",
+      "label": "Daily walk-through",
+      "title": "Daily walk-through",
+      "catId": "maintenance",
+      "taskType": "Internal",
+      "priority": "normal",
+      "time": "09:00"
+    },
+    {
+      "id": "fire_check",
+      "label": "Fire safety check",
+      "title": "Fire safety check",
+      "catId": "safety",
+      "taskType": "Safety",
+      "priority": "high",
+      "time": "09:00"
+    },
+    {
+      "id": "contractor_call",
+      "label": "Contractor visit",
+      "title": "Contractor visit",
+      "catId": "maintenance",
+      "taskType": "Contractor",
+      "priority": "normal",
+      "time": "09:00"
+    },
+    {
+      "id": "compliance_audit",
+      "label": "Compliance audit",
+      "title": "Compliance audit",
+      "catId": "compliance",
+      "taskType": "Compliance",
+      "priority": "normal",
+      "time": "09:00"
+    }
+  ],
+  "ui": {
+    "primary": "#EAB308"
+  },
+  "settings": {
+    "hotelName": "",
+    "preparedBy": "Chief Engineer",
+    "approvedBy": "Maintenance Manager",
+    "logoUrl": "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20fill%3D%22%23f59e0b%22%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%228%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2242%22%20font-size%3D%2236%22%20text-anchor%3D%22middle%22%20fill%3D%22white%22%3E%F0%9F%93%85%3C%2Ftext%3E%3C%2Fsvg%3E",
+    "autoStatusEnabled": true
+  }
+}

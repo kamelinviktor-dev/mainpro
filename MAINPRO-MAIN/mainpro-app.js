@@ -7977,7 +7977,11 @@
 
                   React.createElement('option',{value:"weekly"},'📆 Weekly'),
 
+                  React.createElement('option',{value:"biweekly"},'📆 Every 2 weeks'),
+
                   React.createElement('option',{value:"monthly"},'🗓️ Monthly'),
+
+                  React.createElement('option',{value:"bimonthly"},'🗓️ Every 2 months'),
 
                   React.createElement('option',{value:"quarterly"},'📊 Quarterly'),
 
@@ -8004,8 +8008,8 @@
 
                 React.createElement('div',{className:"space-y-3"},
 
-                  // Days of Week (for weekly)
-                  form.recurFreq === 'weekly' && React.createElement('div',{className:"space-y-1"},
+                  // Days of Week (for weekly and every 2 weeks)
+                  (form.recurFreq === 'weekly' || form.recurFreq === 'biweekly') && React.createElement('div',{className:"space-y-1"},
 
                     React.createElement('label',{className:"block text-xs text-gray-600"},'📅 Days of Week'),
 
@@ -8051,8 +8055,8 @@
 
                   ),
 
-                  // Monthly Options
-                  form.recurFreq === 'monthly' && React.createElement('div',{className:"space-y-2"},
+                  // Monthly Options (monthly and every 2 months)
+                  (form.recurFreq === 'monthly' || form.recurFreq === 'bimonthly') && React.createElement('div',{className:"space-y-2"},
 
                     React.createElement('label',{className:"block text-xs text-gray-600"},'🗓️ Monthly Options'),
 

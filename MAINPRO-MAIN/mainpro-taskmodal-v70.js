@@ -1076,10 +1076,10 @@ window.openTaskModal = function(dateISO){
       <select data-field="frequency" class="mp-select">
         <option value="one-off" ${state.frequency==='one-off'?'selected':''}>One-off</option>
         <option value="daily" ${state.frequency==='daily'?'selected':''}>Daily</option>
-        <option value="biweekly" ${state.frequency==='biweekly'?'selected':''}>Every 2 weeks</option>
         <option value="weekly" ${state.frequency==='weekly'?'selected':''}>Weekly</option>
-        <option value="bimonthly" ${state.frequency==='bimonthly'?'selected':''}>Every 2 months</option>
+        <option value="biweekly" ${state.frequency==='biweekly'?'selected':''}>Every 2 weeks</option>
         <option value="monthly" ${state.frequency==='monthly'?'selected':''}>Monthly</option>
+        <option value="bimonthly" ${state.frequency==='bimonthly'?'selected':''}>Every 2 months</option>
         <option value="quarterly" ${state.frequency==='quarterly'?'selected':''}>Every 3 months</option>
         <option value="every4months" ${state.frequency==='every4months'?'selected':''}>Every 4 months</option>
         <option value="semiannual" ${state.frequency==='semiannual'?'selected':''}>Every 6 months</option>
