@@ -435,7 +435,7 @@
 
       location:'', notes:'',
 
-      recurFreq:'none', recurMonths:12, recurInterval:1, recurUnit:'day'
+      recurFreq:'none', recurMonths:12, recurInterval:1, recurUnit:'day', recurEndDate:'', repeatEndMonths:''
 
     });
 
@@ -4678,24 +4678,40 @@
     }, [authUser]);
 
     // recurrence
+    function lastDayOfMonth(d) { return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(); }
 
-  function generateSeries(base, freq, months){
+  function generateSeries(base, freq, months, rangeEnd){
 
       if(freq==='none') return [];
 
       const out=[];
 
       const baseStart = new Date(base.start);
+      if (Number.isNaN(baseStart.getTime())) return [];
 
-      const endLimit  = addMonths(baseStart, Math.max(1, Number(months)||12));
+      let endLimit = addMonths(baseStart, Math.max(1, Number(months)||12));
+      if (base.recur && base.recur.repeatEndMonths != null) {
+        const cap = addMonths(baseStart, Number(base.recur.repeatEndMonths));
+        if (cap < endLimit) endLimit = cap;
+      }
+      if (base.recur && base.recur.repeatEndDate) {
+        const cap = new Date(base.recur.repeatEndDate);
+        if (!Number.isNaN(cap.getTime()) && cap < endLimit) endLimit = cap;
+      }
+      if (rangeEnd != null) {
+        const re = new Date(rangeEnd);
+        if (!Number.isNaN(re.getTime()) && re < endLimit) endLimit = re;
+      }
 
       let i=1;
 
     if(freq==='weekly'){
-      const selectedDays = Array.isArray(base.recurOptions?.wdays) ? base.recurOptions.wdays : [];
+      const raw = Array.isArray(base.recurOptions?.wdays) ? base.recurOptions.wdays : [];
+      const selectedDays = raw.map(function(w){ return (w >= 1 && w <= 7) ? w - 1 : w; });
       let cursor = addDays(baseStart, 1);
-      while(cursor <= endLimit){
-        if(!selectedDays.length || selectedDays.includes(cursor.getDay())){
+      while(cursor <= endLimit && out.length < 400){
+        var formIdx = (cursor.getDay() + 6) % 7;
+        if(!selectedDays.length || selectedDays.includes(formIdx)){
           const clone={...base, id: `${base.seriesId}-${i}`, start: toLocalISO(cursor), isInstance:true};
           out.push(clone);
           i++;
@@ -4704,24 +4720,24 @@
       }
     } else if(freq==='monthly'){
       const baseDom = baseStart.getDate();
-      const dom = Number(base.recurOptions?.monthDay) || baseDom;
+      const dom = Math.min(31, Math.max(1, Number(base.recurOptions?.monthDay) || baseDom));
       while(true){
         const next = addMonths(baseStart, i);
         next.setHours(baseStart.getHours(), baseStart.getMinutes(), 0, 0);
-        const target = new Date(next);
-        target.setDate(dom);
+        const lastDay = lastDayOfMonth(next);
+        const target = new Date(next.getFullYear(), next.getMonth(), Math.min(dom, lastDay), baseStart.getHours(), baseStart.getMinutes(), 0, 0);
         if(target > endLimit) break;
         const clone={...base, id: `${base.seriesId}-${i}`, start: toLocalISO(target), isInstance:true};
         out.push(clone);
         i++;
       }
     } else if(freq==='daily'){
-      const selectedDays = Array.isArray(base.recurOptions?.wdays) && base.recurOptions.wdays.length > 0 
-        ? base.recurOptions.wdays 
-        : null; // null means all days
+      const raw = Array.isArray(base.recurOptions?.wdays) ? base.recurOptions.wdays : [];
+      const selectedDays = raw.length > 0 ? raw.map(function(w){ return (w >= 1 && w <= 7) ? w - 1 : w; }) : null;
       let cursor = addDays(baseStart, 1);
-      while(cursor <= endLimit){
-        if(!selectedDays || selectedDays.includes(cursor.getDay())){
+      while(cursor <= endLimit && out.length < 400){
+        var formIdx = (cursor.getDay() + 6) % 7;
+        if(!selectedDays || selectedDays.includes(formIdx)){
           const clone={...base, id: `${base.seriesId}-${i}`, start: toLocalISO(cursor), isInstance:true};
           out.push(clone);
           i++;
@@ -4744,30 +4760,22 @@
         i++;
       }
     } else if(freq==='biweekly'){
-      const selectedDays = Array.isArray(base.recurOptions?.wdays) && base.recurOptions.wdays.length > 0 
-        ? base.recurOptions.wdays 
-        : [baseStart.getDay()]; // Default to same weekday if none selected
-      
-      // Generate events every 2 weeks on selected weekdays
+      const raw = Array.isArray(base.recurOptions?.wdays) ? base.recurOptions.wdays : [];
+      const selectedForm = raw.map(function(w){ return (w >= 1 && w <= 7) ? w - 1 : w; });
+      const selectedDays = selectedForm.length > 0 ? selectedForm : [(baseStart.getDay() + 6) % 7];
       let cursor = addDays(baseStart, 1);
-      let lastWeekAdded = -1;
-      while(cursor <= endLimit){
-        const dayOfWeek = cursor.getDay();
-        if(selectedDays.includes(dayOfWeek)){
-          // Calculate which week this is (0-based from baseStart)
+      while(cursor <= endLimit && out.length < 400){
+        var formIdx = (cursor.getDay() + 6) % 7;
+        if(selectedDays.includes(formIdx)){
           const daysDiff = Math.floor((cursor - baseStart) / (1000 * 60 * 60 * 24));
           const currentWeek = Math.floor(daysDiff / 7);
-          
-          // Only add if this is an even week (0, 2, 4, 6...) - every 2 weeks
-          if(currentWeek % 2 === 0 && currentWeek !== lastWeekAdded){
+          if(currentWeek % 2 === 0){
             const clone={...base, id: `${base.seriesId}-${i}`, start: toLocalISO(cursor), isInstance:true};
             out.push(clone);
             i++;
-            lastWeekAdded = currentWeek;
           }
         }
         cursor = addDays(cursor, 1);
-        if(i > 500) break; // Safety limit
       }
       
       // Fallback: simple every 14 days if no matches
@@ -4782,12 +4790,12 @@
       }
     } else if(freq==='bimonthly'){
       const baseDom = baseStart.getDate();
-      const dom = Number(base.recurOptions?.monthDay) || baseDom;
+      const dom = Math.min(31, Math.max(1, Number(base.recurOptions?.monthDay) || baseDom));
       while(true){
         const next = addMonths(baseStart, 2*i);
         next.setHours(baseStart.getHours(), baseStart.getMinutes(), 0, 0);
-        const target = new Date(next);
-        target.setDate(dom);
+        const lastDay = lastDayOfMonth(next);
+        const target = new Date(next.getFullYear(), next.getMonth(), Math.min(dom, lastDay), baseStart.getHours(), baseStart.getMinutes(), 0, 0);
         if(target > endLimit) break;
         const clone={...base, id: `${base.seriesId}-${i}`, start: toLocalISO(target), isInstance:true};
         out.push(clone);
@@ -4958,7 +4966,12 @@
 
         seriesId,
 
-        recur: { freq: form.recurFreq, months: Number(form.recurMonths)||12 },
+        recur: {
+          freq: form.recurFreq,
+          months: Number(form.recurMonths)||12,
+          repeatEndMonths: form.repeatEndMonths ? Number(form.repeatEndMonths) : undefined,
+          repeatEndDate: form.recurEndDate || undefined
+        },
         recurOptions: (function(){
           const freq = form.recurFreq;
           if(freq==='weekly'){
@@ -5044,7 +5057,7 @@
 
         location:'', notes:'', recurFreq:'none', recurMonths:12, recurInterval:1, recurUnit:'day',
 
-        recurDays: [], recurDayOfMonth: null, recurWeekOfMonth: '', recurEndDate: '',
+        recurDays: [], recurDayOfMonth: null, recurWeekOfMonth: '', recurEndDate: '', repeatEndMonths: '',
 
         recurSkipWeekends: false, recurBusinessDays: false
 
@@ -8175,6 +8188,32 @@
                           onChange:e=>setForm({...form, recurMonths: parseInt(e.target.value) || 12})
 
                         })
+
+                      ),
+
+                      React.createElement('div',{className:"space-y-1"},
+
+                        React.createElement('label',{className:"block text-xs text-gray-500"},'Repeat ends after (months)'),
+
+                        React.createElement('select',{
+
+                          className:"w-full border border-gray-300 rounded-lg px-2 py-1 text-sm",
+
+                          value:form.repeatEndMonths || '',
+
+                          onChange:e=>setForm({...form, repeatEndMonths: e.target.value || undefined})
+
+                        },
+
+                          React.createElement('option',{value:''},'Use "Generate for" above'),
+
+                          React.createElement('option',{value:'3'},'3 months'),
+
+                          React.createElement('option',{value:'6'},'6 months'),
+
+                          React.createElement('option',{value:'12'},'12 months')
+
+                        )
 
                       ),
 

@@ -171,6 +171,17 @@
                 <span>month(s)</span>
                 <button type="button" class="mp-btn mp-btn-ghost" id="mp_full_year_btn" title="Set to 12 months">Full year</button>
               </div>
+              <div class="mp-mini" style="margin-top:6px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <span>Repeat ends:</span>
+                <select class="mp-select" id="mp_repeat_end_months" style="width:auto;">
+                  <option value="">Use "Generate for" above</option>
+                  <option value="3">3 months</option>
+                  <option value="6">6 months</option>
+                  <option value="12">12 months</option>
+                </select>
+                <span>or date</span>
+                <input class="mp-input" id="mp_repeat_end_date" type="date" style="width:140px" />
+              </div>
             </div>
             <div class="mp-field">
               <div class="mp-label">Reminder</div>
@@ -578,6 +589,10 @@
       if(pref.recur.freq){
         repeatSel.value = pref.recur.freq;
       }
+      const endMonthsEl = overlay.querySelector('#mp_repeat_end_months');
+      const endDateEl = overlay.querySelector('#mp_repeat_end_date');
+      if(endMonthsEl && pref.recur.repeatEndMonths != null) endMonthsEl.value = String(pref.recur.repeatEndMonths);
+      if(endDateEl && pref.recur.repeatEndDate) endDateEl.value = pref.recur.repeatEndDate.slice(0, 10);
     } else if(pref.recurFreq){
       repeatSel.value = pref.recurFreq;
     }
@@ -895,7 +910,13 @@ Time: start at ${start}.`;
         lastModified: new Date().toISOString(),
         subtasks,
         reminder,
-        recur: { freq: repeat, months: repeatMonths },
+        recur: (function(){
+          const endMonthsEl = overlay.querySelector('#mp_repeat_end_months');
+          const endDateEl = overlay.querySelector('#mp_repeat_end_date');
+          const repeatEndMonths = endMonthsEl && endMonthsEl.value ? Number(endMonthsEl.value) : undefined;
+          const repeatEndDate = endDateEl && endDateEl.value ? endDateEl.value : undefined;
+          return { freq: repeat, months: repeatMonths, repeatEndMonths, repeatEndDate };
+        })(),
         recurOptions,
         seriesId,
         isAISuggested: pref?.isAISuggested || false
