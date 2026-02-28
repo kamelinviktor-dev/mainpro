@@ -1,12 +1,4 @@
-// MainPro boot — log startup and required globals
-(function bootLog() {
-  try {
-    console.log('MainPro boot OK', location.href);
-    if (typeof window.React === 'undefined') console.warn('MainPro: React missing');
-    if (typeof window.ReactDOM === 'undefined') console.warn('MainPro: ReactDOM missing');
-    if (typeof window.FullCalendar === 'undefined') console.warn('MainPro: FullCalendar missing');
-  } catch (e) { console.error('MainPro boot log failed', e); }
-})();
+
 
 // Safe Guard will be added at the end of the file
 
@@ -80,6 +72,12 @@
 
   // Move MainPro to global scope so it can be accessed after IIFE
   window.MainPro = function(){
+
+    // Hide loading overlay when component mounts (backup in case bootstrap setTimeout is missed)
+    useEffect(function() {
+      var el = document.getElementById('mp-loading');
+      if (el) el.style.display = 'none';
+    }, []);
 
     // Safe localStorage parser utility
     const safeParse = (key, fallback=[]) => {
@@ -231,8 +229,10 @@
     const eventsRef = useRef(events);
     const baseTitleRef = useRef(document.title || 'MainPro Calendar');
     const searchInputRef = useRef(null);
-
-    useEffect(()=>{ eventsRef.current = events; },[events]);
+    const filterRef = useRef(null);
+    const searchRef = useRef(null);
+    const sortByRef = useRef(null);
+    const categoriesRef = useRef(null);
 
     // Documents initialization moved to state declaration
 
@@ -333,6 +333,12 @@
       }
     });
     const [groupBy, setGroupBy] = useState('none'); // 'none', 'category', 'priority', 'status'
+
+    useEffect(()=>{ eventsRef.current = events; },[events]);
+    useEffect(()=>{ filterRef.current = filter; },[filter]);
+    useEffect(()=>{ searchRef.current = search; },[search]);
+    useEffect(()=>{ sortByRef.current = sortBy; },[sortBy]);
+    useEffect(()=>{ categoriesRef.current = categories; },[categories]);
     
     // Cloud Sync (v65.6)
     const [cloudSync,setCloudSync] = useState(() => {
@@ -512,6 +518,86 @@
 
         height:'100%',
 
+        events: function(fetchInfo, successCallback) {
+          try {
+            var start = fetchInfo.start;
+            var end = fetchInfo.end;
+            var list = eventsRef.current || [];
+            var filt = filterRef.current || 'all';
+            var q = (searchRef.current || '').trim().toLowerCase();
+            var sort = sortByRef.current || 'none';
+            var cats = categoriesRef.current || [];
+            var rangeStart = start;
+            var rangeEnd = end;
+            var src = filt === 'all' ? list.slice() : list.filter(function(e){ return e.status === filt; });
+            src = src.filter(function(e){ return !e.isInstance; });
+            var flat = [];
+            var i, e, startStr, evStart, freq, months, instances, j, inst;
+            for (i = 0; i < src.length; i++) {
+              e = src[i];
+              startStr = e.start;
+              if (/^\d{4}-\d{2}-\d{2}$/.test(startStr)) startStr += 'T09:00';
+              evStart = new Date(startStr);
+              if (Number.isNaN(evStart.getTime())) continue;
+              freq = (e.recur && e.recur.freq) ? e.recur.freq : 'none';
+              months = (e.recur && e.recur.months) ? Number(e.recur.months) : 12;
+              if (freq !== 'none' && e.seriesId) {
+                instances = generateSeries(e, freq, months, rangeEnd);
+                for (j = 0; j < instances.length; j++) {
+                  inst = instances[j];
+                  var instStart = new Date(inst.start);
+                  if (instStart >= rangeEnd) break;
+                  if (instStart < rangeStart) continue;
+                  flat.push(inst);
+                }
+              } else {
+                if (evStart < rangeEnd && (e.end ? new Date(e.end) : evStart) >= rangeStart) flat.push(e);
+              }
+            }
+            if (q) {
+              flat = flat.filter(function(ev){
+                var catName = (cats.find(function(c){ return c.id === ev.catId; }) || {}).name || '';
+                return [ev.title, ev.taskType, ev.location, ev.notes, catName].some(function(v){ return (v || '').toLowerCase().indexOf(q) !== -1; });
+              });
+            }
+            if (sort !== 'none') {
+              flat = flat.slice().sort(function(a, b) {
+                if (sort === 'title') return (a.title || '').localeCompare(b.title || '');
+                if (sort === 'priority') { var po = { high: 3, medium: 2, normal: 2, low: 1 }; return (po[b.priority] || 0) - (po[a.priority] || 0); }
+                if (sort === 'status') { var so = { done: 3, pending: 2, missed: 1, none: 0 }; return (so[b.status] || 0) - (so[a.status] || 0); }
+                if (sort === 'date') return new Date(a.start || 0) - new Date(b.start || 0);
+                return 0;
+              });
+            }
+            var eventsToAdd = flat.map(function(e){
+              var s = e.start;
+              if (/^\d{4}-\d{2}-\d{2}$/.test(s)) s += 'T09:00';
+              var status = e.status || 'pending';
+              var color = statusColor(status);
+              var displayTitle = e.title || 'Untitled';
+              if (displayTitle.length > 12) displayTitle = displayTitle.substring(0, 12) + '...';
+              var priority = e.priority || 'normal';
+              if (priority === 'high') displayTitle = '\uD83D\uDD34 ' + displayTitle;
+              else if (priority === 'low') displayTitle = '\u25B3\uFE0F ' + displayTitle;
+              return {
+                id: e.id,
+                title: displayTitle,
+                start: s,
+                allDay: false,
+                color: color,
+                backgroundColor: color,
+                borderColor: color,
+                textColor: '#111827',
+                extendedProps: e
+              };
+            });
+            successCallback(eventsToAdd);
+          } catch (err) {
+            console.warn('getVisibleEvents error', err);
+            successCallback([]);
+          }
+        },
+
         datesSet:(info)=>{
 
           try{
@@ -547,7 +633,11 @@
         eventClick:(info)=>{
           hideTooltipGlobal();
 
-          const src = eventsRef.current.find(e=> String(e.id)===String(info.event.id));
+          let src = eventsRef.current.find(e=> String(e.id)===String(info.event.id));
+          if (!src && info.event.extendedProps && info.event.extendedProps.seriesId) {
+            src = eventsRef.current.find(e=> String(e.seriesId)===String(info.event.extendedProps.seriesId));
+          }
+          if (!src && info.event.extendedProps) src = info.event.extendedProps;
 
           if(src && typeof window.openAddTaskModal === 'function'){
             const startStr = src.start || info.event.startStr;
@@ -1910,79 +2000,10 @@
 
       const cal = calRef.current; if(!cal) return;
 
-      // Use requestAnimationFrame for smooth rendering
+      // Events are loaded by the calendar's events callback (visible range only).
+      // Just refetch so FullCalendar calls the callback again with current range.
       requestAnimationFrame(() => {
-        cal.removeAllEvents();
-
-        let src = (filter==='all') ? list : list.filter(e=> e.status===filter);
-
-        const q = (search||'').trim().toLowerCase();
-
-        if(q){
-
-          src = src.filter(e=>{
-
-            const catName = (categories.find(c=>c.id===e.catId)?.name)||'';
-
-            return [e.title,e.taskType,e.location,e.notes,catName].some(v=> (v||'').toLowerCase().includes(q));
-
-          });
-
-        }
-        
-        // Apply sorting
-        if (sortBy !== 'none') {
-          src = [...src].sort((a, b) => {
-            if (sortBy === 'title') {
-              return (a.title || '').localeCompare(b.title || '');
-            } else if (sortBy === 'priority') {
-              const priorityOrder = { high: 3, medium: 2, normal: 2, low: 1 };
-              return (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0);
-            } else if (sortBy === 'status') {
-              const statusOrder = { done: 3, pending: 2, missed: 1, none: 0 };
-              return (statusOrder[b.status] || 0) - (statusOrder[a.status] || 0);
-            } else if (sortBy === 'date') {
-              return new Date(a.start || 0) - new Date(b.start || 0);
-            }
-            return 0;
-          });
-        }
-        
-        // Apply grouping (for display purposes, events are still shown in calendar)
-        // Grouping is mainly for list views, but we can highlight grouped events
-
-        // Batch add events for better performance
-        const eventsToAdd = src.map(e=>{
-          let start = e.start;
-          if (/^\d{4}-\d{2}-\d{2}$/.test(start)) start += 'T09:00';
-          
-          const status = e.status || 'pending';
-          const color = statusColor(status);
-          
-          // Better title display with priority indicator
-          let displayTitle = e.title || 'Untitled';
-          if (displayTitle.length > 12) displayTitle = displayTitle.substring(0, 12) + '...';
-          
-          // Add priority indicator
-          const priority = e.priority || 'normal';
-          if (priority === 'high') displayTitle = '🔴 ' + displayTitle;
-          else if (priority === 'low') displayTitle = '⬇️ ' + displayTitle;
-
-          return {
-            id:e.id, 
-            title: displayTitle, 
-            start, 
-            allDay:false,
-            color: color,
-            backgroundColor: color,
-            borderColor: color,
-            textColor: '#111827',
-            extendedProps: {...e}
-          };
-        });
-        
-        // Add all events
-        eventsToAdd.forEach(event => cal.addEvent(event));
+        cal.refetchEvents();
       });
 
     }
@@ -3895,13 +3916,13 @@
           try {
             // Use version number that can be updated when needed
             const CACHE_VERSION = 'mainpro-v2025.1';
-            const currentUrl = window.location.pathname || '/';
+            const currentUrl = window.location.pathname || '/MAINPRO-MAIN.html';
             
             const swCode = `
                 const CACHE_NAME = "${CACHE_VERSION}";
                   const urlsToCache = [
                   "${currentUrl}",
-                  "/",
+                  "/MAINPRO-MAIN.html",
                   "/manifest.json"
                 ];
 
@@ -4682,7 +4703,7 @@
 
     // recurrence
 
-  function generateSeries(base, freq, months){
+  function generateSeries(base, freq, months, rangeEnd){
 
       if(freq==='none') return [];
 
@@ -4690,14 +4711,18 @@
 
       const baseStart = new Date(base.start);
 
-      const endLimit  = addMonths(baseStart, Math.max(1, Number(months)||12));
+      let endLimit  = addMonths(baseStart, Math.max(1, Number(months)||12));
+      if (rangeEnd != null) {
+        const re = new Date(rangeEnd);
+        if (!Number.isNaN(re.getTime()) && re < endLimit) endLimit = re;
+      }
 
       let i=1;
 
     if(freq==='weekly'){
       const selectedDays = Array.isArray(base.recurOptions?.wdays) ? base.recurOptions.wdays : [];
       let cursor = addDays(baseStart, 1);
-      while(cursor <= endLimit){
+      while(cursor <= endLimit && out.length < 400){
         if(!selectedDays.length || selectedDays.includes(cursor.getDay())){
           const clone={...base, id: `${base.seriesId}-${i}`, start: toLocalISO(cursor), isInstance:true};
           out.push(clone);
@@ -4723,7 +4748,7 @@
         ? base.recurOptions.wdays 
         : null; // null means all days
       let cursor = addDays(baseStart, 1);
-      while(cursor <= endLimit){
+      while(cursor <= endLimit && out.length < 400){
         if(!selectedDays || selectedDays.includes(cursor.getDay())){
           const clone={...base, id: `${base.seriesId}-${i}`, start: toLocalISO(cursor), isInstance:true};
           out.push(clone);
@@ -14019,10 +14044,13 @@ try {
         window.__mainproReactRoot.render(
           React.createElement(window.MainPro)
         );
-        setTimeout(function(){ var L=document.getElementById('mp-loading'); if(L)L.style.display='none'; }, 100);
+        // Hide loading overlay once React has rendered
+        setTimeout(function() {
+          var loader = document.getElementById('mp-loading');
+          if (loader) loader.style.display = 'none';
+        }, 100);
       } catch (renderError) {
         console.error("❌ MainPro render failed:", renderError);
-        var L=document.getElementById('mp-loading'); if(L)L.style.display='none';
         const rootEl = document.getElementById("root");
         if (rootEl) {
           rootEl.innerHTML = '<div style="padding:20px;text-align:center;"><h1>❌ Render Error</h1><p>' + (renderError.message || 'Unknown error') + '</p><button onclick="location.reload()" style="padding:10px 20px;background:#f59e0b;color:white;border:none;border-radius:6px;cursor:pointer;">Reload Page</button></div>';
@@ -14078,7 +14106,6 @@ try {
       const rootEl = document.getElementById("root");
       if (rootEl && rootEl.innerHTML.trim() === "") {
         console.warn("⚠️ App not rendered after 3 seconds - checking for issues...");
-        var L=document.getElementById('mp-loading'); if(L)L.style.display='none';
         if (!window.MainPro) {
           rootEl.innerHTML = '<div style="padding:40px;text-align:center;"><h1>⚠️ App Loading...</h1><p>MainPro component is loading. Please wait or refresh.</p><button onclick="location.reload()" style="padding:12px 24px;background:#f59e0b;color:white;border:none;border-radius:8px;cursor:pointer;margin-top:20px;">Refresh Page</button></div>';
         }
@@ -14096,7 +14123,6 @@ try {
 
   } catch (fatalError) {
     console.error("💥 MainPro fatal error:", fatalError);
-    var L=document.getElementById('mp-loading'); if(L)L.style.display='none';
     try {
       const errorMessage = fatalError && fatalError.message ? String(fatalError.message).replace(/</g, '&lt;').replace(/>/g, '&gt;') : (typeof fatalError === 'string' ? fatalError : 'Unknown error');
       const errorStack = fatalError && fatalError.stack ? String(fatalError.stack).replace(/</g, '&lt;').replace(/>/g, '&gt;').substring(0, 500) : '';
