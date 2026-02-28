@@ -1,34 +1,26 @@
-MAINPRO STABILITY GUARD
+MAINPRO STABILITY GUARD — RECURRENCE-ONLY MODE
 
-This project is in STABLE MODE.
-
-You are NOT allowed to modify any of the following unless explicitly instructed:
-
+DO NOT TOUCH (hard ban):
 - index.html
-- FullCalendar initialization
-- Calendar rendering logic
-- Event refetch logic
+- FullCalendar initialization (except recurrence range input for events callback)
+- Calendar rendering logic (eventContent, eventDidMount, etc.)
+- Event refetch logic (only recurrence range usage allowed)
 - Filters / Search / Sorting
 - Documents module
-- Login / Settings
+- Login / Settings / Auth
 - Loader / Crash overlay
-- Performance logic
+- Performance logic (unrelated to recurrence)
 - CSS files
 - Service worker
-- Data storage engine
-- Any file outside:
-    mainpro-app.js
-    mainpro-addtask-ui-v74.js
-    mainpro-taskmodal-v70.js
+- Manifest
+- Docs / reports
+- Data storage engine (unless minimal schema for recur only)
 
-STRICT RULE:
-If a change requires touching another file —
-STOP and request confirmation.
+ALLOWED FILES ONLY:
+1) MAINPRO-MAIN/mainpro-app.js
+2) MAINPRO-MAIN/mainpro-addtask-ui-v74.js
+3) MAINPRO-MAIN/mainpro-taskmodal-v70.js
+4) MAINPRO-MAIN/PROTECTION_GUARD/DO_NOT_TOUCH.md (this file)
 
-All changes must be:
-- Minimal
-- Local
-- Isolated
-- Fully explained
-
-Do NOT modify anything outside allowed files.
+STRICT RULE: If a change requires touching another file — STOP and request confirmation.
+All changes must be: Minimal, Local, Isolated, Fully explained.

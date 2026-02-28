@@ -1,3 +1,4 @@
+// STABILITY LOCK: recurrence-only changes
 
 // Expose function immediately before IIFE
 window.openTaskModal = function(dateISO){

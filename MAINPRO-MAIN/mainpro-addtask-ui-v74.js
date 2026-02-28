@@ -1,3 +1,4 @@
+// STABILITY LOCK: recurrence-only changes
 
 (function(){
   // -------- Helpers --------
@@ -148,9 +149,19 @@
                 </div>
               </div>
               <div id="mp_monthly_opts" style="display:none">
-                <div class="mp-row" style="gap:8px; align-items:center">
-                  <span class="mp-mini">Day of month</span>
-                  <input class="mp-input" id="mp_month_day" type="number" min="1" max="31" style="width:100px" />
+                <div class="mp-mini" style="margin-bottom:6px">Monthly pattern</div>
+                <select class="mp-select" id="mp_monthly_pattern" style="width:100%; margin-bottom:6px">
+                  <option value="dayOfMonth">On day of month</option>
+                  <option value="nthWeekday">On the nth weekday</option>
+                  <option value="lastDay">Last day of month</option>
+                </select>
+                <div id="mp_monthly_day_row" class="mp-row" style="gap:8px; align-items:center">
+                  <span class="mp-mini">Day</span>
+                  <input class="mp-input" id="mp_month_day" type="number" min="1" max="31" style="width:60px" />
+                </div>
+                <div id="mp_monthly_nth_row" class="mp-row" style="gap:8px; align-items:center; display:none">
+                  <select class="mp-select" id="mp_monthly_nth" style="width:90px"><option value="1">1st</option><option value="2">2nd</option><option value="3">3rd</option><option value="4">4th</option><option value="-1">Last</option></select>
+                  <select class="mp-select" id="mp_monthly_weekday" style="width:100px"><option value="1">Mon</option><option value="2">Tue</option><option value="3">Wed</option><option value="4">Thu</option><option value="5">Fri</option><option value="6">Sat</option><option value="7">Sun</option></select>
                 </div>
               </div>
               <div id="mp_custom_opts" style="display:none">
@@ -173,15 +184,17 @@
               </div>
               <div class="mp-mini" style="margin-top:6px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                 <span>Repeat ends:</span>
-                <select class="mp-select" id="mp_repeat_end_months" style="width:auto;">
-                  <option value="">Use "Generate for" above</option>
-                  <option value="3">3 months</option>
-                  <option value="6">6 months</option>
-                  <option value="12">12 months</option>
+                <select class="mp-select" id="mp_repeat_end_type" style="width:auto;">
+                  <option value="never">Never</option>
+                  <option value="count">After N occurrences</option>
+                  <option value="until">On date</option>
                 </select>
-                <span>or date</span>
-                <input class="mp-input" id="mp_repeat_end_date" type="date" style="width:140px" />
+                <span id="mp_repeat_end_count_wrap" style="display:none">After</span>
+                <input class="mp-input" id="mp_repeat_end_count" type="number" min="1" max="999" value="10" style="width:60px; display:none" />
+                <span id="mp_repeat_end_count_label" style="display:none">occurrences</span>
+                <input class="mp-input" id="mp_repeat_end_date" type="date" style="width:140px; display:none" />
               </div>
+              <div class="mp-mini" style="margin-top:6px; color:var(--mp-muted, #6b7280);" id="mp_recur_preview">Preview in view: —</div>
             </div>
             <div class="mp-field">
               <div class="mp-label">Reminder</div>
@@ -320,6 +333,17 @@
     const monthlyBox = overlay.querySelector('#mp_monthly_opts');
     const customBox = overlay.querySelector('#mp_custom_opts');
     const monthDayInput = overlay.querySelector('#mp_month_day');
+    const monthlyPatternSel = overlay.querySelector('#mp_monthly_pattern');
+    const monthlyNthSel = overlay.querySelector('#mp_monthly_nth');
+    const monthlyWeekdaySel = overlay.querySelector('#mp_monthly_weekday');
+    const monthlyDayRow = overlay.querySelector('#mp_monthly_day_row');
+    const monthlyNthRow = overlay.querySelector('#mp_monthly_nth_row');
+    const repeatEndTypeSel = overlay.querySelector('#mp_repeat_end_type');
+    const repeatEndCountInput = overlay.querySelector('#mp_repeat_end_count');
+    const repeatEndCountWrap = overlay.querySelector('#mp_repeat_end_count_wrap');
+    const repeatEndCountLabel = overlay.querySelector('#mp_repeat_end_count_label');
+    const repeatEndDateInput = overlay.querySelector('#mp_repeat_end_date');
+    const recurPreviewEl = overlay.querySelector('#mp_recur_preview');
     const customIntervalInput = overlay.querySelector('#mp_custom_interval');
     const customUnitSelect = overlay.querySelector('#mp_custom_unit');
 
@@ -409,12 +433,21 @@
 
     function updateRepeatUI(){
       const mode = normalizeRepeatValue(repeatSel.value);
-      repeatBox.style.display = (mode==='weekly'||mode==='biweekly'||mode==='monthly'||mode==='bimonthly'||mode==='custom') ? '' : 'none';
+      const isMonthly = (mode==='monthly'||mode==='bimonthly'||mode==='quarterly'||mode==='yearly');
+      repeatBox.style.display = (mode==='weekly'||mode==='biweekly'||mode==='monthly'||mode==='bimonthly'||mode==='quarterly'||mode==='yearly'||mode==='custom') ? '' : 'none';
       weeklyBox.style.display = (mode==='weekly'||mode==='biweekly') ? '' : 'none';
-      monthlyBox.style.display = (mode==='monthly'||mode==='bimonthly') ? '' : 'none';
+      monthlyBox.style.display = isMonthly ? '' : 'none';
       customBox.style.display = (mode==='custom') ? '' : 'none';
+      if(monthlyDayRow) monthlyDayRow.style.display = (monthlyPatternSel&&monthlyPatternSel.value==='dayOfMonth') ? '' : 'none';
+      if(monthlyNthRow) monthlyNthRow.style.display = (monthlyPatternSel&&monthlyPatternSel.value==='nthWeekday') ? '' : 'none';
+      if(repeatEndTypeSel){
+        const endType = repeatEndTypeSel.value;
+        if(repeatEndCountWrap) repeatEndCountWrap.style.display = endType==='count' ? '' : 'none';
+        if(repeatEndCountInput) repeatEndCountInput.style.display = endType==='count' ? '' : 'none';
+        if(repeatEndCountLabel) repeatEndCountLabel.style.display = endType==='count' ? '' : 'none';
+        if(repeatEndDateInput) repeatEndDateInput.style.display = endType==='until' ? '' : 'none';
+      }
       if(mode==='weekly'||mode==='biweekly'){
-        // Preselect the weekday of chosen date if none selected yet
         const checks = overlay.querySelectorAll('[data-wday]');
         const anyChecked = Array.from(checks).some(c=>c.checked);
         if(!anyChecked){
@@ -424,32 +457,77 @@
           checks.forEach(c=>{ c.checked = Number(c.getAttribute('data-wday'))===w; });
         }
       }
-      if(mode==='monthly'||mode==='bimonthly'){
-        // Default to selected date's day
+      if(isMonthly){
         if(!monthDayInput.value){
           const dateStr = overlay.querySelector('#mp_date')?.value;
           const d = dateStr ? new Date(dateStr+'T00:00:00') : new Date();
           monthDayInput.value = String(d.getDate());
         }
+        if(monthlyPatternSel&&monthlyPatternSel.value==='nthWeekday'&&monthlyWeekdaySel){
+          const dateStr = overlay.querySelector('#mp_date')?.value;
+          const d = dateStr ? new Date(dateStr+'T00:00:00') : new Date();
+          const w = (d.getDay()+6)%7+1;
+          if(!monthlyWeekdaySel.value) monthlyWeekdaySel.value = String(w);
+        }
       }
       if(mode==='custom'){
-        if(!customIntervalInput.value || Number(customIntervalInput.value) < 1){
-          customIntervalInput.value = '1';
-        }
-        if(!customUnitSelect.value){
-          customUnitSelect.value = 'day';
-        }
+        if(!customIntervalInput.value || Number(customIntervalInput.value) < 1) customIntervalInput.value = '1';
+        if(!customUnitSelect.value) customUnitSelect.value = 'day';
+      }
+      updateRecurPreview();
+    }
+    function updateRecurPreview(){
+      if(!recurPreviewEl) return;
+      const mode = normalizeRepeatValue(repeatSel.value);
+      if(mode==='none'){ recurPreviewEl.textContent = 'Preview in view: —'; return; }
+      const dateStr = overlay.querySelector('#mp_date')?.value;
+      const timeStr = overlay.querySelector('#mp_time')?.value || '09:00';
+      if(!dateStr){ recurPreviewEl.textContent = 'Preview in view: —'; return; }
+      const startISO = dateStr + 'T' + (timeStr.length===5 ? timeStr : '09:00');
+      const base = { start: startISO, seriesId: 'preview', recur: buildRecurFromForm(), recurOptions: buildRecurOptionsFromForm() };
+      if(typeof window.getRecurrencePreview === 'function'){
+        const n = window.getRecurrencePreview(base);
+        recurPreviewEl.textContent = 'Preview in view: ' + n + ' occurrence' + (n!==1?'s':'');
+      } else {
+        recurPreviewEl.textContent = 'Preview in view: —';
       }
     }
-    repeatSel.addEventListener('change', ()=>{
-      updateRepeatUI();
-      const tpl = repeatTemplates[repeatSel.value];
-      if(tpl){
-        taskType = tpl.taskType;
+    function buildRecurOptionsFromForm(){
+      const mode = normalizeRepeatValue(repeatSel.value);
+      const wdays = [];
+      overlay.querySelectorAll('[data-wday]').forEach(c=>{ if(c.checked) wdays.push(Number(c.getAttribute('data-wday'))===0 ? 7 : Number(c.getAttribute('data-wday'))); });
+      if(mode==='monthly'||mode==='bimonthly'||mode==='quarterly'||mode==='yearly'){
+        const pattern = monthlyPatternSel ? monthlyPatternSel.value : 'dayOfMonth';
+        let monthDay = parseInt(monthDayInput?.value||'1',10); if(monthDay<1||monthDay>31) monthDay = 1;
+        const nth = monthlyNthSel ? parseInt(monthlyNthSel.value,10) : 1;
+        const weekday = monthlyWeekdaySel ? parseInt(monthlyWeekdaySel.value,10) : 1;
+        return { monthDay, nth, weekday, monthlyMode: pattern };
       }
-      updateTemplateActive();
-      if(templatePanel) templatePanel.style.display = 'none';
-    });
+      if(mode==='weekly'||mode==='biweekly') return wdays.length ? { wdays } : {};
+      if(mode==='custom') return { interval: parseInt(customIntervalInput?.value||'1',10)||1, unit: customUnitSelect?.value||'day' };
+      return {};
+    }
+    function buildRecurFromForm(){
+      const mode = normalizeRepeatValue(repeatSel.value);
+      if(mode==='none') return { freq: 'none', interval: 1, end: { type: 'never' }, exceptions: [] };
+      const intervalMap = { monthly:1, bimonthly:2, quarterly:3, yearly:12 };
+      const interval = intervalMap[mode] || 1;
+      const endType = repeatEndTypeSel ? repeatEndTypeSel.value : 'never';
+      const end = { type: endType };
+      if(endType==='count') end.count = Math.max(1, parseInt(repeatEndCountInput?.value||'10',10));
+      if(endType==='until' && repeatEndDateInput?.value) end.until = repeatEndDateInput.value.slice(0,10);
+      const opts = buildRecurOptionsFromForm();
+      const recur = { freq: (mode==='weekly'||mode==='biweekly') ? 'weekly' : (mode==='daily' ? 'daily' : 'monthly'), interval: (mode==='biweekly' ? 2 : (mode==='weekly'?1:interval)), end, exceptions: [] };
+      if(recur.freq==='weekly') recur.byWeekday = opts.wdays && opts.wdays.length ? opts.wdays : [(new Date(overlay.querySelector('#mp_date')?.value||new Date()).getDay()+6)%7+1];
+      if(recur.freq==='monthly'){ recur.monthlyMode = opts.monthlyMode||'dayOfMonth'; recur.monthDay = opts.monthDay||1; recur.nth = opts.nth||1; recur.weekday = opts.weekday||1; }
+      return recur;
+    }
+    repeatSel.addEventListener('change', ()=>{ updateRepeatUI(); const tpl = repeatTemplates[repeatSel.value]; if(tpl) taskType = tpl.taskType; updateTemplateActive(); if(templatePanel) templatePanel.style.display = 'none'; });
+    monthlyPatternSel?.addEventListener('change', updateRepeatUI);
+    repeatEndTypeSel?.addEventListener('change', updateRepeatUI);
+    [monthDayInput, monthlyNthSel, monthlyWeekdaySel, repeatEndCountInput, repeatEndDateInput].forEach(el=> el?.addEventListener('change', updateRecurPreview));
+    overlay.querySelector('#mp_date')?.addEventListener('change', updateRecurPreview);
+    overlay.querySelector('#mp_time')?.addEventListener('change', updateRecurPreview);
     updateRepeatUI();
     updateTemplateActive();
 
@@ -586,13 +664,26 @@
       repeatMonthsInput.value = pref.recur?.months || pref.recurMonths || repeatMonthsInput.value || '12';
     }
     if(pref.recur){
-      if(pref.recur.freq){
-        repeatSel.value = pref.recur.freq;
+      const r = pref.recur;
+      if(r.freq){
+        if(r.freq==='monthly' && r.interval===2) repeatSel.value = 'bimonthly';
+        else if(r.freq==='monthly' && r.interval===3) repeatSel.value = 'quarterly';
+        else if(r.freq==='monthly' && r.interval===12) repeatSel.value = 'yearly';
+        else if(r.freq==='weekly' && r.interval===2) repeatSel.value = 'biweekly';
+        else repeatSel.value = r.freq;
       }
-      const endMonthsEl = overlay.querySelector('#mp_repeat_end_months');
-      const endDateEl = overlay.querySelector('#mp_repeat_end_date');
-      if(endMonthsEl && pref.recur.repeatEndMonths != null) endMonthsEl.value = String(pref.recur.repeatEndMonths);
-      if(endDateEl && pref.recur.repeatEndDate) endDateEl.value = pref.recur.repeatEndDate.slice(0, 10);
+      if(monthlyPatternSel && r.monthlyMode) monthlyPatternSel.value = r.monthlyMode;
+      if(monthlyNthSel && r.nth != null) monthlyNthSel.value = String(r.nth);
+      if(monthlyWeekdaySel && r.weekday != null) monthlyWeekdaySel.value = String(r.weekday);
+      if(monthDayInput && r.monthDay != null) monthDayInput.value = String(r.monthDay);
+      if(repeatEndTypeSel){
+        if(r.end && r.end.type) repeatEndTypeSel.value = r.end.type;
+        else if(r.repeatEndDate) repeatEndTypeSel.value = 'until';
+        else if(r.repeatEndMonths != null) repeatEndTypeSel.value = 'until';
+        else repeatEndTypeSel.value = 'never';
+      }
+      if(repeatEndCountInput && r.end && r.end.count != null) repeatEndCountInput.value = String(r.end.count);
+      if(repeatEndDateInput && (r.end?.until || r.repeatEndDate)) repeatEndDateInput.value = (r.end?.until || r.repeatEndDate).slice(0,10);
     } else if(pref.recurFreq){
       repeatSel.value = pref.recurFreq;
     }
@@ -607,7 +698,7 @@
       if(Array.isArray(pref.recurOptions.wdays)){
         overlay.querySelectorAll('[data-wday]').forEach(cb=>{
           const val = Number(cb.getAttribute('data-wday'));
-          cb.checked = pref.recurOptions.wdays.includes(val);
+          cb.checked = pref.recurOptions.wdays.includes(val) || (val === 0 && pref.recurOptions.wdays.includes(7));
         });
       }
       if(typeof pref.recurOptions.monthDay === 'number' && !Number.isNaN(pref.recurOptions.monthDay)){
@@ -910,14 +1001,8 @@ Time: start at ${start}.`;
         lastModified: new Date().toISOString(),
         subtasks,
         reminder,
-        recur: (function(){
-          const endMonthsEl = overlay.querySelector('#mp_repeat_end_months');
-          const endDateEl = overlay.querySelector('#mp_repeat_end_date');
-          const repeatEndMonths = endMonthsEl && endMonthsEl.value ? Number(endMonthsEl.value) : undefined;
-          const repeatEndDate = endDateEl && endDateEl.value ? endDateEl.value : undefined;
-          return { freq: repeat, months: repeatMonths, repeatEndMonths, repeatEndDate };
-        })(),
-        recurOptions,
+        recur: (repeat!=='none' ? buildRecurFromForm() : { freq: 'none', interval: 1, end: { type: 'never' }, exceptions: [] }),
+        recurOptions: (repeat!=='none' ? buildRecurOptionsFromForm() : {}),
         seriesId,
         isAISuggested: pref?.isAISuggested || false
       };
@@ -928,32 +1013,24 @@ Time: start at ${start}.`;
         base.notes = (base.notes? base.notes+'\n':'') + `Attachments: ${names}`;
       }
 
-      // Generate series if app provides helper
-      let additions = [];
-      if(seriesId && typeof window.generateSeries === 'function'){
-        try{ additions = window.generateSeries({...base}, repeat, repeatMonths); }catch{}
-      }
-
-      const eventsToAdd = [base, ...additions];
+      const eventsToAdd = [base];
       const baseIdStr = String(baseId);
 
-      // 1) React way: setEvents if exists
       if(typeof window.setEvents === 'function'){
         if(isEditMode){
           window.setEvents(prev => {
             const filtered = prev.filter(e=>{
-              if(previousSeriesId){
-                return e.seriesId !== previousSeriesId;
-              }
+              if(previousSeriesId) return e.seriesId !== previousSeriesId;
               return String(e.id) !== baseIdStr;
             });
             return [...filtered, ...eventsToAdd];
           });
-          window?.showToast?.('вњ… Task updated');
+          window?.showToast?.('Task updated');
         } else {
           window.setEvents(prev => [...prev, ...eventsToAdd]);
-          window?.showToast?.('вњ… Task saved');
+          window?.showToast?.('Task saved');
         }
+        if (typeof window.refreshCalendar === 'function') setTimeout(function(){ window.refreshCalendar(); }, 0);
       } else {
         // 2) localStorage fallback
         const key = (() => {
