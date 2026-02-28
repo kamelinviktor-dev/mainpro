@@ -1,0 +1,9 @@
+Version: v65.5 – Stable Data Core
+Status: Production Stable
+Date: 28 February 2026
+
+Includes:
+- Fixed JSON backup attachments
+- Fixed recurring instance handling
+- Backup & Import fully working
+- IndexedDB attachment sync verified

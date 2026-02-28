@@ -1,6 +1,11 @@
 @echo off
-echo Starting MainPro Live Server...
-cd /d "D:\Cursor 2025"
-start http://localhost:5500/index.htmlnew.html4.html
-npx --yes live-server --port=5500 --host=localhost --open=/index.htmlnew.html4.html --no-browser
+cd /d "%~dp0"
+echo MainPro local server (alternative to Live Server)
+echo.
+start /B node serve-mainpro.js
+timeout /t 2 /nobreak >nul
+start "" "http://127.0.0.1:3000/MAINPRO-MAIN.html"
+echo Open in browser: http://127.0.0.1:3000/MAINPRO-MAIN.html
+echo.
+echo Server is running. Close this window to stop.
 pause

@@ -4,6 +4,7 @@ const path = require('path');
 const url = require('url');
 
 const ROOT = path.join(__dirname);
+// Use port 3000 to avoid conflict with other tools (Live Server uses 5500)
 const PORT = 3000;
 const HOST = '127.0.0.1';
 
@@ -43,6 +44,8 @@ const server = http.createServer((req, res) => {
 server.listen(PORT, HOST, () => {
   console.log('');
   console.log('MainPro server: http://' + HOST + ':' + PORT + '/MAINPRO-MAIN.html');
+  console.log('Also: http://' + HOST + ':' + PORT + '/MAINPRO-MAIN/');
   console.log('Root: ' + ROOT);
+  console.log('(Stop with Ctrl+C)');
   console.log('');
 });

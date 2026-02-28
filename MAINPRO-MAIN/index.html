@@ -1,10 +1,49 @@
+<!-- ==== MAINPRO CALENDAR v65.5 – Stable Static Build ==== -->
+<!-- Entry: http://localhost:5000/ (npx serve . -l 5000) -->
+
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta http-equiv="refresh" content="0; url=../MAINPRO-MAIN.html">
-  <script>location.replace('../MAINPRO-MAIN.html');</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MainPro Calendar – Stable</title>
+  <link rel="icon"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='0.9em' font-size='90'%3E📅%3C/text%3E%3C/svg%3E" />
+  <script src="./mainpro-head.js"></script>
+  <meta http-equiv="Permissions-Policy" content="unload=(none)" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="MainPro" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="msapplication-TileColor" content="#f59e0b" />
+  <meta name="msapplication-tap-highlight" content="no" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
+  <link rel="stylesheet" href="./mainpro-base.css">
+  <link rel="stylesheet" href="./mainpro-addtask-v74.css">
+  <style>.modal-enter { will-change: auto !important; }</style>
 </head>
 <body>
-  <p>Redirecting to <a href="../MAINPRO-MAIN.html">MAINPRO-MAIN.html</a>...</p>
+<div id="mp-loading" style="position:fixed;inset:0;background:#fef3c7;display:flex;align-items:center;justify-content:center;font-family:sans-serif;font-size:18px;color:#92400e;z-index:99999;">Loading MainPro...</div>
+<div id="root"></div>
+<div id="mp-toast"></div>
+<script>
+  window.addEventListener('error', function(e) {
+    var el = document.getElementById('mp-loading');
+    if (el) el.innerHTML = '<div style="text-align:center;padding:20px;"><h2 style="color:#b45309;">Load Error</h2><p style="font-size:14px;color:#444;">' + (e.message || 'Unknown error') + '</p><p style="font-size:12px;color:#666;">Check console (F12). Try: npx serve . -l 5000 (without -s)</p><button onclick="location.reload()" style="padding:10px 20px;background:#f59e0b;color:white;border:none;border-radius:8px;cursor:pointer;">Reload</button></div>';
+  });
+</script>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="./aiCore.js" onerror="window.MainProAI=window.MainProAI||{analyze:()=>({error:'AI not loaded'}),getCurrentProvider:()=>({}),getRecentInsights:()=>[]};"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="./mainpro-console-fix.js"></script>
+<script src="./mainpro-addtask-ui-v74.js"></script>
+<script src="./mainpro-addtask-v74.js"></script>
+<script src="./mainpro-app.js"></script>
+<script src="./mainpro-taskmodal-v70.js"></script>
+<script src="./mainpro-simple-docs.js"></script>
 </body>
 </html>

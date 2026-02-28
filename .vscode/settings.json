@@ -1,4 +1,35 @@
 {
     "search.useGlobalIgnoreFiles": true,
-    "search.useParentIgnoreFiles": true
+    "search.useParentIgnoreFiles": true,
+    "search.exclude": {
+        "**/backup/**": true,
+        "**/.git/**": true,
+        "**/node_modules/**": true,
+        "**/*.zip": true,
+        "**/*.7z": true,
+        "**/*.rar": true,
+        "**/*.log": true,
+        "**/*.tmp": true
+    },
+    "files.watcherExclude": {
+        "**/backup/**": true,
+        "**/.git/**": true,
+        "**/node_modules/**": true,
+        "**/*.zip": true,
+        "**/*.7z": true,
+        "**/*.rar": true,
+        "**/*.log": true,
+        "**/*.tmp": true
+    },
+    "files.exclude": {
+        "**/backup/**": true
+    },
+    "editor.largeFileOptimizations": true,
+
+    // OOM guard: treat huge bundled JS as plain text (reduces TS/JS server memory)
+    "files.associations": {
+        "**/mainpro-app.js": "plaintext",
+        "**/mainpro-taskmodal-v70.js": "plaintext",
+        "**/mainpro-addtask-ui-v74.js": "plaintext"
+    }
 }
