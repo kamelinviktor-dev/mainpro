@@ -591,7 +591,9 @@
         eventDrop:(info)=>{
           const id = info.event.id;
           const idStr = String(id);
-          const start = info.event.startStr?.slice(0,16);
+          const newStart = info.event.startStr?.slice(0,16) || (info.event.start ? (typeof info.event.start === 'string' ? info.event.start.slice(0,16) : new Date(info.event.start).toISOString().slice(0,16)) : '');
+          const newEnd = info.event.endStr?.slice(0,16) || (info.event.end ? (typeof info.event.end === 'string' ? info.event.end.slice(0,16) : new Date(info.event.end).toISOString().slice(0,16)) : '') || newStart;
+          const allDay = !!info.event.allDay;
           if (idStr.includes('-') && info.oldEvent && info.oldEvent.startStr) {
             const seriesId = idStr.replace(/-?\d+$/, '');
             const base = eventsRef.current.find(e=> !e.isInstance && e.seriesId && String(e.seriesId)===seriesId);
@@ -603,36 +605,23 @@
                 id: Date.now(),
                 seriesId: null,
                 recur: { freq: 'none', interval: 1, end: { type: 'never' }, exceptions: [] },
-                start: start || (oldDate + 'T09:00'),
+                start: newStart || (oldDate + 'T09:00'),
+                end: newEnd || newStart || base.end,
+                allDay: allDay,
                 isInstance: false
               };
               setEvents(prev=> {
                 const next = prev.map(e=> e.id===base.id ? {...e, recur: {...(e.recur||{}), exceptions: ex}} : e);
-                const out = stripInstances([...next, oneOff]);
-                try {
-                  const calendarKey = `mainpro_calendar_${currentCalendarId}`;
-                  localStorage.setItem(calendarKey, JSON.stringify(out));
-                } catch (_) {}
-                return out;
+                const nextList = stripInstances([...next, oneOff]);
+                setTimeout(() => { eventsRef.current = nextList; refreshCalendar(nextList); }, 0);
+                return nextList;
               });
-              eventsRef.current = stripInstances([...eventsRef.current.map(e=> e.id===base.id ? {...e, recur: {...(e.recur||{}), exceptions: ex}} : e), oneOff]);
-              refreshCalendar(eventsRef.current);
               hideTooltipGlobal();
+              if(settings.autoStatusEnabled) runSmartStatusOnce();
               return;
             }
           }
-          setEvents(prev=> {
-            const next = prev.map(e=> String(e.id)===idStr ? {...e, start}: e);
-            try {
-              const TASK_KEY = 'mainpro_tasks_v70';
-              const tasks = JSON.parse(localStorage.getItem(TASK_KEY) || '[]');
-              const updated = tasks.map(t=> String(t.id)===idStr ? { ...t, start, date: (start||t.start||'').slice(0,10) } : t);
-              localStorage.setItem(TASK_KEY, JSON.stringify(updated));
-              const calendarKey = `mainpro_calendar_${currentCalendarId}`;
-              localStorage.setItem(calendarKey, JSON.stringify(stripInstances(next)));
-            } catch (_) {}
-            return next;
-          });
+          setEvents(prev=> prev.map(e=> String(e.id)===idStr ? {...e, start: newStart, end: newEnd || e.end, allDay}: e));
           hideTooltipGlobal();
           if(settings.autoStatusEnabled) runSmartStatusOnce();
         },
@@ -1981,9 +1970,7 @@
           }
         }
 
-        const now = new Date();
-        const effectiveStatus = (ev) => (typeof computeNewStatus === 'function' ? computeNewStatus(ev, now) : null) || ev.status || 'pending';
-        let src = (filter==='all') ? expanded : expanded.filter(e => effectiveStatus(e) === filter);
+        let src = (filter==='all') ? expanded : expanded.filter(e=> e.status===filter);
 
         const q = (search||'').trim().toLowerCase();
         if(q){
@@ -2001,17 +1988,18 @@
             }
             if (sortBy === 'status') {
               const statusOrder = { done: 3, pending: 2, missed: 1, none: 0 };
-              return (statusOrder[effectiveStatus(b)] || 0) - (statusOrder[effectiveStatus(a)] || 0);
+              return (statusOrder[b.status] || 0) - (statusOrder[a.status] || 0);
             }
             if (sortBy === 'date') return new Date(a.start || 0) - new Date(b.start || 0);
             return 0;
           });
         }
 
+        const now = new Date();
         const eventsToAdd = src.map(e=>{
           let start = e.start;
           if (/^\d{4}-\d{2}-\d{2}$/.test(start)) start += 'T09:00';
-          const status = effectiveStatus(e);
+          const status = (typeof computeNewStatus === 'function' ? computeNewStatus(e, now) : null) || e.status || 'pending';
           const color = statusColor(status);
           let displayTitle = e.title || 'Untitled';
           if (displayTitle.length > 12) displayTitle = displayTitle.substring(0, 12) + '...';
