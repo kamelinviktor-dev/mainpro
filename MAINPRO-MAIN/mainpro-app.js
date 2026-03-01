@@ -1979,10 +1979,11 @@
           });
         }
 
+        const now = new Date();
         const eventsToAdd = src.map(e=>{
           let start = e.start;
           if (/^\d{4}-\d{2}-\d{2}$/.test(start)) start += 'T09:00';
-          const status = e.status || 'pending';
+          const status = (typeof computeNewStatus === 'function' ? computeNewStatus(e, now) : null) || e.status || 'pending';
           const color = statusColor(status);
           let displayTitle = e.title || 'Untitled';
           if (displayTitle.length > 12) displayTitle = displayTitle.substring(0, 12) + '...';
@@ -1995,7 +1996,7 @@
             start,
             allDay:false,
             color, backgroundColor: color, borderColor: color, textColor: '#111827',
-            extendedProps: {...e}
+            extendedProps: {...e, status}
           };
         });
 
@@ -2008,10 +2009,6 @@
 
     function computeNewStatus(e, now){
 
-      // если задача в прошлом, и не 'done' — становится 'missed'
-
-      // если в будущем и была 'missed' — вернём в 'pending' (на случай переноса на будущее)
-
       try{
 
         const dt = new Date(e.start);
@@ -2020,7 +2017,9 @@
 
         if (e.status==='done') return 'done';
 
-        if (dt.getTime() < now.getTime()) return 'missed';
+        const eventDay = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate()).getTime();
+        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+        if (eventDay < todayStart) return 'missed';
 
         return 'pending';
 
