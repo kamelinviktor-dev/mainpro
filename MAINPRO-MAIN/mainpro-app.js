@@ -822,18 +822,18 @@
             tooltip.style.top  = (r.top + window.scrollY + 22) + 'px';
 
             tooltip.classList.add('show');
-            
-            // Add click handlers to buttons using event delegation
+            try { window._mpTooltipEvent = { ...e, id: arg.event.id, start: arg.event.start || e.start }; } catch (_) {}
+
             setTimeout(() => {
               const buttons = tooltip.querySelectorAll('.quick-status-btn');
               buttons.forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
+                btn.addEventListener('click', (ev) => {
+                  ev.stopPropagation();
+                  ev.preventDefault();
                   const eventId = btn.dataset.eventId;
                   const status = btn.dataset.status;
                   if (eventId && status && window.quickStatusChange) {
-                    window.quickStatusChange(eventId, status);
+                    window.quickStatusChange(eventId, status, window._mpTooltipEvent);
                   }
                 });
               });
@@ -2115,13 +2115,52 @@
 
     }
     
-    // Quick status change function (for tooltip buttons)
-    window.quickStatusChange = (eventId, newStatus) => {
-      setEvents(prev => prev.map(e => 
-        String(e.id) === String(eventId) ? { ...e, status: newStatus } : e
-      ));
-      setFilter('all'); // switch to All so task stays visible after status change
-      showToast(`✅ Status changed to ${newStatus}`);
+    // ——— SaaS-style status: single path, state-only, calendar sync via useEffect (no duplicate tasks) ———
+    function setTaskStatus(eventId, newStatus, occurrenceStart) {
+      const idStr = String(eventId);
+      setFilter('all');
+
+      const updateOneById = (prev) =>
+        prev.map(e => String(e.id) === idStr ? { ...e, status: newStatus } : e);
+
+      if (!idStr.includes('-')) {
+        setEvents(updateOneById);
+        return;
+      }
+
+      const seriesId = idStr.replace(/-?\d+$/, '');
+      const base = eventsRef.current.find(e => !e.isInstance && e.seriesId && String(e.seriesId) === seriesId);
+      if (!base) {
+        setEvents(updateOneById);
+        return;
+      }
+      const startVal = occurrenceStart != null ? (occurrenceStart instanceof Date ? occurrenceStart.toISOString().slice(0, 16) : String(occurrenceStart).slice(0, 16)) : null;
+      const startDate = startVal ? startVal.slice(0, 10) : null;
+      if (!startDate) {
+        setEvents(updateOneById);
+        return;
+      }
+
+      const ex = [...(base.recur?.exceptions || []), startDate];
+      const oneOff = {
+        ...base,
+        id: Date.now(),
+        seriesId: null,
+        recur: { freq: 'none', interval: 1, end: { type: 'never' }, exceptions: [] },
+        start: startVal || (startDate + 'T09:00'),
+        status: newStatus,
+        isInstance: false
+      };
+      setEvents(prev => {
+        const next = prev.map(e => e.id === base.id ? { ...e, recur: { ...(e.recur || {}), exceptions: ex } } : e);
+        return stripInstances([...next, oneOff]);
+      });
+    }
+
+    window.quickStatusChange = (eventId, newStatus, tooltipEvent) => {
+      const occurrenceStart = (tooltipEvent || window._mpTooltipEvent)?.start;
+      setTaskStatus(eventId, newStatus, occurrenceStart);
+      showToast(`✅ Status: ${newStatus}`);
       hideTooltipGlobal();
     };
     
@@ -7221,7 +7260,7 @@
                                 React.createElement('button',{
                                   onClick:()=>{
                                     const next = (String(ev.status||'pending') === 'done') ? 'pending' : 'done';
-                                    try { if (typeof window.quickStatusChange === 'function') { window.quickStatusChange(ev.id, next); return; } } catch {}
+                                    try { if (typeof window.quickStatusChange === 'function') { window.quickStatusChange(ev.id, next, ev); return; } } catch {}
                                     setEvents(prev => (Array.isArray(prev)? prev : []).map(e => String(e.id)===String(ev.id) ? {...e, status: next} : e));
                                     showToast(next==='done' ? '✅ Done' : '🟡 Pending');
                                   },
