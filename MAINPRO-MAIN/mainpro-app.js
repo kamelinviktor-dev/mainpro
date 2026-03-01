@@ -598,14 +598,41 @@
             if (base) {
               const oldDate = info.oldEvent.startStr.slice(0,10);
               const ex = [...(base.recur?.exceptions || []), oldDate];
-              setEvents(prev=> prev.map(e=> e.id===base.id ? {...e, recur: {...(e.recur||{}), exceptions: ex}} : e));
-              eventsRef.current = eventsRef.current.map(e=> e.id===base.id ? {...e, recur: {...(e.recur||{}), exceptions: ex}} : e);
+              const oneOff = {
+                ...base,
+                id: Date.now(),
+                seriesId: null,
+                recur: { freq: 'none', interval: 1, end: { type: 'never' }, exceptions: [] },
+                start: start || (oldDate + 'T09:00'),
+                isInstance: false
+              };
+              setEvents(prev=> {
+                const next = prev.map(e=> e.id===base.id ? {...e, recur: {...(e.recur||{}), exceptions: ex}} : e);
+                const out = stripInstances([...next, oneOff]);
+                try {
+                  const calendarKey = `mainpro_calendar_${currentCalendarId}`;
+                  localStorage.setItem(calendarKey, JSON.stringify(out));
+                } catch (_) {}
+                return out;
+              });
+              eventsRef.current = stripInstances([...eventsRef.current.map(e=> e.id===base.id ? {...e, recur: {...(e.recur||{}), exceptions: ex}} : e), oneOff]);
               refreshCalendar(eventsRef.current);
               hideTooltipGlobal();
               return;
             }
           }
-          setEvents(prev=> prev.map(e=> String(e.id)===idStr ? {...e, start}: e));
+          setEvents(prev=> {
+            const next = prev.map(e=> String(e.id)===idStr ? {...e, start}: e);
+            try {
+              const TASK_KEY = 'mainpro_tasks_v70';
+              const tasks = JSON.parse(localStorage.getItem(TASK_KEY) || '[]');
+              const updated = tasks.map(t=> String(t.id)===idStr ? { ...t, start, date: (start||t.start||'').slice(0,10) } : t);
+              localStorage.setItem(TASK_KEY, JSON.stringify(updated));
+              const calendarKey = `mainpro_calendar_${currentCalendarId}`;
+              localStorage.setItem(calendarKey, JSON.stringify(stripInstances(next)));
+            } catch (_) {}
+            return next;
+          });
           hideTooltipGlobal();
           if(settings.autoStatusEnabled) runSmartStatusOnce();
         },
