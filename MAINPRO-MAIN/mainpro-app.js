@@ -1954,7 +1954,9 @@
           }
         }
 
-        let src = (filter==='all') ? expanded : expanded.filter(e=> e.status===filter);
+        const now = new Date();
+        const effectiveStatus = (ev) => (typeof computeNewStatus === 'function' ? computeNewStatus(ev, now) : null) || ev.status || 'pending';
+        let src = (filter==='all') ? expanded : expanded.filter(e => effectiveStatus(e) === filter);
 
         const q = (search||'').trim().toLowerCase();
         if(q){
@@ -1972,18 +1974,17 @@
             }
             if (sortBy === 'status') {
               const statusOrder = { done: 3, pending: 2, missed: 1, none: 0 };
-              return (statusOrder[b.status] || 0) - (statusOrder[a.status] || 0);
+              return (statusOrder[effectiveStatus(b)] || 0) - (statusOrder[effectiveStatus(a)] || 0);
             }
             if (sortBy === 'date') return new Date(a.start || 0) - new Date(b.start || 0);
             return 0;
           });
         }
 
-        const now = new Date();
         const eventsToAdd = src.map(e=>{
           let start = e.start;
           if (/^\d{4}-\d{2}-\d{2}$/.test(start)) start += 'T09:00';
-          const status = (typeof computeNewStatus === 'function' ? computeNewStatus(e, now) : null) || e.status || 'pending';
+          const status = effectiveStatus(e);
           const color = statusColor(status);
           let displayTitle = e.title || 'Untitled';
           if (displayTitle.length > 12) displayTitle = displayTitle.substring(0, 12) + '...';
