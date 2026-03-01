@@ -149,12 +149,13 @@
         if ((!current || !current.length)) {
           const legacy = safeParse('mainpro_events_v60', []);
           if (Array.isArray(legacy) && legacy.length) {
-            try { localStorage.setItem(calendarKey, JSON.stringify(legacy)); } catch {}
-            return legacy;
+            const cleaned = stripInstances(legacy);
+            try { localStorage.setItem(calendarKey, JSON.stringify(cleaned)); } catch {}
+            return cleaned;
           }
         }
       } catch {}
-      return current;
+      return Array.isArray(current) ? current.filter(e => !e || !e.isInstance) : [];
     });
 
     const [docs, setDocs] = useState([]);
@@ -231,6 +232,12 @@
     const searchInputRef = useRef(null);
 
     useEffect(()=>{ eventsRef.current = events; },[events]);
+
+    /** Bases-only integrity: remove any instance events. state/ref/storage must never contain isInstance. */
+    function stripInstances(list) {
+      if (list == null) return [];
+      return Array.isArray(list) ? list.filter(e => !e || !e.isInstance) : [];
+    }
 
     // Documents initialization moved to state declaration
 
@@ -964,10 +971,9 @@
       const calendarKey = `mainpro_calendar_${currentCalendarId}`;
       const saveTimeout = setTimeout(() => {
         try {
-          localStorage.setItem(calendarKey, JSON.stringify(events));
-          // Compatibility mirrors (some legacy/external code still reads these)
-          try { localStorage.setItem('mainpro_events_v60', JSON.stringify(events)); } catch {}
-          try { localStorage.setItem('mainpro_events_v70', JSON.stringify(events)); } catch {}
+          localStorage.setItem(calendarKey, JSON.stringify(stripInstances(events)));
+          try { localStorage.setItem('mainpro_events_v60', JSON.stringify(stripInstances(events))); } catch {}
+          try { localStorage.setItem('mainpro_events_v70', JSON.stringify(stripInstances(events))); } catch {}
         } catch (e) {
           console.warn('localStorage write failed:', e);
         }
@@ -1859,10 +1865,11 @@
         setCurrentCalendarId(calendarId);
         localStorage.setItem('mainpro_current_calendar_v1', calendarId);
         
-        // Load events for the new calendar
+        // Load events for the new calendar (bases only)
         const calendarEvents = safeParse(`mainpro_calendar_${calendarId}`, []);
-        setEvents(calendarEvents);
-        refreshCalendar(calendarEvents);
+        const cleaned = stripInstances(calendarEvents);
+        setEvents(cleaned);
+        refreshCalendar(cleaned);
         
         showToast(`📅 Switched to ${calendars.find(cal => cal.id === calendarId)?.name || 'Calendar'}`);
       }
@@ -2381,7 +2388,11 @@
           const data = await response.json();
           
           // Merge cloud data with local data
-          if (data.events) setEvents(data.events);
+          if (data.events) {
+            const cleaned = stripInstances(data.events);
+            if (window.mainproRecurDebug && data.events.length !== cleaned.length) console.warn('Cloud load: dropped', data.events.length - cleaned.length, 'instance(s)');
+            setEvents(cleaned);
+          }
           if (data.categories) setCategories(data.categories);
           if (data.taskTypes) setTaskTypes(data.taskTypes);
           if (data.settings) setSettings(data.settings);
@@ -3144,18 +3155,17 @@
     function switchCalendar(calendarId) {
       if (calendarId === currentCalendarId) return;
       
-      // Save current calendar's events
       const calendarKey = `mainpro_calendar_${currentCalendarId}`;
-      localStorage.setItem(calendarKey, JSON.stringify(events));
+      localStorage.setItem(calendarKey, JSON.stringify(stripInstances(events)));
       
       // Switch to new calendar
       setCurrentCalendarId(calendarId);
       localStorage.setItem('mainpro_current_calendar_v1', calendarId);
       
-      // Load new calendar's events
+      // Load new calendar's events (bases only)
       const newCalendarKey = `mainpro_calendar_${calendarId}`;
       const newEvents = safeParse(newCalendarKey, []);
-      setEvents(newEvents);
+      setEvents(stripInstances(newEvents));
       
       const calendarName = calendars.find(c => c.id === calendarId)?.name || 'Unknown';
       showToast(`📅 Switched to "${calendarName}"`);
@@ -3172,7 +3182,7 @@
     useEffect(() => {
       if (currentCalendarId) {
         const calendarKey = `mainpro_calendar_${currentCalendarId}`;
-        localStorage.setItem(calendarKey, JSON.stringify(events));
+        localStorage.setItem(calendarKey, JSON.stringify(stripInstances(events)));
       }
     }, [currentCalendarId, events]);
 
@@ -4936,7 +4946,7 @@
       const fallback = function() {
         const now = new Date();
         const start = new Date(now.getFullYear(), now.getMonth(), 1);
-        const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
         if (window.mainproRecurDebug) console.warn('getCalendarViewRange: using fallback range', { start, end });
         return { start, end };
       };
@@ -5995,7 +6005,9 @@
         };
       });
       
-      setEvents(prev => [...prev, ...newEvents]);
+      const toAdd = stripInstances(newEvents);
+      if (window.mainproRecurDebug && newEvents.length !== toAdd.length) console.warn('Workflow apply: dropped', newEvents.length - toAdd.length, 'instance(s)');
+      setEvents(prev => [...prev, ...toAdd]);
       showToast(`✅ Applied ${workflow.tasks.length} tasks to calendar!`);
       setWorkflowShow(false);
       setGeneratedWorkflow(null);
@@ -7285,8 +7297,9 @@
                 try {
                   const restored = (undoClearAll && Array.isArray(undoClearAll.events)) ? undoClearAll.events : [];
                   setUndoClearAll(null);
-                  setEvents(restored);
-                  try { refreshCalendar(restored); } catch {}
+                  const cleaned = stripInstances(restored);
+                  setEvents(cleaned);
+                  try { refreshCalendar(cleaned); } catch {}
                   showToast('↩️ Restored');
                 } catch {}
               },
@@ -7334,20 +7347,31 @@
                   setEvents(prev => {
                     const base = Array.isArray(prev) ? prev : [];
                     const byId = new Set(base.map(e => String(e.id)));
-                    // restore in ascending index order for stability
                     const sorted = [...items].sort((a,b) => (a.index||0) - (b.index||0));
                     const copy = [...base];
                     sorted.forEach(it => {
                       if (!it || !it.event) return;
-                      const idStr = String(it.event.id);
-                      if (byId.has(idStr)) return;
+                      let toInsert = it.event;
+                      const idStr = String(toInsert.id);
+                      const isInstance = idStr.includes('-') || toInsert.isInstance === true || (toInsert.extendedProps && toInsert.extendedProps.isInstance === true);
+                      if (isInstance) {
+                        const seriesId = idStr.replace(/-?\d+$/, '');
+                        const resolved = base.find(e => !e.isInstance && String(e.seriesId) === seriesId);
+                        if (resolved) toInsert = resolved;
+                        else {
+                          if (window.mainproRecurDebug) console.warn('Undo delete: instance not resolved to base, skipping', idStr);
+                          return;
+                        }
+                      }
+                      if (byId.has(String(toInsert.id))) return;
                       const idx = (typeof it.index === 'number' && it.index >= 0) ? it.index : copy.length;
-                      copy.splice(Math.min(idx, copy.length), 0, it.event);
-                      byId.add(idStr);
+                      copy.splice(Math.min(idx, copy.length), 0, toInsert);
+                      byId.add(String(toInsert.id));
                     });
-                    try { window.MainProEvents = copy; } catch {}
-                    try { refreshCalendar(copy); } catch {}
-                    return copy;
+                    const out = stripInstances(copy);
+                    try { window.MainProEvents = out; } catch {}
+                    try { refreshCalendar(out); } catch {}
+                    return out;
                   });
                   showToast('↩️ Restored');
                 } catch {}
@@ -8729,17 +8753,24 @@
                             try { localStorage.setItem('mainpro_calendars_v1', JSON.stringify(cals)); } catch {}
                             cals.forEach(c=>{
                               const evs = Array.isArray(eventsByCalendar[c.id]) ? eventsByCalendar[c.id] : [];
-                              try { localStorage.setItem(`mainpro_calendar_${c.id}`, JSON.stringify(evs)); } catch {}
+                              try { localStorage.setItem(`mainpro_calendar_${c.id}`, JSON.stringify(stripInstances(evs))); } catch {}
                             });
                             const targetId = data.currentCalendarId || (cals[0] && cals[0].id) || currentCalendarId || 'main';
                             try { localStorage.setItem('mainpro_current_calendar_v1', String(targetId)); } catch {}
                             try { setCurrentCalendarId(String(targetId)); } catch {}
-                            try { setEvents(Array.isArray(eventsByCalendar[targetId]) ? eventsByCalendar[targetId] : []); } catch {}
+                            try {
+                              const evs = Array.isArray(eventsByCalendar[targetId]) ? eventsByCalendar[targetId] : [];
+                              const cleaned = stripInstances(evs);
+                              if (window.mainproRecurDebug && evs.length !== cleaned.length) console.warn('Import: dropped', evs.length - cleaned.length, 'instance(s)');
+                              setEvents(cleaned);
+                            } catch {}
                           } else {
                             const imported = Array.isArray(data.events) ? data.events : [];
+                            const cleaned = stripInstances(imported);
+                            if (window.mainproRecurDebug && imported.length !== cleaned.length) console.warn('Import: dropped', imported.length - cleaned.length, 'instance(s)');
                             const key = `mainpro_calendar_${currentCalendarId}`;
-                            try { localStorage.setItem(key, JSON.stringify(imported)); } catch {}
-                            try { setEvents(imported); } catch {}
+                            try { localStorage.setItem(key, JSON.stringify(cleaned)); } catch {}
+                            try { setEvents(cleaned); } catch {}
                           }
 
                           try { if (Array.isArray(data.categories)) setCategories(data.categories); } catch {}
