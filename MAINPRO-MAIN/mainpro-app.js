@@ -591,9 +591,8 @@
         eventDrop:(info)=>{
           const id = info.event.id;
           const idStr = String(id);
-          const newStart = info.event.startStr?.slice(0,16) || (info.event.start ? (typeof info.event.start === 'string' ? info.event.start.slice(0,16) : new Date(info.event.start).toISOString().slice(0,16)) : '');
-          const newEnd = info.event.endStr?.slice(0,16) || (info.event.end ? (typeof info.event.end === 'string' ? info.event.end.slice(0,16) : new Date(info.event.end).toISOString().slice(0,16)) : '') || newStart;
-          const allDay = !!info.event.allDay;
+          const start = info.event.startStr?.slice(0,16);
+          const end = info.event.endStr?.slice(0,16) || start;
           if (idStr.includes('-') && info.oldEvent && info.oldEvent.startStr) {
             const seriesId = idStr.replace(/-?\d+$/, '');
             const base = eventsRef.current.find(e=> !e.isInstance && e.seriesId && String(e.seriesId)===seriesId);
@@ -604,24 +603,21 @@
                 ...base,
                 id: Date.now(),
                 seriesId: null,
-                recur: { freq: 'none', interval: 1, end: { type: 'never' }, exceptions: [] },
-                start: newStart || (oldDate + 'T09:00'),
-                end: newEnd || newStart || base.end,
-                allDay: allDay,
+                recur: base.recur && base.recur.freq && base.recur.freq !== 'none' ? { freq: 'none', interval: 1, end: { type: 'never' }, exceptions: [] } : (base.recur || {}),
+                start,
+                end,
                 isInstance: false
               };
               setEvents(prev=> {
                 const next = prev.map(e=> e.id===base.id ? {...e, recur: {...(e.recur||{}), exceptions: ex}} : e);
-                const nextList = stripInstances([...next, oneOff]);
-                setTimeout(() => { eventsRef.current = nextList; refreshCalendar(nextList); }, 0);
-                return nextList;
+                return stripInstances([...next, oneOff]);
               });
               hideTooltipGlobal();
               if(settings.autoStatusEnabled) runSmartStatusOnce();
               return;
             }
           }
-          setEvents(prev=> prev.map(e=> String(e.id)===idStr ? {...e, start: newStart, end: newEnd || e.end, allDay}: e));
+          setEvents(prev=> prev.map(e=> String(e.id)===idStr ? {...e, start, end}: e));
           hideTooltipGlobal();
           if(settings.autoStatusEnabled) runSmartStatusOnce();
         },
@@ -630,6 +626,7 @@
           const id = info.event.id;
           const idStr = String(id);
           const start = info.event.startStr?.slice(0,16);
+          const end = info.event.endStr?.slice(0,16) || start;
           if (idStr.includes('-')) {
             const seriesId = idStr.replace(/-?\d+$/, '');
             const base = eventsRef.current.find(e=> !e.isInstance && e.seriesId && String(e.seriesId)===seriesId);
@@ -645,7 +642,7 @@
               return;
             }
           }
-          setEvents(prev=> prev.map(e=> String(e.id)===idStr ? {...e, start}: e));
+          setEvents(prev=> prev.map(e=> String(e.id)===idStr ? {...e, start, end}: e));
           hideTooltipGlobal();
           if(settings.autoStatusEnabled) runSmartStatusOnce();
         },
@@ -8585,8 +8582,11 @@
           React.createElement('div',{className:"flex justify-between mt-4"},
 
             React.createElement('button',{onClick:()=>{
+              const idx = (eventsRef?.current && Array.isArray(eventsRef.current)) ? eventsRef.current.findIndex(e=> String(e.id)===String(editEvent.id)) : -1;
+              try { if(typeof window.mainproQueueUndoDeleteOne === 'function') window.mainproQueueUndoDeleteOne(editEvent, idx); } catch {}
               if(deleteEvent(editEvent.id)) {
-                setEditEvent(null); // Close the edit modal after successful deletion
+                setEditEvent(null);
+                showToast('🗑️ Deleted — Undo (10s)');
               }
             }, className:"px-4 py-2 rounded-md bg-yellow-500 text-white hover:bg-yellow-600 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"},'🗑️ Delete'),
 
