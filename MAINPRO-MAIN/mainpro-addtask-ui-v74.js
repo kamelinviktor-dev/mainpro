@@ -604,15 +604,19 @@
     if(pref.title && titleInput){
       titleInput.value = pref.title;
     }
-    if(titleInput && window.MainProEventLogic && window.MainProEventLogic.parseDateFromTitle){
+    if(titleInput && window.MainProEventLogic && window.MainProEventLogic.safeApplyParsedToFormData){
       titleInput.addEventListener('blur', function(){
         try {
+          var pref = { date: overlay.querySelector('#mp_date')?.value, time: overlay.querySelector('#mp_start')?.value };
           var parsed = window.MainProEventLogic.parseDateFromTitle(titleInput.value);
-          if(parsed && (parsed.date || parsed.time)){
+          if(!parsed) return;
+          var result = window.MainProEventLogic.safeApplyParsedToFormData(pref, parsed);
+          if(result.changed && result.formData){
             var dEl = overlay.querySelector('#mp_date');
-            var timeInput = overlay.querySelector('#mp_start');
-            if(parsed.date && dEl) dEl.value = parsed.date;
-            if(parsed.time && timeInput) timeInput.value = parsed.time;
+            var tEl = overlay.querySelector('#mp_start');
+            if(result.formData.date && dEl){ dEl.value = result.formData.date; if(window.MainProEventLogic.flashNlpApplied) window.MainProEventLogic.flashNlpApplied(dEl); }
+            if(result.formData.time && tEl){ tEl.value = result.formData.time; if(window.MainProEventLogic.flashNlpApplied) window.MainProEventLogic.flashNlpApplied(tEl); }
+            if(window.showToast) window.showToast('Date/time set from title');
           }
         } catch(_) {}
       });

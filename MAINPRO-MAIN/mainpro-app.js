@@ -639,13 +639,22 @@
     });
 
     useEffect(function nlpDateFromTitle() {
-      if (!form.title || !(window.MainProEventLogic && window.MainProEventLogic.parseDateFromTitle)) return;
+      if (!form.title || !(window.MainProEventLogic && window.MainProEventLogic.safeApplyParsedToFormData)) return;
       var t = setTimeout(function() {
         try {
           var parsed = window.MainProEventLogic.parseDateFromTitle(form.title);
-          if (parsed && (parsed.date || parsed.time)) setForm(function(prev) {
-            return { ...prev, date: parsed.date || prev.date, time: parsed.time || prev.time };
-          });
+          if (!parsed) return;
+          var result = window.MainProEventLogic.safeApplyParsedToFormData(form, parsed);
+          if (result.changed && result.formData) {
+            setForm(result.formData);
+            showToast('📅 Date/time set from title');
+            if (window.MainProEventLogic.flashNlpApplied) {
+              var dateEl = document.querySelector('input[type="date"], input[id*="date"], input[data-field="date"]');
+              var timeEl = document.querySelector('input[type="time"], input[id*="time"], input[data-field="time"]');
+              if (result.changedFields.indexOf('date') !== -1 && dateEl) window.MainProEventLogic.flashNlpApplied(dateEl);
+              if (result.changedFields.indexOf('time') !== -1 && timeEl) window.MainProEventLogic.flashNlpApplied(timeEl);
+            }
+          }
         } catch (_) {}
       }, 600);
       return function() { clearTimeout(t); };
@@ -1178,7 +1187,7 @@
       document.title = `${base}${month} • ${viewLabel} • ${filterLabel}`;
     }, [monthLabel, view, filter]);
 
-    // persist & re-render: Stale-While-Revalidate (StorageEngine when available)
+    // persist & re-render: single dispatcher (StorageEngine), outbox-aware status
     useEffect(()=>{
       try {
         window.MainProEvents = Array.isArray(events) ? events : [];
@@ -1187,22 +1196,35 @@
       var StorageEngine = window.MainProStorageEngine;
       var toStore = stripInstances(events);
 
-      if (StorageEngine && StorageEngine.saveEvents) {
+      function updateSyncStatusFromOutbox() {
         try {
-          StorageEngine.saveEvents(toStore, { workspaceId: workspaceId || 'default', calendarId: currentCalendarId }, setDataSyncStatus);
+          if (StorageEngine && StorageEngine.getOutboxLength && StorageEngine.getOutboxLength() > 0)
+            setDataSyncStatus('pending');
+        } catch (_) {}
+      }
+
+      if (StorageEngine && (StorageEngine.dispatchEventAction || StorageEngine.saveEvents)) {
+        try {
+          var result = StorageEngine.dispatchEventAction
+            ? StorageEngine.dispatchEventAction('replace', { events: toStore }, { workspaceId: workspaceId || 'default', calendarId: currentCalendarId }, setDataSyncStatus)
+            : StorageEngine.saveEvents(toStore, { workspaceId: workspaceId || 'default', calendarId: currentCalendarId }, setDataSyncStatus);
+          if (result && !result.ok && result.error) showToast(result.error);
+          else updateSyncStatusFromOutbox();
         } catch (e) {
           console.warn('MainPro StorageEngine save:', e);
           setDataSyncStatus('error');
+          showToast('Save failed');
         }
       } else {
-        var calendarKey = (workspaceId && workspaceId !== 'default') ? ('mainpro_ws_' + workspaceId + '_calendar_' + currentCalendarId) : ('mainpro_calendar_' + currentCalendarId);
         try {
+          var calendarKey = (workspaceId && workspaceId !== 'default') ? ('mainpro_ws_' + workspaceId + '_calendar_' + currentCalendarId) : ('mainpro_calendar_' + currentCalendarId);
           var json = JSON.stringify(toStore);
-          try { localStorage.setItem(calendarKey, json); } catch (e) { console.warn('MainPro localStorage write failed:', e); }
+          try { localStorage.setItem(calendarKey, json); } catch (e) { console.warn('MainPro localStorage write failed:', e); showToast('Storage write failed'); }
           try { localStorage.setItem('mainpro_events_v60', json); } catch (_) {}
           try { localStorage.setItem('mainpro_events_v70', json); } catch (_) {}
         } catch (e) {
           console.warn('MainPro persist error:', e);
+          showToast('Save failed');
         }
       }
 
@@ -1210,6 +1232,12 @@
         try { refreshCalendar(events); } catch (e) { console.warn('MainPro refreshCalendar in effect:', e); }
       });
     },[events,filter,search,currentCalendarId,sortBy,groupBy,workspaceId]);
+
+    useEffect(function setupOnlineAndOutboxSync() {
+      var StorageEngine = window.MainProStorageEngine;
+      if (StorageEngine && StorageEngine.setupOnlineListener) StorageEngine.setupOnlineListener(setDataSyncStatus);
+      if (StorageEngine && StorageEngine.getOutboxLength && StorageEngine.getOutboxLength() > 0) setDataSyncStatus('pending');
+    }, []);
 
     useEffect(function persistWorkspaceId() {
       try {
@@ -5294,8 +5322,8 @@
     // CRUD
 
     function addEvent(){
-
-      if(!form.title || !form.date) return alert('Please fill Title and Date');
+      try {
+      if(!form.title || !form.date) { showToast('Please fill Title and Date'); return; }
 
       const hh = String(form.time||'09:00').slice(0,2).padStart(2,'0');
 
@@ -5404,14 +5432,15 @@
       
       // Trigger real-time update for team collaboration
       simulateRealtimeUpdate('task_created', `Created task: ${base.title}`);
-
-      // Show success notification
-      showToast(`✅ Task "${base.title}" added successfully!`);
+      } catch (e) {
+        console.warn('addEvent error', e);
+        showToast('Failed to add task');
+      }
 
     }
 
     function saveEdit(){
-
+      try {
       if(!editEvent) return;
 
       const scope = editEvent._seriesScope || 'one';
@@ -5459,6 +5488,10 @@
       setEditEvent(null);
       showToast('💾 Saved');
       if(settings.autoStatusEnabled) runSmartStatusOnce();
+      } catch (e) {
+        console.warn('saveEdit error', e);
+        showToast('Failed to save');
+      }
     }
 
     function deleteEventAction(){
@@ -6893,11 +6926,14 @@
               'data-tooltip': 'Toggle dark mode (D)'
             }, darkMode ? '☀️' : '🌙'),
 
-            React.createElement('span',{
-              className: 'px-2 py-1 rounded-lg text-sm tooltip-bottom',
-              'data-tooltip': dataSyncStatus === 'synced' ? 'Synced' : dataSyncStatus === 'pending' ? 'Syncing…' : 'Sync error',
-              title: dataSyncStatus === 'synced' ? 'Synced' : dataSyncStatus === 'pending' ? 'Syncing…' : 'Sync error'
-            }, dataSyncStatus === 'synced' ? '☁️' : dataSyncStatus === 'pending' ? '⏳' : '⚠️'),
+            (function(){
+              var outboxLen = 0;
+              try { if (window.MainProStorageEngine && window.MainProStorageEngine.getOutboxLength) outboxLen = window.MainProStorageEngine.getOutboxLength(); } catch(_) {}
+              var status = outboxLen > 0 ? 'pending' : dataSyncStatus;
+              var tip = status === 'synced' ? 'Synced' : status === 'pending' ? (outboxLen > 0 ? outboxLen + ' pending sync' : 'Syncing…') : status === 'offline' ? 'Offline (saved locally)' : 'Sync error';
+              var icon = status === 'synced' ? '☁️' : status === 'pending' ? '⏳' : status === 'offline' ? '📴' : '⚠️';
+              return React.createElement('span',{ className: 'px-2 py-1 rounded-lg text-sm tooltip-bottom', 'data-tooltip': tip, title: tip }, icon);
+            })(),
 
             React.createElement('select',{
               value: workspaceId || 'default',

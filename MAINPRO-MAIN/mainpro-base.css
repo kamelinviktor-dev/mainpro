@@ -82,6 +82,13 @@
   .dark .mp-skeleton { background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%); background-size: 200% 100%; }
   @keyframes mp-skeleton-shine { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
+  .mp-nlp-flash { animation: mp-nlp-flash 1.2s ease-out; }
+  @keyframes mp-nlp-flash {
+    0%, 100% { background-color: transparent; }
+    15% { background-color: rgba(245, 158, 11, 0.35); }
+    50% { background-color: rgba(245, 158, 11, 0.15); }
+  }
+
   /* Fixed calendar area */
 
   #calendar-shell { height: 720px; }
