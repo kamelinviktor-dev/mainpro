@@ -24,8 +24,8 @@
 
           <div class="mp-row">
             <div class="mp-field" style="flex:1;">
-              <div class="mp-label">Date</div>
-              <input class="mp-input" type="date" id="mp_date" style="width:100%;">
+              <div class="mp-label">Date <span class="mp-nlp-magic" id="mp_nlp_magic" style="display:none; margin-left:4px;" title="Set from title">✨</span></div>
+              <input class="mp-input" type="date" id="mp_date" style="width:100%;" data-field="date">
               <div class="mp-mini" id="mp_date_info"></div>
             </div>
             <div class="mp-field" style="flex:1;">
@@ -617,6 +617,8 @@
             if(result.formData.date && dEl){ dEl.value = result.formData.date; if(window.MainProEventLogic.flashNlpApplied) window.MainProEventLogic.flashNlpApplied(dEl); }
             if(result.formData.time && tEl){ tEl.value = result.formData.time; if(window.MainProEventLogic.flashNlpApplied) window.MainProEventLogic.flashNlpApplied(tEl); }
             if(window.showToast) window.showToast('Date/time set from title');
+            var magicSpan = overlay.querySelector('#mp_nlp_magic');
+            if(magicSpan){ magicSpan.style.display = 'inline'; magicSpan.title = (parsed.matchedPhrase || 'Set from title'); magicSpan.classList.add('mp-nlp-flash'); setTimeout(function(){ magicSpan.style.display = 'none'; magicSpan.classList.remove('mp-nlp-flash'); if(typeof updateDateInfo === 'function') updateDateInfo(); }, 2500); }
           }
         } catch(_) {}
       });

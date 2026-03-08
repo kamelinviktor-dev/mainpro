@@ -7,8 +7,42 @@
 
   var SYNC_STATUS = { synced: 'synced', pending: 'pending', error: 'error', offline: 'offline' };
   var OUTBOX_KEY = 'mainpro_outbox_v1';
+  var BACKUP_PREFIX = 'mainpro_backup_';
   var MAX_RETRIES = 5;
+  var MAX_OUTBOX_RETRIES_BEFORE_DROP = 10;
   var BASE_DELAY_MS = 1000;
+
+  /** Ensure each event has rev (revision) for sync conflict prevention */
+  function ensureRev(events) {
+    if (!Array.isArray(events)) return events;
+    return events.map(function (e) {
+      if (!e || typeof e !== 'object') return e;
+      var rev = e.rev;
+      if (typeof rev !== 'number' || rev < 1) rev = 1;
+      return Object.assign({}, e, { rev: rev });
+    });
+  }
+
+  /**
+   * atomicUpdate: backup -> write -> on exception restore and rethrow.
+   */
+  function atomicUpdate(storageKey, writeFn) {
+    var backupKey = BACKUP_PREFIX + storageKey + '_' + Date.now();
+    var current = safeParse(storageKey, []);
+    try {
+      safeSet(backupKey, current);
+      var result = writeFn();
+      try { localStorage.removeItem(backupKey); } catch (_) {}
+      return result;
+    } catch (e) {
+      try {
+        var restored = safeParse(backupKey, null);
+        if (restored !== null) safeSet(storageKey, restored);
+        localStorage.removeItem(backupKey);
+      } catch (_) {}
+      throw e;
+    }
+  }
 
   function safeParse(key, fallback) {
     try {
@@ -105,14 +139,32 @@
     return outbox;
   }
 
+  /** Remove outbox entries that failed more than MAX_OUTBOX_RETRIES_BEFORE_DROP times */
+  function cleanupOutbox() {
+    var outbox = getOutbox();
+    var before = outbox.length;
+    outbox = outbox.filter(function (o) { return (o.retries || 0) <= MAX_OUTBOX_RETRIES_BEFORE_DROP; });
+    if (outbox.length !== before) setOutbox(outbox);
+    return before - outbox.length;
+  }
+
   function notifyToast(msg) {
     try {
       if (typeof window.showToast === 'function') window.showToast(msg);
     } catch (_) {}
   }
 
+  /** Only call sync/API when backend URL is explicitly set (avoids 404 on static serve). */
+  function getEventsApiUrl() {
+    try {
+      var url = window.MainProAPI && window.MainProAPI.eventsUrl;
+      return (url && typeof url === 'string' && url.trim()) ? url.trim() : null;
+    } catch (_) { return null; }
+  }
+
   function syncOne(item, onStatusChange) {
-    var apiUrl = (window.MainProAPI && window.MainProAPI.eventsUrl) || '/api/events';
+    var apiUrl = getEventsApiUrl();
+    if (!apiUrl) return Promise.resolve(false);
     var body = JSON.stringify(item.payload);
     return fetch(apiUrl, {
       method: 'POST',
@@ -129,6 +181,7 @@
   }
 
   function processOutboxWithRetry(onStatusChange) {
+    cleanupOutbox();
     var outbox = getOutbox();
     if (outbox.length === 0) {
       if (typeof onStatusChange === 'function') onStatusChange(SYNC_STATUS.synced);
@@ -146,8 +199,13 @@
           var idx = arr.findIndex(function (o) { return o.id === item.id; });
           if (idx !== -1) {
             arr[idx].retries = (arr[idx].retries || 0) + 1;
+            if (arr[idx].retries > MAX_OUTBOX_RETRIES_BEFORE_DROP) {
+              arr.splice(idx, 1);
+              notifyToast('Dropped item from sync queue after too many failures.');
+            }
             setOutbox(arr);
           }
+          cleanupOutbox();
           if (typeof onStatusChange === 'function') onStatusChange(SYNC_STATUS.error);
           notifyToast('Sync failed. Will retry when online.');
           resolve();
@@ -195,13 +253,36 @@
     var calendarId = (options && options.calendarId) || 'main';
     var key = 'mainpro_ws_' + workspaceId + '_calendar_' + calendarId;
     var legacyKey = 'mainpro_calendar_' + calendarId;
+    var current = safeParse(key, []);
+    var idToRev = {};
+    if (Array.isArray(current)) { current.forEach(function (e) { if (e && e.id != null) idToRev[e.id] = (e.rev || 0); }); }
+    var withRev = ensureRev(events).map(function (e) {
+      if (!e || e.id == null) return e;
+      var prev = idToRev[e.id];
+      if (typeof prev === 'number' && prev >= 1) return Object.assign({}, e, { rev: prev + 1 });
+      return e;
+    });
 
-    safeSet(key, events);
-    try { safeSet(legacyKey, events); } catch (_) {}
-    try { safeSet('mainpro_events_v60', events); } catch (_) {}
-    try { safeSet('mainpro_events_v70', events); } catch (_) {}
+    try {
+      atomicUpdate(key, function () {
+        safeSet(key, withRev);
+        try { safeSet(legacyKey, withRev); } catch (_) {}
+        try { safeSet('mainpro_events_v60', withRev); } catch (_) {}
+        try { safeSet('mainpro_events_v70', withRev); } catch (_) {}
+        return undefined;
+      });
+    } catch (e) {
+      notifyToast('Save failed. Restored previous data.');
+      if (typeof onStatusChange === 'function') onStatusChange(SYNC_STATUS.error);
+      return { ok: false, error: e && e.message };
+    }
 
-    var payload = { events: events, workspaceId: workspaceId, calendarId: calendarId };
+    var payload = { events: withRev, workspaceId: workspaceId, calendarId: calendarId };
+    var apiUrl = getEventsApiUrl();
+    if (!apiUrl) {
+      if (typeof onStatusChange === 'function') onStatusChange(SYNC_STATUS.synced);
+      return { ok: true };
+    }
     if (!navigator.onLine) {
       addToOutbox(payload, options);
       if (typeof onStatusChange === 'function') onStatusChange(SYNC_STATUS.offline);
@@ -231,7 +312,8 @@
       local = safeParse(legacyKey, []);
       if (Array.isArray(local) && local.length > 0) safeSet(key, local);
     }
-    var events = Array.isArray(local) ? local : [];
+    var events = ensureRev(Array.isArray(local) ? local : []);
+    cleanupOutbox();
 
     if (typeof onStatusChange === 'function') {
       var outbox = getOutbox();
@@ -242,8 +324,8 @@
   }
 
   function revalidateFromAPI(storageKey, currentEvents, onStatusChange) {
-    var apiUrl = (window.MainProAPI && window.MainProAPI.eventsUrl) || '/api/events';
-    if (typeof fetch === 'undefined') {
+    var apiUrl = getEventsApiUrl();
+    if (!apiUrl || typeof fetch === 'undefined') {
       if (typeof onStatusChange === 'function') onStatusChange(SYNC_STATUS.synced);
       return;
     }
@@ -295,6 +377,9 @@
     dispatchEventAction: dispatchEventAction,
     validateEvent: validateEvent,
     validateEventList: validateEventList,
+    ensureRev: ensureRev,
+    atomicUpdate: atomicUpdate,
+    cleanupOutbox: cleanupOutbox,
     safeParse: safeParse,
     safeSet: safeSet,
     getCalendarStorageKey: getCalendarStorageKey,

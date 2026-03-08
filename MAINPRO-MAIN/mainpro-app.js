@@ -490,20 +490,22 @@
     const undoClearAllTimerRef = useRef(null);
     const [undoDelete, setUndoDelete] = useState(null); // { items: [{event,index}], expiresAt: number }
     const undoDeleteTimerRef = useRef(null);
+    /** Undo for delete modal: restore events from snapshot. */
+    const [undoDeleteTask, setUndoDeleteTask] = useState(null); // { eventsSnapshot: [], expiresAt: number }
+    const undoDeleteTaskTimerRef = useRef(null);
     /** Delete modal: { type: 'single'|'series', event: {...}, onClose?: fn }. null = closed. */
     const [deleteModalTarget, setDeleteModalTarget] = useState(null);
+    const deleteModalContentReadyRef = useRef(false);
 
     useEffect(function focusDeleteModal() {
       if (!deleteModalTarget) return;
-      setModalSkeleton(true);
-      var t = setTimeout(function () { setModalSkeleton(false); }, 80);
-      var t2 = setTimeout(function () {
+      var t = setTimeout(function () {
         try {
           var el = document.getElementById('mp-delete-modal');
           if (el && typeof el.focus === 'function') el.focus();
         } catch (_) {}
-      }, 120);
-      return function () { clearTimeout(t); clearTimeout(t2); };
+      }, 50);
+      return function () { clearTimeout(t); };
     }, [deleteModalTarget]);
 
     // Calendar improvements: Dark mode, sorting, stats, notifications
@@ -1752,6 +1754,16 @@
         } catch {}
       };
     }, [undoDelete]);
+
+    useEffect(function undoDeleteTaskTimer() {
+      try {
+        if (undoDeleteTaskTimerRef.current) { clearTimeout(undoDeleteTaskTimerRef.current); undoDeleteTaskTimerRef.current = null; }
+      } catch {}
+      if (!undoDeleteTask || !undoDeleteTask.expiresAt) return;
+      var ms = Math.max(0, Number(undoDeleteTask.expiresAt) - Date.now());
+      undoDeleteTaskTimerRef.current = setTimeout(function () { setUndoDeleteTask(null); undoDeleteTaskTimerRef.current = null; }, ms);
+      return function () { try { if (undoDeleteTaskTimerRef.current) clearTimeout(undoDeleteTaskTimerRef.current); undoDeleteTaskTimerRef.current = null; } catch {}; };
+    }, [undoDeleteTask]);
     
     // Keyboard shortcuts for better UX
     useEffect(() => {
@@ -3544,7 +3556,6 @@
         recentActivity
       };
       
-      console.log('Calculating audit stats:', newStats);
       setAuditStats(newStats);
     }
 
@@ -7592,60 +7603,67 @@
         )
       ),
 
-      deleteModalTarget && React.createElement('div',{
-        className:"mp-delete-modal-overlay bg-black/40 p-4",
-        'data-mp-overlay':'1',
-        'data-mp-delete-overlay':'1',
-        onClick:function(e){ if(e.target===e.currentTarget) closeDeleteModal(); }
-      },
+      deleteModalTarget && ReactDOM.createPortal(
         React.createElement('div',{
-          id:'mp-delete-modal',
-          tabIndex:-1,
-          className:"mp-delete-modal bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-amber-200 dark:border-gray-600 overflow-hidden max-w-md w-full",
-          'data-mp-modal':'1',
-          onClick:function(e){ e.stopPropagation(); }
+          className:"mp-delete-modal-overlay bg-black/40 p-4",
+          'data-mp-overlay':'1',
+          'data-mp-delete-overlay':'1',
+          onClick:function(e){ if(e.target===e.currentTarget) closeDeleteModal(); }
         },
-          React.createElement('div',{className:"h-1 bg-gradient-to-r from-amber-300 to-amber-500"}),
-          React.createElement('div',{className:"p-6"},
-            modalSkeleton ? React.createElement('div',{className:"animate-pulse"},
-              React.createElement('div',{className:"mp-skeleton mp-skeleton-title"}),
-              React.createElement('div',{className:"mp-skeleton mp-skeleton-line"}),
-              React.createElement('div',{className:"mp-skeleton mp-skeleton-line"}),
-              React.createElement('div',{className:"mp-skeleton mp-skeleton-btn"}),
-              React.createElement('div',{className:"mp-skeleton mp-skeleton-btn"})
-            ) : React.createElement(React.Fragment, null,
-            React.createElement('h3',{className:"text-lg font-semibold text-gray-900 dark:text-white mb-1"},'Delete task'),
-            React.createElement('p',{className:"text-sm text-gray-500 dark:text-gray-400 mb-5"},
-              deleteModalTarget?.type==='series' ? 'This task is part of a series. Choose what to delete:' : 'Delete this task?'
-            ),
-            React.createElement('div',{className:"flex flex-col gap-3"},
-              React.createElement('button',{
-                type:'button',
-                onClick:function(){
-                  var ev = deleteModalTarget?.event;
-                  closeDeleteModal();
-                  if(ev) setTimeout(function(){ deleteSingleOccurrence(ev); }, 0);
-                },
-                className:"w-full py-3 px-4 rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-600 text-amber-900 dark:text-amber-100 font-medium hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors"
-              },'Only this occurrence'),
-              deleteModalTarget?.type==='series' && React.createElement('button',{
-                type:'button',
-                onClick:function(){
-                  var ev = deleteModalTarget?.event;
-                  closeDeleteModal();
-                  if(ev) setTimeout(function(){ deleteEntireSeries(ev); }, 0);
-                },
-                className:"w-full py-3 px-4 rounded-xl border border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-600 text-red-800 dark:text-red-200 font-medium hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
-              },'Entire series'),
-              React.createElement('button',{
-                type:'button',
-                onClick:closeDeleteModal,
-                className:"w-full py-3 px-4 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-              },'Cancel')
-            )
+          React.createElement('div',{
+            id:'mp-delete-modal',
+            tabIndex:-1,
+            className:"mp-delete-modal bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-amber-200 dark:border-gray-600 overflow-hidden max-w-md w-full",
+            'data-mp-modal':'1',
+            onClick:function(e){ e.stopPropagation(); }
+          },
+            React.createElement('div',{className:"h-1 bg-gradient-to-r from-amber-300 to-amber-500"}),
+            React.createElement('div',{className:"p-6"},
+              React.createElement('div',null,
+              React.createElement('h3',{className:"text-lg font-semibold text-gray-900 dark:text-white mb-1"},'Delete task'),
+              React.createElement('p',{className:"text-sm text-gray-500 dark:text-gray-400 mb-5"},
+                deleteModalTarget?.type==='series' ? 'This task is part of a series. Choose what to delete:' : 'Delete this task?'
+              ),
+              React.createElement('div',{className:"flex flex-col gap-3"},
+                React.createElement('button',{
+                  type:'button',
+                  onClick:function(){
+                    var ev = deleteModalTarget?.event;
+                    var snap = (eventsRef.current || []).slice(0);
+                    closeDeleteModal();
+                    if(ev) setTimeout(function(){
+                      deleteSingleOccurrence(ev);
+                      setUndoDeleteTask({ eventsSnapshot: snap, expiresAt: Date.now() + 8000 });
+                      showToast('Deleted. Undo?');
+                    }, 0);
+                  },
+                  className:"w-full py-3 px-4 rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-600 text-amber-900 dark:text-amber-100 font-medium hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors"
+                },'Only this occurrence'),
+                deleteModalTarget?.type==='series' && React.createElement('button',{
+                  type:'button',
+                  onClick:function(){
+                    var ev = deleteModalTarget?.event;
+                    var snap = (eventsRef.current || []).slice(0);
+                    closeDeleteModal();
+                    if(ev) setTimeout(function(){
+                      deleteEntireSeries(ev);
+                      setUndoDeleteTask({ eventsSnapshot: snap, expiresAt: Date.now() + 8000 });
+                      showToast('Deleted. Undo?');
+                    }, 0);
+                  },
+                  className:"w-full py-3 px-4 rounded-xl border border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-600 text-red-800 dark:text-red-200 font-medium hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+                },'Entire series'),
+                React.createElement('button',{
+                  type:'button',
+                  onClick:closeDeleteModal,
+                  className:"w-full py-3 px-4 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                },'Cancel')
+              )
+              )
             )
           )
-        )
+        ),
+        document.body
       ),
 
       showQuickActionBar && React.createElement('div',{
@@ -7670,10 +7688,21 @@
           ),
           React.createElement('div', {className: 'overflow-y-auto max-h-[50vh]'},
             (function(){
-              var q = (quickActionQuery || '').trim().toLowerCase();
+              var low = (quickActionQuery || '').trim().toLowerCase();
               var taskItems = !low ? events.slice(0, 15) : events.filter(function(e){ return (e.title || '').toLowerCase().includes(low); }).slice(0, 20);
               var docItems = [];
-              try { if (Array.isArray(dmDocs)) docItems = !low ? dmDocs.slice(0, 5) : dmDocs.filter(function(d){ return (d.name || d.title || '').toLowerCase().includes(low); }).slice(0, 10); } catch(_) {}
+              try {
+                if (Array.isArray(dmDocs)) {
+                  if (!low) docItems = dmDocs.slice(0, 5);
+                  else docItems = dmDocs.filter(function(d){
+                    var nameTitle = (d.name || d.title || '').toLowerCase();
+                    var desc = (d.description || d.desc || '').toLowerCase();
+                    var tags = Array.isArray(d.tags) ? d.tags.join(' ').toLowerCase() : (d.tags || '').toString().toLowerCase();
+                    var type = (d.type || d.kind || '').toString().toLowerCase();
+                    return nameTitle.includes(low) || desc.includes(low) || tags.includes(low) || type.includes(low);
+                  }).slice(0, 10);
+                }
+              } catch(_) {}
               return React.createElement(React.Fragment, null,
                 React.createElement('div', {className: 'px-3 py-2 text-xs font-semibold text-amber-700 dark:text-amber-300'}, 'Tasks'),
                 taskItems.map(function(ev, i){
@@ -7804,6 +7833,40 @@
             },'Undo'),
             React.createElement('button',{
               onClick:()=>setUndoDelete(null),
+              className:"px-3 py-1.5 rounded-lg text-sm bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-100"
+            },'Dismiss')
+          )
+        )
+      ),
+
+      // Undo bar for delete modal (Only this / Entire series)
+      (!undoClearAll && !undoDelete && undoDeleteTask) && React.createElement('div',{
+        className:"fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[min(92vw,560px)]"
+      },
+        React.createElement('div',{
+          className:"flex items-center justify-between gap-3 bg-white dark:bg-gray-800 border border-amber-200 dark:border-gray-700 shadow-xl rounded-xl px-4 py-3"
+        },
+          React.createElement('div',{className:"text-sm text-gray-800 dark:text-gray-100"},
+            '🗑️ Task deleted',
+            React.createElement('span',{className:"text-gray-500 dark:text-gray-400"},' • Undo (8s)')
+          ),
+          React.createElement('div',{className:"flex items-center gap-2"},
+            React.createElement('button',{
+              onClick:function(){
+                try {
+                  var snap = undoDeleteTask && Array.isArray(undoDeleteTask.eventsSnapshot) ? undoDeleteTask.eventsSnapshot : [];
+                  setUndoDeleteTask(null);
+                  var cleaned = stripInstances(snap);
+                  setEvents(cleaned);
+                  try { refreshCalendar(cleaned); } catch (_) {}
+                  showToast('↩️ Restored');
+                } catch (_) {}
+              },
+              className:"px-3 py-1.5 rounded-lg text-sm font-semibold text-white",
+              style:{background: ui.primary}
+            },'Undo'),
+            React.createElement('button',{
+              onClick:function(){ setUndoDeleteTask(null); },
               className:"px-3 py-1.5 rounded-lg text-sm bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-100"
             },'Dismiss')
           )

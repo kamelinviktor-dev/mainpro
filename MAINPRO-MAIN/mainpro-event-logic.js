@@ -48,19 +48,28 @@
     var lower = s.toLowerCase();
     var dateStr = null;
     var timeStr = null;
+    var matchedPhrases = [];
 
     if (/\b(завтра|tomorrow)\b/i.test(lower)) {
       dateStr = toYYYYMMDD(tomorrow);
+      var m1 = s.match(/\b(завтра|tomorrow)\b/i);
+      if (m1) matchedPhrases.push(m1[1]);
     } else if (/\b(сегодня|today)\b/i.test(lower)) {
       dateStr = toYYYYMMDD(today);
+      var m2 = s.match(/\b(сегодня|today)\b/i);
+      if (m2) matchedPhrases.push(m2[1]);
     } else if (/\b(послезавтра|day after tomorrow)\b/i.test(lower)) {
       var d2 = new Date(today);
       d2.setDate(d2.getDate() + 2);
       dateStr = toYYYYMMDD(d2);
+      var m3 = s.match(/\b(послезавтра|day after tomorrow)\b/i);
+      if (m3) matchedPhrases.push(m3[1]);
     } else if (/\b(через неделю|in a week|next week)\b/i.test(lower)) {
       var d7 = new Date(today);
       d7.setDate(d7.getDate() + 7);
       dateStr = toYYYYMMDD(d7);
+      var m4 = s.match(/\b(через неделю|in a week|next week)\b/i);
+      if (m4) matchedPhrases.push(m4[1]);
     } else if (/\b(через (\d+)\s*дн|in (\d+)\s*day)/i.test(lower)) {
       var dayMatch = lower.match(/(?:через|in)\s*(\d+)\s*(?:дн|day)/i);
       var n = dayMatch ? parseInt(dayMatch[1], 10) : 1;
@@ -68,6 +77,8 @@
         var dN = new Date(today);
         dN.setDate(dN.getDate() + n);
         dateStr = toYYYYMMDD(dN);
+        var m5 = s.match(/(?:через|in)\s*\d+\s*(?:дн|day)/i);
+        if (m5) matchedPhrases.push(m5[0]);
       }
     } else {
       var weekdayNames = [
@@ -88,6 +99,8 @@
           var nextD = new Date(today);
           nextD.setDate(nextD.getDate() + diff);
           dateStr = toYYYYMMDD(nextD);
+          var wdMatch = s.match(wd.ru) || s.match(wd.en);
+          if (wdMatch) matchedPhrases.push(wdMatch[0]);
           break;
         }
       }
@@ -95,6 +108,7 @@
 
     var timeMatch = s.match(/\b(в|at|@)\s*(\d{1,2}):(\d{2})\b/i) || s.match(/\b(\d{1,2}):(\d{2})\s*(?:am|pm)?\b/i) || s.match(/\b(\d{1,2})\s*:\s*(\d{2})\b/);
     if (timeMatch) {
+      matchedPhrases.push(timeMatch[0]);
       var h, m;
       if (/^(в|at|@)$/i.test(timeMatch[1])) {
         h = parseInt(timeMatch[2], 10);
@@ -109,7 +123,7 @@
     }
 
     if (!dateStr && !timeStr) return null;
-    var result = { date: dateStr || toYYYYMMDD(today), time: timeStr || '09:00' };
+    var result = { date: dateStr || toYYYYMMDD(today), time: timeStr || '09:00', matchedPhrase: matchedPhrases.length ? matchedPhrases.join(' ') : undefined };
     if (!isValidParsedDate(result.date)) result.date = toYYYYMMDD(today);
     if (!isValidParsedTime(result.time)) result.time = '09:00';
     return result;
