@@ -198,6 +198,7 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
     const undoClearAllTimerRef = useRef(null);
     const [undoDelete, setUndoDelete] = useState(null); // { items: [{event,index}], expiresAt: number }
     const undoDeleteTimerRef = useRef(null);
+    const [deleteChoiceModal, setDeleteChoiceModal] = useState(null); // { id, occurrenceStart, hasSeries, callback(scope) }
     
     // Calendar improvements: Dark mode, sorting, stats, notifications
     const [darkMode, setDarkMode] = useState(() => {
@@ -435,22 +436,23 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
         eventClick:(info)=>{
           hideTooltipGlobal();
           const idStr = String(info.event.id);
-          let src = eventsRef.current.find(e=> String(e.id)===idStr);
+          let src = eventsRef.current.find(e=> String(e.id)===idStr || e.id == idStr);
           if (!src && idStr.includes('-')) {
             const seriesId = idStr.replace(/-?\d+$/, '');
-            src = eventsRef.current.find(e=> !e.isInstance && e.seriesId && String(e.seriesId)===seriesId);
+            src = eventsRef.current.find(e=> !e.isInstance && e.seriesId && (String(e.seriesId)===seriesId || e.seriesId == seriesId));
           }
 
           if(src && typeof window.openAddTaskModal === 'function'){
-            const startStr = src.start || info.event.startStr;
-            const endStr = src.end || info.event.endStr;
+            const isInstanceClick = idStr.includes('-');
+            const startStr = isInstanceClick ? (info.event.startStr || (info.event.start && String(info.event.start))) : (src.start || info.event.startStr);
+            const endStr = isInstanceClick ? (info.event.endStr || (info.event.end && String(info.event.end))) : (src.end || info.event.endStr);
             const editPref = {
               ...src,
               id: src.id,
               mode:'edit',
               title: src.title,
-              date: startStr ? startStr.slice(0,10) : (info.event.startStr ? info.event.startStr.slice(0,10) : todayISO()),
-              time: startStr ? startStr.slice(11,16) : '',
+              date: startStr ? String(startStr).slice(0,10) : (info.event.startStr ? String(info.event.startStr).slice(0,10) : todayISO()),
+              time: startStr && startStr.length > 10 ? String(startStr).slice(11,16) : (info.event.startStr ? String(info.event.startStr).slice(11,16) : ''),
               recur: src.recur,
               recurOptions: src.recurOptions,
               recurMonths: src.recur?.months,
@@ -467,6 +469,8 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
               start: startStr,
               end: endStr
             };
+            editPref.start = startStr;
+            editPref.end = endStr;
             if(!editPref.time && startStr){
               const startDate = new Date(startStr);
               if(!Number.isNaN(startDate.getTime())){
@@ -475,7 +479,8 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
             }
             window.openAddTaskModal(editPref);
           } else if(src){
-            setEditEvent({...src, _seriesScope:'one'});
+            const occurrenceStart = info.event.startStr || info.event.start;
+            setEditEvent({...src, start: occurrenceStart || src.start, _seriesScope:'one'});
           }
 
         },
@@ -4826,34 +4831,86 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
 
     }
 
-    // === deleteEvent() function - Remove selected task from events array ===
-    function deleteEvent(eventId) {
-      // Find the task to delete
-      const eventToDelete = events.find(e => e.id === eventId);
-      if (!eventToDelete) {
-        console.warn('Task not found:', eventId);
-        return false;
-      }
+    // Удаление задачи: один экземпляр (или исключение для повторения) или вся серия. occurrenceStart — дата повторения при "только это". skipConfirm — уже подтверждено (например из модалки Add Task).
+    const deleteEvent = (id, seriesScope = 'one', occurrenceStart = null, skipConfirm = false) => {
+      const idStr = String(id);
+      if (!skipConfirm && !confirm(seriesScope === 'all' ? "Delete entire series?" : "Delete this occurrence?")) return false;
 
-      // Remove from events array and update localStorage
+      const matchId = (e, sid) => String(e.id) === sid || e.id == sid || (e.extendedProps && (String(e.extendedProps.id) === sid || e.extendedProps.id == sid));
+
       setEvents(prev => {
-        const updatedEvents = prev.filter(e => e.id !== eventId);
-        return updatedEvents;
-      });
-      
-      // Remove from FullCalendar
-      if (calRef.current) {
-        const calendarEvent = calRef.current.getEventById(eventId);
-        if (calendarEvent) {
-          calendarEvent.remove();
+        const list = Array.isArray(prev) ? prev : [];
+        const byId = list.find(e => matchId(e, idStr));
+        const eventToDelete = byId || (idStr.includes('-') ? list.find(e => e.seriesId != null && (String(e.seriesId) === idStr.replace(/-?\d+$/, '') || e.seriesId == idStr.replace(/-?\d+$/, ''))) : null);
+        const baseId = eventToDelete ? String(eventToDelete.id) : idStr;
+        const sid = eventToDelete && eventToDelete.seriesId != null ? String(eventToDelete.seriesId) : '';
+        const hasRecur = !!(eventToDelete && eventToDelete.recur && eventToDelete.recur.freq && eventToDelete.recur.freq !== 'none');
+        const hasSeries = sid.length > 0;
+        let next;
+        if (seriesScope === 'all' && (hasSeries || hasRecur)) {
+          next = list.filter(e => (String(e.id) !== baseId && e.id != baseId) && (sid ? (String(e.seriesId || '') !== sid && e.seriesId != sid) : true));
+        } else if (seriesScope === 'one' && hasRecur) {
+          let dateStr = '';
+          const toLocalDate = (d) => (d && !isNaN(d.getTime()) ? toLocalISO(d).slice(0, 10) : '');
+          if (occurrenceStart != null && occurrenceStart !== '') {
+            if (typeof occurrenceStart === 'string') {
+              const s = occurrenceStart.slice(0, 10);
+              if (/^\d{4}-\d{2}-\d{2}$/.test(s)) dateStr = s;
+              else dateStr = toLocalDate(new Date(occurrenceStart));
+            } else if (occurrenceStart instanceof Date) dateStr = toLocalDate(occurrenceStart);
+            else dateStr = toLocalDate(new Date(occurrenceStart));
+          }
+          if (dateStr && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+            next = list.map(e => {
+              if (String(e.id) !== baseId && e.id != baseId) return e;
+              const prevEx = (e.recur?.exceptions || []).map(d => String(d).slice(0, 10));
+              const already = prevEx.includes(dateStr);
+              const ex = already ? (e.recur?.exceptions || []) : [...(e.recur?.exceptions || []), dateStr];
+              return { ...e, recur: { ...(e.recur || {}), exceptions: ex } };
+            });
+          } else {
+            next = list;
+          }
+        } else if (idStr.includes('-') && hasSeries && eventToDelete) {
+          const seriesId = idStr.replace(/-?\d+$/, '');
+          let dateStr = eventToDelete.start ? toLocalISO(new Date(eventToDelete.start)).slice(0, 10) : '';
+          const fromId = idStr.split('-').slice(-3).join('-');
+          if (!dateStr && /^\d{4}-\d{2}-\d{2}$/.test(fromId)) dateStr = fromId;
+          if (dateStr) {
+            next = list.map(e => {
+              const matchSeries = String(e.seriesId) === seriesId || e.seriesId == seriesId || String(e.id) === seriesId || e.id == seriesId;
+              if (matchSeries) {
+                const ex = [...(e.recur?.exceptions || []), dateStr];
+                return { ...e, recur: { ...(e.recur || {}), exceptions: ex } };
+              }
+              return e;
+            });
+          } else {
+            next = list;
+          }
+        } else {
+          next = list.filter(e => !matchId(e, idStr));
+          if (next.length === list.length) {
+            const idx = list.findIndex(e => matchId(e, idStr));
+            if (idx >= 0) next = list.slice(0, idx).concat(list.slice(idx + 1));
+          }
         }
-      }
+        const cleaned = stripInstances(next);
+        try {
+          localStorage.setItem(`mainpro_calendar_${currentCalendarId}`, JSON.stringify(cleaned));
+        } catch (_) {}
+        eventsRef.current = cleaned;
+        return cleaned;
+      });
 
-      // Show toast message
-      showToast("🗑️ Task deleted");
-      
+      if (window.showToast) window.showToast("Task deleted");
+      if (editEvent) setEditEvent(null);
+      const tooltip = document.getElementById('mp-tooltip');
+      if (tooltip) tooltip.classList.remove('show');
+      requestAnimationFrame(() => { if (calRef.current) refreshCalendar(eventsRef.current); });
+      setTimeout(() => { if (calRef.current && eventsRef.current) refreshCalendar(eventsRef.current); }, 0);
       return true;
-    }
+    };
 
     function clearAll(){
 
@@ -5536,6 +5593,44 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
         };
       }
     })();
+
+    // === Глобальные API для взаимодействия с внешними скриптами ===
+    useEffect(() => {
+      window.setEvents = setEvents;
+      window.refreshCalendar = () => refreshCalendar(eventsRef.current);
+      window.openLoginModal = () => setShowAuthModal(true);
+      window.openAIChatModal = () => setShowAIChat(true);
+      window.openSettingsModal = () => setOpenSettings(true);
+      const openTaskModalImpl = (dateOrPref) => {
+        const date = typeof dateOrPref === 'string' ? dateOrPref : (dateOrPref?.date || dateOrPref?.start);
+        const pref = date ? { date: String(date).slice(0, 10) } : (dateOrPref && typeof dateOrPref === 'object' ? dateOrPref : {});
+        if (typeof window.openAddTaskModal === 'function') {
+          window.openAddTaskModal(pref);
+        } else {
+          setForm(f => ({ ...f, date: (pref && pref.date) || todayISO() }));
+          setShowAdd(true);
+        }
+      };
+      window.openTaskModal = openTaskModalImpl;
+      window.deleteEvent = deleteEvent;
+      window.showDeleteChoiceModal = (id, occurrenceStart, hasSeries, callback) => {
+        if (typeof callback !== 'function') return;
+        setDeleteChoiceModal({ id, occurrenceStart, hasSeries, callback });
+      };
+      // v70 script runs after this module and overwrites openTaskModal — re-apply after a tick so Add Task opens v74
+      const t = setTimeout(() => { window.openTaskModal = openTaskModalImpl; }, 0);
+      return () => {
+        clearTimeout(t);
+        delete window.deleteEvent;
+        delete window.showDeleteChoiceModal;
+        delete window.setEvents;
+        delete window.refreshCalendar;
+        delete window.openLoginModal;
+        delete window.openAIChatModal;
+        delete window.openSettingsModal;
+        delete window.openTaskModal;
+      };
+    }, [currentCalendarId]);
 
     return React.createElement('div', {className:`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-[#FDFCF8]'}`, style:{'--acc': ui.primary}},
 
@@ -7774,16 +7869,28 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
 
           ),
 
-          React.createElement('div',{className:"flex justify-between mt-4"},
+          React.createElement('div',{className:"flex justify-between mt-4 flex-wrap gap-2"},
 
-            React.createElement('button',{onClick:()=>{
-              const idx = (eventsRef?.current && Array.isArray(eventsRef.current)) ? eventsRef.current.findIndex(e=> String(e.id)===String(editEvent.id)) : -1;
-              try { if(typeof window.mainproQueueUndoDeleteOne === 'function') window.mainproQueueUndoDeleteOne(editEvent, idx); } catch {}
-              if(deleteEvent(editEvent.id)) {
-                setEditEvent(null);
-                showToast('🗑️ Deleted — Undo (10s)');
-              }
-            }, className:"px-4 py-2 rounded-md bg-yellow-500 text-white hover:bg-yellow-600 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"},'🗑️ Delete'),
+            React.createElement('div',{className:"flex flex-col gap-2"},
+              React.createElement('div',{className:"text-xs font-medium text-gray-600 dark:text-gray-400"},'Delete:'),
+              React.createElement('div',{className:"flex gap-2 flex-wrap items-center"},
+                React.createElement('button',{onClick:()=>{
+                  const idx = (eventsRef?.current && Array.isArray(eventsRef.current)) ? eventsRef.current.findIndex(e=> String(e.id)===String(editEvent.id)) : -1;
+                  try { if(typeof window.mainproQueueUndoDeleteOne === 'function') window.mainproQueueUndoDeleteOne(editEvent, idx); } catch {}
+                  const occurrenceStart = editEvent.start || null;
+                  if(deleteEvent(editEvent.id, 'one', occurrenceStart)) { setEditEvent(null); showToast('🗑️ Deleted — Undo (10s)'); }
+                }, className:"px-3 py-2 rounded-md bg-amber-500 text-white hover:bg-amber-600 text-sm inline-flex items-center gap-2"},
+                  React.createElement('span',null,'🗑️'),
+                  React.createElement('span',null, (editEvent.seriesId || (editEvent.recur && editEvent.recur.freq && editEvent.recur.freq !== 'none')) ? 'This occurrence only' : 'Delete this task')),
+                React.createElement('button',{onClick:()=>{
+                  const idx = (eventsRef?.current && Array.isArray(eventsRef.current)) ? eventsRef.current.findIndex(e=> String(e.id)===String(editEvent.id)) : -1;
+                  try { if(typeof window.mainproQueueUndoDeleteOne === 'function') window.mainproQueueUndoDeleteOne(editEvent, idx); } catch {}
+                  if(deleteEvent(editEvent.id, 'all')) { setEditEvent(null); showToast((editEvent.seriesId || (editEvent.recur && editEvent.recur.freq)) ? '🗑️ Series deleted' : '🗑️ Deleted — Undo (10s)'); }
+                }, className:"px-3 py-2 rounded-md bg-red-500 text-white hover:bg-red-600 text-sm inline-flex items-center gap-2"},
+                  React.createElement('span',null,'🗑️'),
+                  React.createElement('span',null, (editEvent.seriesId || (editEvent.recur && editEvent.recur.freq)) ? 'Entire series' : 'Delete'))
+              )
+            ),
 
             React.createElement('div',{className:"flex gap-2"},
 
@@ -7797,6 +7904,42 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
 
         )
 
+      ),
+
+      // Окно выбора удаления: рендер в body через портал, чтобы было поверх окна Add Task (z-index 1000)
+      deleteChoiceModal && (typeof ReactDOM !== 'undefined' ? ReactDOM : window.ReactDOM).createPortal(
+        React.createElement('div',{className:"fixed inset-0 bg-black/50 flex items-center justify-center p-4", style:{zIndex:1100}, 'data-mp-overlay':'1', onClick(e){ if(e.target===e.currentTarget) setDeleteChoiceModal(null); }},
+          React.createElement('div',{className:"modal-enter modal-ready bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 max-w-sm w-full max-h-[90vh] overflow-y-auto", onClick(e){ e.stopPropagation(); }, 'data-mp-modal':'1'},
+            React.createElement('div',{className:"text-lg font-semibold mb-2 text-gray-800 dark:text-gray-100"},'🗑️ Delete task'),
+            React.createElement('div',{className:"text-sm text-gray-600 dark:text-gray-400 mb-4"}, deleteChoiceModal.hasSeries ? 'Delete only this occurrence or the entire series?' : 'Delete this task?'),
+            React.createElement('div',{className:"flex flex-col gap-2 w-full"},
+              React.createElement('button',{
+                onClick:()=>{
+                  const { id, occurrenceStart, callback } = deleteChoiceModal;
+                  setDeleteChoiceModal(null);
+                  if (callback) callback('one');
+                  if (deleteEvent(id, 'one', occurrenceStart, true)) showToast('🗑️ Deleted — Undo (10s)');
+                },
+                title: deleteChoiceModal.hasSeries ? 'This occurrence only' : 'Delete this task',
+                className:"w-full px-4 py-2.5 rounded-lg bg-amber-500 text-white font-medium hover:bg-amber-600 text-left"
+              }, React.createElement('span',{style:{color:'#1f2937', fontWeight:'bold'}}, '🗑️ ' + (deleteChoiceModal.hasSeries ? 'This occurrence only' : 'Delete this task'))),
+              React.createElement('button',{
+                onClick:()=>{
+                  const { id, hasSeries, callback } = deleteChoiceModal;
+                  setDeleteChoiceModal(null);
+                  if (callback) callback('all');
+                  if (deleteEvent(id, 'all', null, true)) showToast(hasSeries ? '🗑️ Series deleted' : '🗑️ Deleted');
+                },
+                className:"w-full px-4 py-2.5 rounded-lg bg-red-500 text-white font-medium hover:bg-red-600 text-left"
+              }, React.createElement('span',{style:{color:'#fff', fontWeight:'bold'}}, '🗑️ ' + (deleteChoiceModal.hasSeries ? 'Entire series' : 'Delete'))),
+              React.createElement('button',{
+                onClick:()=> setDeleteChoiceModal(null),
+                className:"w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 text-left"
+              },'Cancel')
+            )
+          )
+        ),
+        document.body
       ),
 
       // Settings (+ новый тумблер Auto Status Engine)

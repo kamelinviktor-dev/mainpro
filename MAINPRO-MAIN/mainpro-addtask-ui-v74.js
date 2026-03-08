@@ -725,13 +725,46 @@
           return;
         }
 
+        const baseIdStr = String(baseId);
+        const dateFromForm = overlay.querySelector('#mp_date')?.value || null;
+        let occurrenceStart = dateFromForm || pref?.start || pref?.date || null;
+        if (occurrenceStart != null && occurrenceStart !== '') {
+          const v = String(occurrenceStart).trim();
+          if (v.length >= 10 && /^\d{4}-\d{2}-\d{2}/.test(v)) occurrenceStart = v.slice(0, 10);
+          else {
+            const d = new Date(occurrenceStart);
+            if (!isNaN(d.getTime())) occurrenceStart = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+          }
+        }
+        const hasSeries = !!seriesId;
+
+        // Показать окно выбора с кнопками (MainPro): только это / вся серия
+        if(typeof window.showDeleteChoiceModal === 'function'){
+          try{
+            if(typeof window.mainproQueueUndoDeleteOne === 'function' && Array.isArray(window.MainProEvents)){
+              const idx = window.MainProEvents.findIndex(e => String(e.id) === baseIdStr);
+              const evDel = idx >= 0 ? window.MainProEvents[idx] : null;
+              if(evDel) window.mainproQueueUndoDeleteOne(evDel, idx);
+            }
+          }catch(e){}
+          window.showDeleteChoiceModal(baseIdStr, occurrenceStart, hasSeries, (scope)=>{
+            if(scope === 'all'){
+              window.addAuditLog?.('TASK_SERIES_DELETED', { seriesId, taskId: baseId, title: pref?.title || '' });
+              window?.showToast?.('🗑️ Task series deleted');
+            }else{
+              window.addAuditLog?.('TASK_DELETED', { taskId: baseId, title: pref?.title || '', taskType: pref?.taskType || taskType || 'Task' });
+              window?.showToast?.('🗑️ Task deleted');
+            }
+            close();
+          });
+          return;
+        }
+
+        // Fallback: confirm + deleteEvent
         let deleteSeries = false;
         if(seriesId){
-          // Safer default: OK = delete only this task. Entire series requires explicit confirm.
           const onlyThis = confirm('Delete ONLY this task?\nOK = only this task, Cancel = choose series delete');
-          if(onlyThis){
-            // continue as single delete
-          } else {
+          if(!onlyThis){
             if(!confirm('Delete ENTIRE series?\nThis may remove MANY tasks.')) return;
             deleteSeries = true;
           }
@@ -739,9 +772,29 @@
           if(!confirm('Delete this task?')) return;
         }
 
-        const baseIdStr = String(baseId);
+        if(typeof window.deleteEvent === 'function'){
+          try{
+            if(!deleteSeries && typeof window.mainproQueueUndoDeleteOne === 'function' && Array.isArray(window.MainProEvents)){
+              const idx = window.MainProEvents.findIndex(e => String(e.id) === baseIdStr);
+              const evDel = idx >= 0 ? window.MainProEvents[idx] : null;
+              if(evDel) window.mainproQueueUndoDeleteOne(evDel, idx);
+            }
+          }catch{}
+          const scope = deleteSeries ? 'all' : 'one';
+          if(window.deleteEvent(baseIdStr, scope, occurrenceStart, true)){
+            if(deleteSeries){
+              window.addAuditLog?.('TASK_SERIES_DELETED', { seriesId, taskId: baseId, title: pref?.title || '' });
+              window?.showToast?.('🗑️ Task series deleted');
+            }else{
+              window.addAuditLog?.('TASK_DELETED', { taskId: baseId, title: pref?.title || '', taskType: pref?.taskType || taskType || 'Task' });
+              window?.showToast?.('🗑️ Task deleted');
+            }
+          }
+          close();
+          return;
+        }
 
-        // Queue Undo for single delete (series delete has no Undo)
+        // Fallback when deleteEvent not available
         try{
           if(!deleteSeries && typeof window.mainproQueueUndoDeleteOne === 'function' && Array.isArray(window.MainProEvents)){
             const idx = window.MainProEvents.findIndex(e => String(e.id) === baseIdStr);
@@ -751,7 +804,13 @@
         }catch{}
 
         if(typeof window.setEvents === 'function'){
-          window.setEvents(prev => prev.filter(e => deleteSeries ? e.seriesId !== seriesId : String(e.id) !== baseIdStr));
+          window.setEvents(prev => {
+            if(!Array.isArray(prev)) return prev;
+            if(deleteSeries && seriesId){
+              return prev.filter(e => String(e.seriesId || '') !== String(seriesId) && String(e.id) !== baseIdStr);
+            }
+            return prev.filter(e => String(e.id) !== baseIdStr);
+          });
         }
 
         try{
@@ -765,7 +824,6 @@
           })();
           let arr=[];
           try{ arr = JSON.parse(localStorage.getItem(key)||'[]'); }catch{}
-          // Queue Undo for single delete (series delete has no Undo)
           try{
             if(!deleteSeries && typeof window.mainproQueueUndoDeleteOne === 'function'){
               const idx = arr.findIndex(e => String(e.id) === baseIdStr);
@@ -773,24 +831,26 @@
               if(evDel) window.mainproQueueUndoDeleteOne(evDel, idx);
             }
           }catch{}
-          arr = arr.filter(e => deleteSeries ? e.seriesId !== seriesId : String(e.id) !== baseIdStr);
+          arr = deleteSeries && seriesId
+            ? arr.filter(e => String(e.seriesId || '') !== String(seriesId) && String(e.id) !== baseIdStr)
+            : arr.filter(e => String(e.id) !== baseIdStr);
           localStorage.setItem(key, JSON.stringify(arr));
         }catch(err){
           console.error('Failed to update localStorage after delete:', err);
         }
 
         if(Array.isArray(window.MainProEvents)){
-          window.MainProEvents = window.MainProEvents.filter(e => deleteSeries ? e.seriesId !== seriesId : String(e.id) !== baseIdStr);
+          window.MainProEvents = deleteSeries && seriesId
+            ? window.MainProEvents.filter(e => String(e.seriesId || '') !== String(seriesId) && String(e.id) !== baseIdStr)
+            : window.MainProEvents.filter(e => String(e.id) !== baseIdStr);
         }
 
         try{
           const cal = window.calRef?.current;
           if(cal){
-            if(deleteSeries){
+            if(deleteSeries && seriesId){
               cal.getEvents().forEach(ev=>{
-                if(ev.extendedProps?.seriesId === seriesId){
-                  ev.remove();
-                }
+                if(String(ev.extendedProps?.seriesId || '') === String(seriesId)) ev.remove();
               });
             }else{
               const ev = cal.getEventById(baseIdStr) || cal.getEventById(baseId);

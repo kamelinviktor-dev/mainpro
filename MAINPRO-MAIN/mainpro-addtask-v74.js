@@ -17,10 +17,11 @@
   }
   window.openAddTaskModal = function(pref = {}){
     const cfg = normalizePref(pref);
-    if(typeof window.openTaskModal === 'function'){
+    // Prefer legacy Add Task UI (mainpro-addtask-ui-v74) to avoid recursion with openTaskModal
+    if (typeof legacyAddTask === 'function'){
+      legacyAddTask(cfg);
+    } else if(typeof window.openTaskModal === 'function'){
       window.openTaskModal(cfg);
-    } else if (typeof legacyAddTask === 'function'){
-      legacyAddTask(pref);
     } else {
       console.warn('Task modal not available yet.');
       alert('Task form is still loading. Please try again shortly.');
