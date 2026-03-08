@@ -828,7 +828,7 @@
               ${ e.location ? `<div class="row">📍 <span>${e.location}</span></div>` : '' }
 
               ${ e.notes ? `<div class="row">📝 <span>${e.notes}</span></div>` : '' }
-              ${ (()=>{ const a=(e?.attachments||[]).filter(x=>x?.docId||x?.id||x?.name); if(!a.length) return ''; const raw = a.slice(0,3).map(x=>String(x.name||'file')).join(', '); const esc = raw.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); return `<div class="row">📎 <span>Attachments: ${a.length}${esc?` — ${esc}${a.length>3?'…':''}`:''}</span></div>`; })() }
+              ${ (()=>{ const a=(e?.attachments||[]).filter(x=>x?.docId||x?.id||x?.name); if(!a.length) return ''; const raw = a.slice(0,3).map(x=>String(x.name||'file')).join(', '); const esc = raw.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/`/g,'\\`').replace(/\$/g,'\\$'); const suffix = a.length>3 ? ' \u2026' : ''; return '<div class="row">\uD83D\uDCCE <span>Attachments: ' + a.length + (esc ? ' \u2014 ' + esc + suffix : '') + '</span></div>'; })() }
               
               <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.2);display:flex;gap:4px;flex-wrap:wrap;">
                 <button data-event-id="${arg.event.id}" data-status="pending" class="quick-status-btn" style="padding:4px 8px;background:#eab308;color:white;border:none;border-radius:4px;font-size:11px;cursor:pointer;">Pending</button>
@@ -14377,17 +14377,8 @@ try {
   // Safe Guard will handle this error
 }
 
-// === Expose modals globally (header buttons depend on this) ===
-if (typeof openLoginModal === 'function') {
-  window.openLoginModal = openLoginModal;
-}
-
-if (typeof openAIChatModal === 'function') {
-  window.openAIChatModal = openAIChatModal;
-}
-
-if (typeof openSettingsModal === 'function') {
-  window.openSettingsModal = openSettingsModal;
-}
-
-
+// === MainPro AI Safe Guard v1.0 (end of file) ===
+try {
+  // Modal APIs (openLoginModal, openAIChatModal, openSettingsModal) are bound to window
+  // inside MainPro's useEffect after mount. No global expose needed here.
+} catch (_) {}
