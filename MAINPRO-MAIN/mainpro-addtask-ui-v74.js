@@ -725,13 +725,24 @@
           return;
         }
 
+        // Use central delete modal (Master–Exception: Only this / Entire series)
+        if(typeof window.openDeleteModal === 'function'){
+          const eventForDelete = {
+            id: baseId,
+            seriesId,
+            title: pref?.title,
+            taskType: pref?.taskType || taskType,
+            start: pref?.start || pref?.date,
+            _occurrenceStart: pref?._occurrenceStart || pref?.start || pref?.date
+          };
+          window.openDeleteModal(eventForDelete, close);
+          return;
+        }
+
         let deleteSeries = false;
         if(seriesId){
-          // Safer default: OK = delete only this task. Entire series requires explicit confirm.
           const onlyThis = confirm('Delete ONLY this task?\nOK = only this task, Cancel = choose series delete');
-          if(onlyThis){
-            // continue as single delete
-          } else {
+          if(!onlyThis){
             if(!confirm('Delete ENTIRE series?\nThis may remove MANY tasks.')) return;
             deleteSeries = true;
           }

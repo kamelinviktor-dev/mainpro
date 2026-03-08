@@ -59,6 +59,21 @@
   .dark .text-gray-700 { color: #d1d5db !important; }
   .dark .border { border-color: #374151 !important; }
 
+  /* Delete Task modal: always on top of FullCalendar and other overlays */
+  .mp-delete-modal-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 9999 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: rgba(0, 0, 0, 0.4) !important;
+  }
+  .mp-delete-modal {
+    position: relative !important;
+    z-index: 10000 !important;
+  }
+
   /* Fixed calendar area */
 
   #calendar-shell { height: 720px; }

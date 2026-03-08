@@ -239,6 +239,168 @@
       return Array.isArray(list) ? list.filter(e => !e || !e.isInstance) : [];
     }
 
+    /** Master–Exception: get base (master) task for a series instance or exception event. */
+    function getBaseForSeriesEvent(event) {
+      if (!event || !eventsRef.current) return null;
+      const idStr = String(event.id || '');
+      const seriesId = event.seriesId || (idStr.includes('-') ? idStr.replace(/-?\d+$/, '') : null);
+      if (!seriesId) return null;
+      return eventsRef.current.find(e => !e.isInstance && e.seriesId && String(e.seriesId) === seriesId) || null;
+    }
+
+    /** Add occurrence date to master's recur.exceptions (deduped). Returns updated base. */
+    function addExceptionToMaster(base, dateStr) {
+      if (!base || !dateStr) return base;
+      const d = String(dateStr).slice(0, 10);
+      const prev = base.recur && base.recur.exceptions ? base.recur.exceptions : [];
+      if (prev.some(x => String(x).slice(0, 10) === d)) return base;
+      return { ...base, recur: { ...(base.recur || {}), exceptions: [...prev, d] } };
+    }
+
+    /** Delete only this occurrence: add date to master exceptions; series stays. Never remove parent. */
+    function deleteSingleOccurrence(event) {
+      const ev = event && event.event ? event.event : event;
+      const taskId = ev && (ev.id || ev.title || 'unknown');
+      try {
+        console.log('MainPro Debug: Starting Delete', taskId);
+      } catch (_) {}
+      if (!ev) return;
+      try {
+        const list = eventsRef.current || [];
+        const idStr = String(ev.id || '');
+        const occurrenceDate = ev._occurrenceStart != null
+          ? (typeof ev._occurrenceStart === 'string' ? ev._occurrenceStart.slice(0, 10) : new Date(ev._occurrenceStart).toISOString().slice(0, 10))
+          : (ev.start && String(ev.start).slice(0, 10)) || (idStr.includes('-') ? null : null);
+        const seriesId = ev.seriesId || (idStr.includes('-') ? idStr.replace(/-?\d+$/, '') : null);
+        const base = seriesId ? list.find(e => !e.isInstance && e.seriesId && String(e.seriesId) === seriesId) : null;
+        if (base && occurrenceDate) {
+          const updated = addExceptionToMaster(base, occurrenceDate);
+          setEvents(prev => prev.map(e => e.id === base.id ? updated : e));
+          eventsRef.current = eventsRef.current.map(e => e.id === base.id ? updated : e);
+          addAuditLog('TASK_DELETED', { taskId: ev.id, title: ev.title, taskType: ev.taskType, scope: 'single' });
+          showToast('🗑️ Deleted this occurrence');
+          try { console.log('MainPro Debug: Success', taskId); } catch (_) {}
+          return;
+        }
+        setEvents(prev => prev.filter(e => String(e.id) !== idStr));
+        addAuditLog('TASK_DELETED', { taskId: ev.id, title: ev.title, taskType: ev.taskType });
+        showToast('🗑️ Deleted');
+        try { console.log('MainPro Debug: Success', taskId); } catch (_) {}
+      } catch (err) {
+        console.warn('MainPro Delete error:', err);
+        showToast('Delete failed');
+      }
+    }
+
+    /** Delete entire series by seriesId. */
+    function deleteEntireSeries(event) {
+      const ev = event && event.event ? event.event : event;
+      const taskId = ev && (ev.id || ev.seriesId || ev.title || 'unknown');
+      try {
+        console.log('MainPro Debug: Starting Delete', taskId);
+      } catch (_) {}
+      if (!ev) return;
+      try {
+        const seriesId = ev.seriesId || (String(ev.id || '').includes('-') ? String(ev.id).replace(/-?\d+$/, '') : null);
+        if (!seriesId) {
+          setEvents(prev => prev.filter(e => String(e.id) !== String(ev.id)));
+          showToast('🗑️ Deleted');
+          try { console.log('MainPro Debug: Success', taskId); } catch (_) {}
+          return;
+        }
+        setEvents(prev => prev.filter(e => e.seriesId !== seriesId));
+        addAuditLog('TASK_SERIES_DELETED', { seriesId, taskId: ev.id, title: ev.title });
+        showToast('🗑️ Series deleted');
+        try { console.log('MainPro Debug: Success', taskId); } catch (_) {}
+      } catch (err) {
+        console.warn('MainPro Delete error:', err);
+        showToast('Delete failed');
+      }
+    }
+
+    function openDeleteModal(event, onClose) {
+      if (!event) return;
+      const ev = event && event.event ? event.event : event;
+      const idStr = String(ev.id || '');
+      const hasSeries = !!(ev.seriesId || (idStr.includes('-') && idStr.replace(/-?\d+$/, '')));
+      setDeleteModalTarget({ type: hasSeries ? 'series' : 'single', event: ev, onClose: onClose || null });
+    }
+
+    function closeDeleteModal() {
+      const target = deleteModalTarget;
+      setDeleteModalTarget(null);
+      if (target && typeof target.onClose === 'function') target.onClose();
+    }
+
+    /**
+     * handleTaskUpdate(eventData, mode) — Master–Exception update.
+     * mode: 'single' = this occurrence only (add to exceptions + optional one-off);
+     *       'future' = this and future (split series); 'all' = entire series.
+     */
+    function handleTaskUpdate(eventData, mode) {
+      if (!eventData) return;
+      const ev = eventData;
+      const list = eventsRef.current || [];
+      if (mode === 'all') {
+        setEvents(prev => prev.map(e => (e.seriesId !== ev.seriesId ? e : { ...e, ...ev, id: e.id, seriesId: e.seriesId, recur: e.recur })));
+        if (settings.autoStatusEnabled) runSmartStatusOnce();
+        return;
+      }
+      if (mode === 'single') {
+        const occurrenceDate = ev._occurrenceStart != null
+          ? (typeof ev._occurrenceStart === 'string' ? ev._occurrenceStart.slice(0, 10) : new Date(ev._occurrenceStart).toISOString().slice(0, 10))
+          : (ev.start && String(ev.start).slice(0, 10)) || null;
+        const seriesId = ev.seriesId || (String(ev.id || '').includes('-') ? String(ev.id).replace(/-?\d+$/, '') : null);
+        const base = seriesId ? list.find(e => !e.isInstance && e.seriesId && String(e.seriesId) === seriesId) : null;
+        if (base && occurrenceDate) {
+          const updated = addExceptionToMaster(base, occurrenceDate);
+          const oneOff = {
+            ...base,
+            ...ev,
+            id: Date.now(),
+            seriesId: null,
+            groupId: base.seriesId || base.id,
+            isException: true,
+            start: ev.start || (occurrenceDate + 'T09:00'),
+            end: ev.end || ev.start || (occurrenceDate + 'T09:00'),
+            recur: { freq: 'none', interval: 1, end: { type: 'never' }, exceptions: [] },
+            isInstance: false
+          };
+          setEvents(prev => {
+            const next = prev.map(e => (e.id === base.id ? updated : e));
+            return stripInstances([...next, oneOff]);
+          });
+          if (settings.autoStatusEnabled) runSmartStatusOnce();
+          return;
+        }
+        setEvents(prev => prev.map(e => (String(e.id) === String(ev.id) ? { ...e, ...ev } : e)));
+        if (settings.autoStatusEnabled) runSmartStatusOnce();
+        return;
+      }
+      if (mode === 'future') {
+        if (!ev.seriesId) return;
+        const occurrenceDate = ev._occurrenceStart != null
+          ? (typeof ev._occurrenceStart === 'string' ? ev._occurrenceStart.slice(0, 10) : new Date(ev._occurrenceStart).toISOString().slice(0, 10))
+          : (ev.start && String(ev.start).slice(0, 10)) || null;
+        if (!occurrenceDate) return;
+        const base = list.find(e => !e.isInstance && e.seriesId && String(e.seriesId) === ev.seriesId);
+        if (!base) return;
+        const newSeriesId = 'S' + Date.now();
+        const oneOff = { ...base, ...ev, id: Date.now(), seriesId: newSeriesId, start: ev.start || occurrenceDate + 'T09:00', end: ev.end || ev.start, recur: base.recur, isInstance: false };
+        const endCfg = (base.recur && base.recur.end) || { type: 'never' };
+        const until = endCfg.type === 'until' && endCfg.until ? endCfg.until : null;
+        const newEnd = until ? { type: 'until', until: occurrenceDate } : { type: 'never' };
+        setEvents(prev => {
+          const next = prev.map(e => {
+            if (e.id !== base.id) return e;
+            return { ...e, recur: { ...(e.recur || {}), end: newEnd } };
+          });
+          return stripInstances([...next, oneOff]);
+        });
+        if (settings.autoStatusEnabled) runSmartStatusOnce();
+      }
+    }
+
     // Documents initialization moved to state declaration
 
     // Folders initialization moved to state declaration
@@ -314,7 +476,20 @@
     const undoClearAllTimerRef = useRef(null);
     const [undoDelete, setUndoDelete] = useState(null); // { items: [{event,index}], expiresAt: number }
     const undoDeleteTimerRef = useRef(null);
-    
+    /** Delete modal: { type: 'single'|'series', event: {...}, onClose?: fn }. null = closed. */
+    const [deleteModalTarget, setDeleteModalTarget] = useState(null);
+
+    useEffect(function focusDeleteModal() {
+      if (!deleteModalTarget) return;
+      var t = setTimeout(function () {
+        try {
+          var el = document.getElementById('mp-delete-modal');
+          if (el && typeof el.focus === 'function') el.focus();
+        } catch (_) {}
+      }, 50);
+      return function () { clearTimeout(t); };
+    }, [deleteModalTarget]);
+
     // Calendar improvements: Dark mode, sorting, stats, notifications
     const [darkMode, setDarkMode] = useState(() => {
       try {
@@ -552,6 +727,7 @@
           if(src && typeof window.openAddTaskModal === 'function'){
             const startStr = src.start || info.event.startStr;
             const endStr = src.end || info.event.endStr;
+            const isInstance = idStr.includes('-');
             const editPref = {
               ...src,
               id: src.id,
@@ -575,6 +751,7 @@
               start: startStr,
               end: endStr
             };
+            if (isInstance) editPref._occurrenceStart = info.event.startStr || startStr;
             if(!editPref.time && startStr){
               const startDate = new Date(startStr);
               if(!Number.isNaN(startDate.getTime())){
@@ -583,7 +760,8 @@
             }
             window.openAddTaskModal(editPref);
           } else if(src){
-            setEditEvent({...src, _seriesScope:'one'});
+            const isInstance = idStr.includes('-');
+            setEditEvent({ ...src, _seriesScope: 'one', ...(isInstance ? { _occurrenceStart: info.event.startStr || src.start } : {}) });
           }
 
         },
@@ -603,6 +781,8 @@
                 ...base,
                 id: Date.now(),
                 seriesId: null,
+                groupId: base.seriesId || base.id,
+                isException: true,
                 recur: base.recur && base.recur.freq && base.recur.freq !== 'none' ? { freq: 'none', interval: 1, end: { type: 'never' }, exceptions: [] } : (base.recur || {}),
                 start,
                 end,
@@ -969,30 +1149,45 @@
       document.title = `${base}${month} • ${viewLabel} • ${filterLabel}`;
     }, [monthLabel, view, filter]);
 
-    // persist & re-render (optimized: debounced localStorage write)
-
-    useEffect(()=>{ 
-      // Use requestAnimationFrame for smooth calendar updates
-      requestAnimationFrame(() => {
-        refreshCalendar(events);
-      });
-
-      // Keep legacy Add Task scripts in sync (Undo relies on this)
-      try { window.MainProEvents = Array.isArray(events) ? events : []; } catch {}
-      
-      // Debounce localStorage writes to avoid blocking (300ms delay)
+    // persist & re-render: write localStorage first, then refresh calendar to avoid loops/hangs
+    useEffect(()=>{
       const calendarKey = `mainpro_calendar_${currentCalendarId}`;
-      const saveTimeout = setTimeout(() => {
-        try {
-          localStorage.setItem(calendarKey, JSON.stringify(stripInstances(events)));
-          try { localStorage.setItem('mainpro_events_v60', JSON.stringify(stripInstances(events))); } catch {}
-          try { localStorage.setItem('mainpro_events_v70', JSON.stringify(stripInstances(events))); } catch {}
-        } catch (e) {
-          console.warn('localStorage write failed:', e);
-        }
-      }, 300);
-      
-      return () => clearTimeout(saveTimeout);
+      let saveTimeout;
+      try {
+        window.MainProEvents = Array.isArray(events) ? events : [];
+      } catch (_) {}
+
+      try {
+        const toStore = stripInstances(events);
+        const json = JSON.stringify(toStore);
+        saveTimeout = setTimeout(() => {
+          try {
+            localStorage.setItem(calendarKey, json);
+          } catch (e) {
+            console.warn('MainPro localStorage write failed:', e);
+          }
+          try {
+            localStorage.setItem('mainpro_events_v60', json);
+          } catch (_) {}
+          try {
+            localStorage.setItem('mainpro_events_v70', json);
+          } catch (_) {}
+          requestAnimationFrame(() => {
+            try {
+              refreshCalendar(events);
+            } catch (e) {
+              console.warn('MainPro refreshCalendar in effect:', e);
+            }
+          });
+        }, 0);
+      } catch (e) {
+        console.warn('MainPro persist error:', e);
+        requestAnimationFrame(() => {
+          try { refreshCalendar(events); } catch (_) {}
+        });
+      }
+
+      return () => { if (saveTimeout) clearTimeout(saveTimeout); };
     },[events,filter,search,currentCalendarId,sortBy,groupBy]);
 
     useEffect(()=>{ localStorage.setItem('mainpro_categories_v60', JSON.stringify(categories)); },[categories]);
@@ -1939,82 +2134,90 @@
       const cal = calRef.current; if(!cal) return;
       const listToUse = list !== undefined ? list : (eventsRef.current || []);
       requestAnimationFrame(() => {
-        let rangeStart, rangeEnd;
         try {
-          const view = cal.getView();
-          if (view && view.activeStart && view.activeEnd) {
-            rangeStart = view.activeStart;
-            rangeEnd = view.activeEnd;
-          } else {
+          let rangeStart, rangeEnd;
+          try {
+            const view = cal.getView();
+            if (view && view.activeStart && view.activeEnd) {
+              rangeStart = view.activeStart;
+              rangeEnd = view.activeEnd;
+            } else {
+              const now = new Date();
+              rangeStart = new Date(now.getFullYear(), now.getMonth(), 1);
+              rangeEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+            }
+          } catch (_) {
             const now = new Date();
             rangeStart = new Date(now.getFullYear(), now.getMonth(), 1);
             rangeEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
           }
-        } catch (_) {
-          const now = new Date();
-          rangeStart = new Date(now.getFullYear(), now.getMonth(), 1);
-          rangeEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
-        }
 
-        const baseList = Array.isArray(listToUse) ? listToUse.filter(e => !e.isInstance) : [];
-        const expanded = [];
-        for (const e of baseList) {
-          const recur = e.recur;
-          if (!recur || recur.freq === 'none') {
-            expanded.push(e);
-          } else {
-            expanded.push(...generateOccurrences({ ...e }, rangeStart, rangeEnd));
+          const baseList = Array.isArray(listToUse) ? listToUse.filter(e => !e.isInstance) : [];
+          const expanded = [];
+          for (const e of baseList) {
+            if (e.isException === true) {
+              expanded.push(e);
+              continue;
+            }
+            const recur = e.recur;
+            if (!recur || recur.freq === 'none') {
+              expanded.push(e);
+            } else {
+              expanded.push(...generateOccurrences({ ...e }, rangeStart, rangeEnd));
+            }
           }
-        }
 
-        let src = (filter==='all') ? expanded : expanded.filter(e=> e.status===filter);
+          let src = (filter==='all') ? expanded : expanded.filter(e=> e.status===filter);
 
-        const q = (search||'').trim().toLowerCase();
-        if(q){
-          src = src.filter(e=>{
-            const catName = (categories.find(c=>c.id===e.catId)?.name)||'';
-            return [e.title,e.taskType,e.location,e.notes,catName].some(v=> (v||'').toLowerCase().includes(q));
+          const q = (search||'').trim().toLowerCase();
+          if(q){
+            src = src.filter(e=>{
+              const catName = (categories.find(c=>c.id===e.catId)?.name)||'';
+              return [e.title,e.taskType,e.location,e.notes,catName].some(v=> (v||'').toLowerCase().includes(q));
+            });
+          }
+          if (sortBy !== 'none') {
+            src = [...src].sort((a, b) => {
+              if (sortBy === 'title') return (a.title || '').localeCompare(b.title || '');
+              if (sortBy === 'priority') {
+                const priorityOrder = { high: 3, medium: 2, normal: 2, low: 1 };
+                return (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0);
+              }
+              if (sortBy === 'status') {
+                const statusOrder = { done: 3, pending: 2, missed: 1, none: 0 };
+                return (statusOrder[b.status] || 0) - (statusOrder[a.status] || 0);
+              }
+              if (sortBy === 'date') return new Date(a.start || 0) - new Date(b.start || 0);
+              return 0;
+            });
+          }
+
+          const now = new Date();
+          const eventsToAdd = src.map(e=>{
+            let start = e.start;
+            if (/^\d{4}-\d{2}-\d{2}$/.test(start)) start += 'T09:00';
+            const status = (typeof computeNewStatus === 'function' ? computeNewStatus(e, now) : null) || e.status || 'pending';
+            const color = statusColor(status);
+            let displayTitle = e.title || 'Untitled';
+            if (displayTitle.length > 12) displayTitle = displayTitle.substring(0, 12) + '...';
+            const priority = e.priority || 'normal';
+            if (priority === 'high') displayTitle = '🔴 ' + displayTitle;
+            else if (priority === 'low') displayTitle = '⬇️ ' + displayTitle;
+            return {
+              id:e.id,
+              title: displayTitle,
+              start,
+              allDay:false,
+              color, backgroundColor: color, borderColor: color, textColor: '#111827',
+              extendedProps: {...e, status}
+            };
           });
-        }
-        if (sortBy !== 'none') {
-          src = [...src].sort((a, b) => {
-            if (sortBy === 'title') return (a.title || '').localeCompare(b.title || '');
-            if (sortBy === 'priority') {
-              const priorityOrder = { high: 3, medium: 2, normal: 2, low: 1 };
-              return (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0);
-            }
-            if (sortBy === 'status') {
-              const statusOrder = { done: 3, pending: 2, missed: 1, none: 0 };
-              return (statusOrder[b.status] || 0) - (statusOrder[a.status] || 0);
-            }
-            if (sortBy === 'date') return new Date(a.start || 0) - new Date(b.start || 0);
-            return 0;
-          });
-        }
 
-        const now = new Date();
-        const eventsToAdd = src.map(e=>{
-          let start = e.start;
-          if (/^\d{4}-\d{2}-\d{2}$/.test(start)) start += 'T09:00';
-          const status = (typeof computeNewStatus === 'function' ? computeNewStatus(e, now) : null) || e.status || 'pending';
-          const color = statusColor(status);
-          let displayTitle = e.title || 'Untitled';
-          if (displayTitle.length > 12) displayTitle = displayTitle.substring(0, 12) + '...';
-          const priority = e.priority || 'normal';
-          if (priority === 'high') displayTitle = '🔴 ' + displayTitle;
-          else if (priority === 'low') displayTitle = '⬇️ ' + displayTitle;
-          return {
-            id:e.id,
-            title: displayTitle,
-            start,
-            allDay:false,
-            color, backgroundColor: color, borderColor: color, textColor: '#111827',
-            extendedProps: {...e, status}
-          };
-        });
-
-        cal.removeAllEvents();
-        eventsToAdd.forEach(event => cal.addEvent(event));
+          cal.removeAllEvents();
+          eventsToAdd.forEach(event => cal.addEvent(event));
+        } catch (err) {
+          console.warn('MainPro refreshCalendar error:', err);
+        }
       });
     }
 
@@ -5022,6 +5225,9 @@
     window.showToast = showToast;
     window.getCurrentUser = () => ({ id: currentUser.id, name: currentUser.name });
     window.refreshCalendar = refreshCalendar;
+    window.openDeleteModal = openDeleteModal;
+    window.closeDeleteModal = closeDeleteModal;
+    window.handleTaskUpdate = handleTaskUpdate;
     // Allow external (non-React) modals to queue Undo for single delete
     window.mainproQueueUndoDeleteOne = (ev, index) => {
       try {
@@ -5198,67 +5404,19 @@
 
         }));
 
-      }else{
-
+      } else if((editEvent.seriesId || (String(editEvent.id||'').includes('-'))) && editEvent._occurrenceStart){
+        handleTaskUpdate({ ...editEvent, start: editEvent.start || (String(editEvent._occurrenceStart).slice(0,10) + 'T' + (editEvent.time || '09:00')) }, 'single');
+      } else {
         setEvents(prev=> prev.map(e=> e.id===editEvent.id ? {...editEvent} : e));
-
       }
 
       setEditEvent(null);
-
       if(settings.autoStatusEnabled) runSmartStatusOnce();
-
     }
 
     function deleteEventAction(){
-
       if(!editEvent) return;
-
-      if(editEvent.seriesId){
-
-        const choice=confirm('Delete ENTIRE series?\nOK = entire series, Cancel = only this');
-
-        if(choice){
-
-          setEvents(prev=> prev.filter(e=> e.seriesId!==editEvent.seriesId));
-          
-          // Audit logging for series deletion
-          addAuditLog('TASK_SERIES_DELETED', { 
-            seriesId: editEvent.seriesId,
-            taskId: editEvent.id,
-            title: editEvent.title
-          });
-
-        }else{
-
-          setEvents(prev=> prev.filter(e=> e.id!==editEvent.id));
-          
-          // Audit logging for single task deletion
-          addAuditLog('TASK_DELETED', { 
-            taskId: editEvent.id,
-            title: editEvent.title,
-            taskType: editEvent.taskType
-          });
-
-        }
-
-      }else{
-
-        if(!confirm('Delete this task?')) return;
-
-        setEvents(prev=> prev.filter(e=> e.id!==editEvent.id));
-        
-        // Audit logging for single task deletion
-        addAuditLog('TASK_DELETED', { 
-          taskId: editEvent.id,
-          title: editEvent.title,
-          taskType: editEvent.taskType
-        });
-
-      }
-
-      setEditEvent(null);
-
+      openDeleteModal(editEvent, ()=> setEditEvent(null));
     }
 
     // === deleteEvent() function - Remove selected task from events array ===
@@ -7284,6 +7442,10 @@
                                 React.createElement('button',{
                                   onClick:()=>{
                                     try{
+                                      const eventForDelete = ev.seriesId || String(ev.id||'').includes('-')
+                                        ? { ...ev, _occurrenceStart: ev.start || ev.date }
+                                        : ev;
+                                      if(typeof window.openDeleteModal === 'function'){ window.openDeleteModal(eventForDelete); return; }
                                       if(!confirm('Delete this task?')) return;
                                       const idx = (eventsRef?.current && Array.isArray(eventsRef.current))
                                         ? eventsRef.current.findIndex(e => String(e.id)===String(ev.id))
@@ -7327,6 +7489,54 @@
                   )
                 )
               : React.createElement('div',{className:"text-sm text-gray-500 bg-white border border-amber-200 rounded-xl px-4 py-3"},'No tasks in this range')
+          )
+        )
+      ),
+
+      deleteModalTarget && React.createElement('div',{
+        className:"mp-delete-modal-overlay bg-black/40 p-4",
+        'data-mp-overlay':'1',
+        'data-mp-delete-overlay':'1',
+        onClick:function(e){ if(e.target===e.currentTarget) closeDeleteModal(); }
+      },
+        React.createElement('div',{
+          id:'mp-delete-modal',
+          tabIndex:-1,
+          className:"mp-delete-modal bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-amber-200 dark:border-gray-600 overflow-hidden max-w-md w-full",
+          'data-mp-modal':'1',
+          onClick:function(e){ e.stopPropagation(); }
+        },
+          React.createElement('div',{className:"h-1 bg-gradient-to-r from-amber-300 to-amber-500"}),
+          React.createElement('div',{className:"p-6"},
+            React.createElement('h3',{className:"text-lg font-semibold text-gray-900 dark:text-white mb-1"},'Delete task'),
+            React.createElement('p',{className:"text-sm text-gray-500 dark:text-gray-400 mb-5"},
+              deleteModalTarget?.type==='series' ? 'This task is part of a series. Choose what to delete:' : 'Delete this task?'
+            ),
+            React.createElement('div',{className:"flex flex-col gap-3"},
+              React.createElement('button',{
+                type:'button',
+                onClick:function(){
+                  var ev = deleteModalTarget?.event;
+                  closeDeleteModal();
+                  if(ev) setTimeout(function(){ deleteSingleOccurrence(ev); }, 0);
+                },
+                className:"w-full py-3 px-4 rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-600 text-amber-900 dark:text-amber-100 font-medium hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors"
+              },'Only this occurrence'),
+              deleteModalTarget?.type==='series' && React.createElement('button',{
+                type:'button',
+                onClick:function(){
+                  var ev = deleteModalTarget?.event;
+                  closeDeleteModal();
+                  if(ev) setTimeout(function(){ deleteEntireSeries(ev); }, 0);
+                },
+                className:"w-full py-3 px-4 rounded-xl border border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-600 text-red-800 dark:text-red-200 font-medium hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+              },'Entire series'),
+              React.createElement('button',{
+                type:'button',
+                onClick:closeDeleteModal,
+                className:"w-full py-3 px-4 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              },'Cancel')
+            )
           )
         )
       ),
