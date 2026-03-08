@@ -11,131 +11,131 @@
     overlay.className = 'mp-add-overlay';
     overlay.innerHTML = `
       <div class="mp-add" role="dialog" aria-modal="true">
-        <div class="mp-head">
-          <div class="mp-title"><span class="mp-dot"></span> Add Task</div>
-          <button class="mp-close tooltip-bottom" id="mp_close_btn" aria-label="Close" data-tooltip="Close">✕</button>
-        </div>
+        <header class="mp-head">
+          <h2 class="mp-title"><span class="mp-dot" aria-hidden="true"></span><span id="mp_modal_title">Add Task</span></h2>
+          <button type="button" class="mp-close tooltip-bottom" id="mp_close_btn" aria-label="Close" data-tooltip="Close">×</button>
+        </header>
 
         <div class="mp-body">
-          <div class="mp-field">
-            <div class="mp-label">Task title</div>
-            <input class="mp-input" id="mp_title" placeholder="Enter task title…" value="${pref.title||''}">
-          </div>
-
-          <div class="mp-row">
-            <div class="mp-field" style="flex:1;">
-              <div class="mp-label">Date</div>
-              <input class="mp-input" type="date" id="mp_date" style="width:100%;">
-              <div class="mp-mini" id="mp_date_info"></div>
+          <section class="mp-section">
+            <div class="mp-field mp-field-hero">
+              <label class="mp-label" for="mp_title">Task title</label>
+              <input class="mp-input mp-input-hero" id="mp_title" placeholder="What needs to be done?" value="${(pref.title||'').replace(/"/g,'&quot;')}">
             </div>
-            <div class="mp-field" style="flex:1;">
-              <div class="mp-label mp-inline" style="margin-bottom:8px; display:flex; align-items:center; justify-content:space-between;">
-                <span>Time</span>
-                <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:0.875rem; font-weight:normal;">
-                  <input type="checkbox" id="mp_all_day" style="cursor:pointer; accent-color:#f4c14f;">
-                  <span>All day</span>
-                </label>
-              </div>
-              <div class="mp-inline" id="mp_time_container" style="gap:8px; align-items:center;">
-                <div style="flex:1; min-width:0;">
-                  <input class="mp-input" type="time" id="mp_start" value="${pref.time||'09:00'}" style="width:100%;">
-                </div>
-                <span style="color:#6b7280; font-size:0.875rem; white-space:nowrap;">—</span>
-                <div style="flex:1; min-width:0;">
-                  <input class="mp-input" type="time" id="mp_end" value="${pref.endTime||pref.end||''}" style="width:100%;">
+            <div class="mp-date-time-block">
+              <div class="mp-date-time-labels">
+                <label class="mp-label" for="mp_date">Date</label>
+                <div class="mp-label-row">
+                  <label class="mp-label" for="mp_start">Time</label>
+                  <label class="mp-check-wrap"><input type="checkbox" id="mp_all_day"> All day</label>
                 </div>
               </div>
-              <div class="mp-mini" style="margin-top:4px; display:flex; gap:6px; flex-wrap:wrap;">
-                <button type="button" class="mp-btn mp-btn-ghost" style="padding:4px 8px; font-size:0.75rem;" onclick="quickTime('30')">30m</button>
-                <button type="button" class="mp-btn mp-btn-ghost" style="padding:4px 8px; font-size:0.75rem;" onclick="quickTime('60')">1h</button>
-                <button type="button" class="mp-btn mp-btn-ghost" style="padding:4px 8px; font-size:0.75rem;" onclick="quickTime('90')">1.5h</button>
-                <button type="button" class="mp-btn mp-btn-ghost" style="padding:4px 8px; font-size:0.75rem;" onclick="quickTime('120')">2h</button>
-                <button type="button" class="mp-btn mp-btn-ghost" style="padding:4px 8px; font-size:0.75rem;" onclick="quickTime('180')">3h</button>
+              <div class="mp-date-time-line">
+                <input class="mp-input mp-input-equal" type="date" id="mp_date">
+                <div class="mp-time-inline" id="mp_time_container">
+                  <span class="mp-time-sep">–</span>
+                  <input class="mp-input mp-input-equal" type="time" id="mp_start" value="${pref.time||'09:00'}">
+                  <input class="mp-input mp-input-equal" type="time" id="mp_end" value="${pref.endTime||pref.end||''}">
+                </div>
+              </div>
+              <div class="mp-date-time-extra">
+                <div class="mp-mini" id="mp_date_info"></div>
+                <div class="mp-quick-time">
+                  <button type="button" class="mp-pill" onclick="quickTime('30')">30m</button>
+                  <button type="button" class="mp-pill" onclick="quickTime('60')">1h</button>
+                  <button type="button" class="mp-pill" onclick="quickTime('90')">1.5h</button>
+                  <button type="button" class="mp-pill" onclick="quickTime('120')">2h</button>
+                  <button type="button" class="mp-pill" onclick="quickTime('180')">3h</button>
+                </div>
               </div>
             </div>
-          </div>
+          </section>
 
-          <div class="mp-row">
-            <div class="mp-field">
-              <div class="mp-label">Category</div>
-              <div class="mp-inline mp-suffix">
-                <select class="mp-select" id="mp_cat"></select>
-                <button class="mp-btn mp-btn-ghost" id="mp_cat_new" title="New category">+ New</button>
+          <section class="mp-section">
+            <h3 class="mp-section-title">Details</h3>
+            <div class="mp-row">
+              <div class="mp-field">
+                <label class="mp-label" for="mp_cat">Category</label>
+                <div class="mp-inline mp-field-inline">
+                  <select class="mp-select" id="mp_cat"></select>
+                  <button type="button" class="mp-btn mp-btn-ghost mp-btn-icon" id="mp_cat_new" title="New category">+ New</button>
+                </div>
+              </div>
+              <div class="mp-field">
+                <label class="mp-label">Priority</label>
+                <div class="mp-pri" id="mp_pris">
+                  <button type="button" class="mp-chip" data-val="none">None</button>
+                  <button type="button" class="mp-chip" data-val="low">Low</button>
+                  <button type="button" class="mp-chip" data-val="normal" data-active="1">Normal</button>
+                  <button type="button" class="mp-chip" data-val="high">High</button>
+                </div>
               </div>
             </div>
-            <div class="mp-field">
-              <div class="mp-label">Priority</div>
-              <div class="mp-pri" id="mp_pris">
-                <button class="mp-chip" data-val="none">None</button>
-                <button class="mp-chip" data-val="low">Low</button>
-                <button class="mp-chip" data-val="normal" data-active="1">Normal</button>
-                <button class="mp-chip" data-val="high">High</button>
+            <div class="mp-row">
+              <div class="mp-field">
+                <label class="mp-label" for="mp_loc">Location</label>
+                <input class="mp-input" id="mp_loc" placeholder="Room / Area">
               </div>
-            </div>
-          </div>
-
-          <div class="mp-row">
-            <div class="mp-field">
-              <div class="mp-label">Location</div>
-              <input class="mp-input" id="mp_loc" placeholder="Room / Area">
-            </div>
-            <div class="mp-field">
-              <div class="mp-label">Assignee</div>
-              <select class="mp-select" id="mp_assignee">
-                <option value="me">Me</option>
-                <option value="unassigned">Unassigned</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="mp-field">
-            <div class="mp-label mp-inline">Description / Notes
-              <span class="mp-mini">Use AI to prefill.</span>
-            </div>
-            <textarea class="mp-textarea" id="mp_desc" placeholder="What needs to be done? Steps, checks, acceptance criteria…"></textarea>
-            <div class="mp-inline">
-              <button class="mp-btn mp-btn-ghost" id="mp_ai">✨ AI Assist</button>
-              <span class="mp-mini" id="mp_ai_hint"></span>
-            </div>
-          </div>
-
-          <div class="mp-field">
-            <div class="mp-label">Subtasks</div>
-            <div class="mp-sublist" id="mp_sublist"></div>
-            <button class="mp-btn mp-btn-ghost" id="mp_add_sub">+ Add subtask</button>
-          </div>
-
-          <div class="mp-line"></div>
-
-          <div class="mp-row">
-            <div class="mp-field">
-              <div class="mp-label">Repeat</div>
-              <div class="mp-inline" style="gap:8px; align-items:center;">
-                <select class="mp-select" id="mp_repeat">
-                <option value="none" selected>No repeat</option>
-                <option value="daily">Daily</option>
-                <option value="weekly">Weekly</option>
-                <option value="biweekly">Every 2 weeks</option>
-                <option value="monthly">Monthly</option>
-                <option value="bimonthly">Every 2 months</option>
-                <option value="quarterly">Every 3 months</option>
-                <option value="yearly">Yearly</option>
-                <option value="internal_daily">Internal task — daily</option>
-                <option value="internal_weekly">Internal task — weekly</option>
-                <option value="internal_monthly">Internal task — monthly</option>
-                <option value="contractor_weekly">Contractor visit — weekly</option>
-                <option value="contractor_monthly">Contractor visit — monthly</option>
-                <option value="meeting_weekly">Meetings — weekly</option>
-                <option value="meeting_monthly">Meetings — monthly</option>
-                <option value="custom">Custom interval…</option>
+              <div class="mp-field">
+                <label class="mp-label" for="mp_assignee">Assignee</label>
+                <select class="mp-select" id="mp_assignee">
+                  <option value="me">Me</option>
+                  <option value="unassigned">Unassigned</option>
                 </select>
-                <button class="mp-btn mp-btn-ghost" type="button" id="mp_repeat_templates_btn" title="Quick templates">Templates</button>
-              </div>
-              <div class="mp-template-panel" id="mp_repeat_templates" style="display:none;">
-                <div class="mp-template-grid" id="mp_repeat_templates_list"></div>
               </div>
             </div>
-            <div class="mp-field" id="mp_repeat_opts" style="display:none">
+          </section>
+
+          <section class="mp-section">
+            <h3 class="mp-section-title">Notes</h3>
+            <div class="mp-field">
+              <textarea class="mp-textarea" id="mp_desc" placeholder="Steps, acceptance criteria, links…"></textarea>
+              <div class="mp-field-actions">
+                <button type="button" class="mp-btn mp-btn-ghost mp-btn-sm" id="mp_ai">✨ AI Assist</button>
+                <span class="mp-mini" id="mp_ai_hint"></span>
+              </div>
+            </div>
+          </section>
+
+          <section class="mp-section">
+            <div class="mp-field">
+              <label class="mp-label">Subtasks</label>
+              <div class="mp-sublist" id="mp_sublist"></div>
+              <button type="button" class="mp-btn mp-btn-ghost mp-btn-sm" id="mp_add_sub">+ Add subtask</button>
+            </div>
+          </section>
+
+          <section class="mp-section mp-section-schedule">
+            <h3 class="mp-section-title">Schedule & reminder</h3>
+
+            <div class="mp-row">
+              <div class="mp-field">
+                <label class="mp-label" for="mp_repeat">Repeat</label>
+                <div class="mp-inline mp-field-inline">
+                  <select class="mp-select" id="mp_repeat">
+                    <option value="none" selected>No repeat</option>
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="biweekly">Every 2 weeks</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="bimonthly">Every 2 months</option>
+                    <option value="quarterly">Every 3 months</option>
+                    <option value="yearly">Yearly</option>
+                    <option value="internal_daily">Internal — daily</option>
+                    <option value="internal_weekly">Internal — weekly</option>
+                    <option value="internal_monthly">Internal — monthly</option>
+                    <option value="contractor_weekly">Contractor — weekly</option>
+                    <option value="contractor_monthly">Contractor — monthly</option>
+                    <option value="meeting_weekly">Meetings — weekly</option>
+                    <option value="meeting_monthly">Meetings — monthly</option>
+                    <option value="custom">Custom…</option>
+                  </select>
+                  <button type="button" class="mp-btn mp-btn-ghost mp-btn-icon" id="mp_repeat_templates_btn" title="Templates">Templates</button>
+                </div>
+                <div class="mp-template-panel" id="mp_repeat_templates" style="display:none;">
+                  <div class="mp-template-grid" id="mp_repeat_templates_list"></div>
+                </div>
+                <div class="mp-repeat-opts" id="mp_repeat_opts" style="display:none">
               <div class="mp-label">Repeat options</div>
               <div id="mp_weekly_opts" style="display:none">
                 <div class="picker-grid">
@@ -194,36 +194,39 @@
                 <span id="mp_repeat_end_count_label" style="display:none">occurrences</span>
                 <input class="mp-input" id="mp_repeat_end_date" type="date" style="width:140px; display:none" />
               </div>
-              <div class="mp-mini" style="margin-top:6px; color:var(--mp-muted, #6b7280);" id="mp_recur_preview">Preview in view: —</div>
+              <div class="mp-mini" style="margin-top:6px; color:var(--mp-muted);" id="mp_recur_preview">Preview: —</div>
+                </div>
+              </div>
+              <div class="mp-field">
+                <label class="mp-label" for="mp_rem">Reminder</label>
+                <select class="mp-select" id="mp_rem">
+                  <option value="none" selected>None</option>
+                  <option value="5">5 min before</option>
+                  <option value="15">15 min before</option>
+                  <option value="30">30 min before</option>
+                  <option value="60">1 hour before</option>
+                  <option value="1440">1 day before</option>
+                </select>
+              </div>
             </div>
-            <div class="mp-field">
-              <div class="mp-label">Reminder</div>
-              <select class="mp-select" id="mp_rem">
-                <option value="none" selected>No reminder</option>
-                <option value="5">5 min before</option>
-                <option value="15">15 min before</option>
-                <option value="30">30 min before</option>
-                <option value="60">1 hour before</option>
-                <option value="1440">1 day before</option>
-              </select>
-            </div>
-          </div>
+          </section>
 
-          <div class="mp-field">
-            <div class="mp-label">Attachments</div>
-            <input class="mp-input" type="file" id="mp_files" multiple>
-          </div>
+          <section class="mp-section mp-section-attach">
+            <label class="mp-label" for="mp_files">Attachments</label>
+            <input class="mp-input mp-input-file" type="file" id="mp_files" multiple accept="image/*,.pdf,.doc,.docx">
+          </section>
         </div>
 
-        <div class="mp-footer">
-          <div class="mp-left">
-            <button class="mp-btn mp-btn-danger" id="mp_delete">Delete</button>
+        <footer class="mp-footer">
+          <div class="mp-footer-left">
+            <button type="button" class="mp-btn mp-btn-danger-outline" id="mp_delete">Delete</button>
+            <button type="button" class="mp-btn mp-btn-ghost" id="mp_clear">Clear</button>
           </div>
-          <div class="mp-suffix">
-            <button class="mp-btn mp-btn-danger" id="mp_clear">Clear</button>
-            <button class="mp-btn mp-btn-gold" id="mp_save">Save Task</button>
+          <div class="mp-footer-right">
+            <button type="button" class="mp-btn mp-btn-ghost" id="mp_cancel">Cancel</button>
+            <button type="button" class="mp-btn mp-btn-primary" id="mp_save">Save Task</button>
           </div>
-        </div>
+        </footer>
       </div>
     `;
 
@@ -569,8 +572,6 @@
     overlay.querySelector('#mp_add_sub').onclick=()=>addSub();
     if(pref.subtasks && Array.isArray(pref.subtasks) && pref.subtasks.length){
       pref.subtasks.forEach(sub=>addSub(sub));
-    } else {
-      addSub(); addSub();
     }
 
     // new category quick add
@@ -591,6 +592,8 @@
     if(saveBtn){
       saveBtn.textContent = isEditMode ? 'Update Task' : 'Save Task';
     }
+    const modalTitleEl = overlay.querySelector('#mp_modal_title');
+    if (modalTitleEl) modalTitleEl.textContent = isEditMode ? 'Edit Task' : 'Add Task';
     if(deleteBtn){
       deleteBtn.style.display = '';
     }
@@ -929,10 +932,10 @@ Time: start at ${start}.`;
     
     // Close button in header
     const closeBtn = overlay.querySelector('#mp_close_btn');
-    if (closeBtn) {
-      closeBtn.onclick = close;
-    }
-    
+    if (closeBtn) closeBtn.onclick = close;
+    const cancelBtn = overlay.querySelector('#mp_cancel');
+    if (cancelBtn) cancelBtn.onclick = close;
+
     // Close on overlay click handled выше (single handler)
     
     document.addEventListener('keydown', escClose);

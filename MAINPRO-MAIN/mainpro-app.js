@@ -695,34 +695,24 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
             }
 
             tooltip.innerHTML = `
-
-              <div class="t">${arg.event.title||''}</div>
-
-              ${tooltipTime ? `<div class="row">🕒 <span>${tooltipTime}</span></div>` : ''}
-
-              <div class="row">🏷️ <span>${cat?cat.name:'-'}</span></div>
-
-              <div class="row">⭐ <span>${(e.priority||'normal').toUpperCase()}</span></div>
-
-              <div class="row">${statusDotHTML}<span>${e.status}</span></div>
-
-              ${ teamMode.enabled && e.createdBy ? `<div class="row">👤 <span>Created by: ${e.createdBy}</span></div>` : '' }
-
-              ${ teamMode.enabled && e.assignedTo ? `<div class="row">🎯 <span>Assigned to: ${e.assignedTo}</span></div>` : '' }
-
-              ${ e.contractorOnSite ? `<div class="row">👷 <span>${e.contractorName||'Contractor'} ${e.contractorPhone?('('+e.contractorPhone+')'):''}</span></div>` : '' }
-
-              ${ e.location ? `<div class="row">📍 <span>${e.location}</span></div>` : '' }
-
-              ${ e.notes ? `<div class="row">📝 <span>${e.notes}</span></div>` : '' }
-              ${ (()=>{ const a=(e?.attachments||[]).filter(x=>x?.docId||x?.id||x?.name); if(!a.length) return ''; const raw = a.slice(0,3).map(x=>String(x.name||'file')).join(', '); const esc = raw.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/`/g,'\\`').replace(/\$/g,'\\$'); const suffix = a.length>3 ? ' \u2026' : ''; return '<div class="row">\uD83D\uDCCE <span>Attachments: ' + a.length + (esc ? ' \u2014 ' + esc + suffix : '') + '</span></div>'; })() }
-              
-              <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.2);display:flex;gap:4px;flex-wrap:wrap;">
-                <button data-event-id="${arg.event.id}" data-status="pending" class="quick-status-btn" style="padding:4px 8px;background:#eab308;color:white;border:none;border-radius:4px;font-size:11px;cursor:pointer;">Pending</button>
-                <button data-event-id="${arg.event.id}" data-status="done" class="quick-status-btn" style="padding:4px 8px;background:#22c55e;color:white;border:none;border-radius:4px;font-size:11px;cursor:pointer;">Done</button>
-                <button data-event-id="${arg.event.id}" data-status="missed" class="quick-status-btn" style="padding:4px 8px;background:#ef4444;color:white;border:none;border-radius:4px;font-size:11px;cursor:pointer;">Missed</button>
+              <div class="mp-pop-head">${(arg.event.title||'Task').replace(/</g,'&lt;')}</div>
+              <div class="mp-pop-body">
+                ${tooltipTime ? `<div class="row">🕒 <span>${tooltipTime}</span></div>` : ''}
+                <div class="row">🏷️ <span>${cat?cat.name:'-'}</span></div>
+                <div class="row">⭐ <span>${(e.priority||'normal').toUpperCase()}</span></div>
+                <div class="row">${statusDotHTML}<span>${e.status}</span></div>
+                ${ teamMode.enabled && e.createdBy ? `<div class="row">👤 <span>Created by: ${e.createdBy}</span></div>` : '' }
+                ${ teamMode.enabled && e.assignedTo ? `<div class="row">🎯 <span>Assigned to: ${e.assignedTo}</span></div>` : '' }
+                ${ e.contractorOnSite ? `<div class="row">👷 <span>${e.contractorName||'Contractor'} ${e.contractorPhone?('('+e.contractorPhone+')'):''}</span></div>` : '' }
+                ${ e.location ? `<div class="row">📍 <span>${e.location}</span></div>` : '' }
+                ${ e.notes ? `<div class="row">📝 <span>${e.notes}</span></div>` : '' }
+                ${ (()=>{ const a=(e?.attachments||[]).filter(x=>x?.docId||x?.id||x?.name); if(!a.length) return ''; const raw = a.slice(0,3).map(x=>String(x.name||'file')).join(', '); const esc = raw.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/`/g,'\\`').replace(/\$/g,'\\$'); const suffix = a.length>3 ? ' \u2026' : ''; return '<div class="row">\uD83D\uDCCE <span>Attachments: ' + a.length + (esc ? ' \u2014 ' + esc + suffix : '') + '</span></div>'; })() }
+                <div style="margin-top:8px;padding-top:8px;border-top:1px solid #fde68a;display:flex;gap:6px;flex-wrap:wrap;">
+                  <button data-event-id="${arg.event.id}" data-status="pending" class="quick-status-btn" style="padding:5px 10px;background:#eab308;color:#1a1607;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;">Pending</button>
+                  <button data-event-id="${arg.event.id}" data-status="done" class="quick-status-btn" style="padding:5px 10px;background:#22c55e;color:white;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;">Done</button>
+                  <button data-event-id="${arg.event.id}" data-status="missed" class="quick-status-btn" style="padding:5px 10px;background:#ef4444;color:white;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;">Missed</button>
+                </div>
               </div>
-
             `;
             
             const r = el.getBoundingClientRect();
@@ -7906,36 +7896,54 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
 
       ),
 
-      // Окно выбора удаления: рендер в body через портал, чтобы было поверх окна Add Task (z-index 1000)
+      // Окно выбора удаления — в стиле Documents, понятные кнопки с подсказками
       deleteChoiceModal && (typeof ReactDOM !== 'undefined' ? ReactDOM : window.ReactDOM).createPortal(
         React.createElement('div',{className:"fixed inset-0 bg-black/50 flex items-center justify-center p-4", style:{zIndex:1100}, 'data-mp-overlay':'1', onClick(e){ if(e.target===e.currentTarget) setDeleteChoiceModal(null); }},
-          React.createElement('div',{className:"modal-enter modal-ready bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 max-w-sm w-full max-h-[90vh] overflow-y-auto", onClick(e){ e.stopPropagation(); }, 'data-mp-modal':'1'},
-            React.createElement('div',{className:"text-lg font-semibold mb-2 text-gray-800 dark:text-gray-100"},'🗑️ Delete task'),
-            React.createElement('div',{className:"text-sm text-gray-600 dark:text-gray-400 mb-4"}, deleteChoiceModal.hasSeries ? 'Delete only this occurrence or the entire series?' : 'Delete this task?'),
-            React.createElement('div',{className:"flex flex-col gap-2 w-full"},
-              React.createElement('button',{
-                onClick:()=>{
-                  const { id, occurrenceStart, callback } = deleteChoiceModal;
-                  setDeleteChoiceModal(null);
-                  if (callback) callback('one');
-                  if (deleteEvent(id, 'one', occurrenceStart, true)) showToast('🗑️ Deleted — Undo (10s)');
-                },
-                title: deleteChoiceModal.hasSeries ? 'This occurrence only' : 'Delete this task',
-                className:"w-full px-4 py-2.5 rounded-lg bg-amber-500 text-white font-medium hover:bg-amber-600 text-left"
-              }, React.createElement('span',{style:{color:'#1f2937', fontWeight:'bold'}}, '🗑️ ' + (deleteChoiceModal.hasSeries ? 'This occurrence only' : 'Delete this task'))),
-              React.createElement('button',{
-                onClick:()=>{
-                  const { id, hasSeries, callback } = deleteChoiceModal;
-                  setDeleteChoiceModal(null);
-                  if (callback) callback('all');
-                  if (deleteEvent(id, 'all', null, true)) showToast(hasSeries ? '🗑️ Series deleted' : '🗑️ Deleted');
-                },
-                className:"w-full px-4 py-2.5 rounded-lg bg-red-500 text-white font-medium hover:bg-red-600 text-left"
-              }, React.createElement('span',{style:{color:'#fff', fontWeight:'bold'}}, '🗑️ ' + (deleteChoiceModal.hasSeries ? 'Entire series' : 'Delete'))),
+          React.createElement('div',{className:"modal-enter modal-ready bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-hidden flex flex-col", style:{borderTop:'4px solid #f59e0b'}, onClick(e){ e.stopPropagation(); }, 'data-mp-modal':'1'},
+            React.createElement('div',{className:"px-5 py-4 border-b flex items-center justify-between flex-shrink-0", style:{background:'linear-gradient(135deg, #fef3c7, #fde68a)', borderBottom:'2px solid #f59e0b'}},
+              React.createElement('div',{className:"text-lg font-semibold flex items-center gap-2", style:{color:'#92400e'}},
+                React.createElement('span',null,'🗑️'),
+                'Delete task'
+              ),
               React.createElement('button',{
                 onClick:()=> setDeleteChoiceModal(null),
-                className:"w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 text-left"
-              },'Cancel')
+                className:"text-gray-500 hover:text-gray-800 hover:bg-amber-100 rounded-lg px-2 py-1 transition-colors",
+                'aria-label':'Close'
+              },'✕')
+            ),
+            React.createElement('div',{className:"p-5 flex flex-col gap-4"},
+              React.createElement('p',{className:"text-sm text-gray-600"}, deleteChoiceModal.hasSeries ? 'This task repeats. What do you want to delete?' : 'Delete this task?'),
+              React.createElement('div',{className:"flex flex-col gap-3 w-full"},
+                React.createElement('button',{
+                  onClick:()=>{
+                    const { id, occurrenceStart, callback } = deleteChoiceModal;
+                    setDeleteChoiceModal(null);
+                    if (callback) callback('one');
+                    if (deleteEvent(id, 'one', occurrenceStart, true)) showToast('🗑️ Deleted — Undo (10s)');
+                  },
+                  title: deleteChoiceModal.hasSeries ? 'This occurrence only' : 'Delete this task',
+                  className:"w-full px-4 py-3 rounded-xl border-2 border-amber-400 bg-amber-50 hover:bg-amber-100 text-left transition-colors focus:ring-2 focus:ring-amber-400 focus:ring-offset-2"
+                },
+                  React.createElement('span',{className:"block font-semibold text-amber-900"}, deleteChoiceModal.hasSeries ? '📅 Only this date' : '🗑️ Delete this task'),
+                  React.createElement('span',{className:"block text-xs text-amber-800 mt-0.5 opacity-90"}, deleteChoiceModal.hasSeries ? 'Other occurrences stay in the calendar' : 'Remove this task only')
+                ),
+                deleteChoiceModal.hasSeries && React.createElement('button',{
+                  onClick:()=>{
+                    const { id, hasSeries, callback } = deleteChoiceModal;
+                    setDeleteChoiceModal(null);
+                    if (callback) callback('all');
+                    if (deleteEvent(id, 'all', null, true)) showToast(hasSeries ? '🗑️ Series deleted' : '🗑️ Deleted');
+                  },
+                  className:"w-full px-4 py-3 rounded-xl border-2 border-red-300 bg-red-50 hover:bg-red-100 text-left transition-colors focus:ring-2 focus:ring-red-400 focus:ring-offset-2"
+                },
+                  React.createElement('span',{className:"block font-semibold text-red-900"},'🗑️ Entire series'),
+                  React.createElement('span',{className:"block text-xs text-red-800 mt-0.5 opacity-90"},'Delete all occurrences of this repeating task')
+                ),
+                React.createElement('button',{
+                  onClick:()=> setDeleteChoiceModal(null),
+                  className:"w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-300 text-left font-medium transition-colors mt-1"
+                },'Cancel')
+              )
             )
           )
         ),
