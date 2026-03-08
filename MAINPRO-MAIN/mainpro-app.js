@@ -7896,7 +7896,7 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
 
       ),
 
-      // Окно выбора удаления — в стиле Documents, понятные кнопки с подсказками
+      // Окно выбора удаления — в стиле Documents, понятные кнопки
       deleteChoiceModal && (typeof ReactDOM !== 'undefined' ? ReactDOM : window.ReactDOM).createPortal(
         React.createElement('div',{className:"fixed inset-0 bg-black/50 flex items-center justify-center p-4", style:{zIndex:1100}, 'data-mp-overlay':'1', onClick(e){ if(e.target===e.currentTarget) setDeleteChoiceModal(null); }},
           React.createElement('div',{className:"modal-enter modal-ready bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-hidden flex flex-col", style:{borderTop:'4px solid #f59e0b'}, onClick(e){ e.stopPropagation(); }, 'data-mp-modal':'1'},
@@ -7907,7 +7907,8 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
               ),
               React.createElement('button',{
                 onClick:()=> setDeleteChoiceModal(null),
-                className:"text-gray-500 hover:text-gray-800 hover:bg-amber-100 rounded-lg px-2 py-1 transition-colors",
+                className:"text-gray-500 hover:text-gray-800 hover:bg-amber-100 rounded-lg px-2 py-1 transition-colors flex-shrink-0 tooltip-bottom",
+                'data-tooltip':'Close',
                 'aria-label':'Close'
               },'✕')
             ),
@@ -7921,11 +7922,10 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
                     if (callback) callback('one');
                     if (deleteEvent(id, 'one', occurrenceStart, true)) showToast('🗑️ Deleted — Undo (10s)');
                   },
-                  title: deleteChoiceModal.hasSeries ? 'This occurrence only' : 'Delete this task',
-                  className:"w-full px-4 py-3 rounded-xl border-2 border-amber-400 bg-amber-50 hover:bg-amber-100 text-left transition-colors focus:ring-2 focus:ring-amber-400 focus:ring-offset-2"
+                  className:"w-full px-4 py-3 rounded-xl text-left focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 mp-delete-modal-btn mp-delete-modal-btn-one"
                 },
-                  React.createElement('span',{className:"block font-semibold text-amber-900"}, deleteChoiceModal.hasSeries ? '📅 Only this date' : '🗑️ Delete this task'),
-                  React.createElement('span',{className:"block text-xs text-amber-800 mt-0.5 opacity-90"}, deleteChoiceModal.hasSeries ? 'Other occurrences stay in the calendar' : 'Remove this task only')
+                  React.createElement('span',{className:"block font-semibold", style:{color:'#92400e'}}, deleteChoiceModal.hasSeries ? '📅 Only this date' : '🗑️ Delete this task'),
+                  React.createElement('span',{className:"block text-xs mt-0.5 opacity-90", style:{color:'#92400e'}}, deleteChoiceModal.hasSeries ? 'Other occurrences stay in the calendar' : 'Remove this task only')
                 ),
                 deleteChoiceModal.hasSeries && React.createElement('button',{
                   onClick:()=>{
@@ -7934,14 +7934,14 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
                     if (callback) callback('all');
                     if (deleteEvent(id, 'all', null, true)) showToast(hasSeries ? '🗑️ Series deleted' : '🗑️ Deleted');
                   },
-                  className:"w-full px-4 py-3 rounded-xl border-2 border-red-300 bg-red-50 hover:bg-red-100 text-left transition-colors focus:ring-2 focus:ring-red-400 focus:ring-offset-2"
+                  className:"w-full px-4 py-3 rounded-xl text-left focus:ring-2 focus:ring-red-400 focus:ring-offset-2 mp-delete-modal-btn mp-delete-modal-btn-all"
                 },
                   React.createElement('span',{className:"block font-semibold text-red-900"},'🗑️ Entire series'),
                   React.createElement('span',{className:"block text-xs text-red-800 mt-0.5 opacity-90"},'Delete all occurrences of this repeating task')
                 ),
                 React.createElement('button',{
                   onClick:()=> setDeleteChoiceModal(null),
-                  className:"w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-300 text-left font-medium transition-colors mt-1"
+                  className:"w-full px-4 py-2.5 rounded-xl text-left font-medium mt-1 mp-delete-modal-btn mp-delete-modal-btn-cancel"
                 },'Cancel')
               )
             )

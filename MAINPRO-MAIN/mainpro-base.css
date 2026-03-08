@@ -422,6 +422,38 @@
     opacity: 1;
     visibility: visible;
   }
+
+  /* Delete task modal — подсветка кнопок при наведении */
+  .mp-delete-modal-btn {
+    transition: box-shadow 0.2s ease, background-color 0.2s ease, transform 0.15s ease;
+  }
+  .mp-delete-modal-btn:hover {
+    transform: translateY(-1px);
+  }
+  .mp-delete-modal-btn-one {
+    border: 2px solid #f59e0b !important;
+    background: #fffbeb !important;
+  }
+  .mp-delete-modal-btn-one:hover {
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.35);
+    background: #fef3c7 !important;
+  }
+  .mp-delete-modal-btn-all {
+    border: 2px solid #f87171 !important;
+    background: #fef2f2 !important;
+  }
+  .mp-delete-modal-btn-all:hover {
+    box-shadow: 0 0 0 4px rgba(248, 113, 113, 0.4);
+    background: #fee2e2 !important;
+  }
+  .mp-delete-modal-btn-cancel {
+    border: 2px solid #fde68a !important;
+    background: #fff !important;
+  }
+  .mp-delete-modal-btn-cancel:hover {
+    box-shadow: 0 0 0 2px rgba(253, 230, 138, 0.6);
+    background: #fffbeb !important;
+  }
   
   /* Document Name Truncation */
   .document-name {
