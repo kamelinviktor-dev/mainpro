@@ -24,8 +24,8 @@
 
           <div class="mp-row">
             <div class="mp-field" style="flex:1;">
-              <div class="mp-label">Date <span class="mp-nlp-magic" id="mp_nlp_magic" style="display:none; margin-left:4px;" title="Set from title">✨</span></div>
-              <input class="mp-input" type="date" id="mp_date" style="width:100%;" data-field="date">
+              <div class="mp-label">Date</div>
+              <input class="mp-input" type="date" id="mp_date" style="width:100%;">
               <div class="mp-mini" id="mp_date_info"></div>
             </div>
             <div class="mp-field" style="flex:1;">
@@ -604,26 +604,6 @@
     if(pref.title && titleInput){
       titleInput.value = pref.title;
     }
-    if(titleInput && window.MainProEventLogic && window.MainProEventLogic.safeApplyParsedToFormData){
-      titleInput.addEventListener('blur', function(){
-        try {
-          var pref = { date: overlay.querySelector('#mp_date')?.value, time: overlay.querySelector('#mp_start')?.value };
-          var parsed = window.MainProEventLogic.parseDateFromTitle(titleInput.value);
-          if(!parsed) return;
-          var result = window.MainProEventLogic.safeApplyParsedToFormData(pref, parsed);
-          if(result.changed && result.formData){
-            var dEl = overlay.querySelector('#mp_date');
-            var tEl = overlay.querySelector('#mp_start');
-            if(result.formData.date && dEl){ dEl.value = result.formData.date; if(window.MainProEventLogic.flashNlpApplied) window.MainProEventLogic.flashNlpApplied(dEl); }
-            if(result.formData.time && tEl){ tEl.value = result.formData.time; if(window.MainProEventLogic.flashNlpApplied) window.MainProEventLogic.flashNlpApplied(tEl); }
-            try { if (navigator.vibrate) navigator.vibrate(10); } catch (_) {}
-            if(window.showToast) window.showToast('Date/time set from title');
-            var magicSpan = overlay.querySelector('#mp_nlp_magic');
-            if(magicSpan){ magicSpan.style.display = 'inline'; magicSpan.title = (parsed.matchedPhrase || 'Set from title'); magicSpan.classList.add('mp-nlp-flash'); setTimeout(function(){ magicSpan.style.display = 'none'; magicSpan.classList.remove('mp-nlp-flash'); if(typeof updateDateInfo === 'function') updateDateInfo(); }, 2500); }
-          }
-        } catch(_) {}
-      });
-    }
     if(locationInput){
       locationInput.value = pref.location || '';
     }
@@ -745,24 +725,13 @@
           return;
         }
 
-        // Use central delete modal (Master–Exception: Only this / Entire series)
-        if(typeof window.openDeleteModal === 'function'){
-          const eventForDelete = {
-            id: baseId,
-            seriesId,
-            title: pref?.title,
-            taskType: pref?.taskType || taskType,
-            start: pref?.start || pref?.date,
-            _occurrenceStart: pref?._occurrenceStart || pref?.start || pref?.date
-          };
-          window.openDeleteModal(eventForDelete, close);
-          return;
-        }
-
         let deleteSeries = false;
         if(seriesId){
+          // Safer default: OK = delete only this task. Entire series requires explicit confirm.
           const onlyThis = confirm('Delete ONLY this task?\nOK = only this task, Cancel = choose series delete');
-          if(!onlyThis){
+          if(onlyThis){
+            // continue as single delete
+          } else {
             if(!confirm('Delete ENTIRE series?\nThis may remove MANY tasks.')) return;
             deleteSeries = true;
           }

@@ -343,36 +343,13 @@ window.openTaskModal = function(dateISO){
           return;
         }
 
-        // Use central delete modal (Master–Exception: Only this / Entire series)
-        if(typeof window.openDeleteModal === 'function'){
-          try {
-            console.log('MainPro Debug: Opening delete modal', baseId);
-            const eventForDelete = {
-              id: baseId,
-              seriesId,
-              title: state.title || state.__pref?.title,
-              taskType: state.taskType || state.__pref?.taskType,
-              start: state.start || state.__pref?.start,
-              _occurrenceStart: state._occurrenceStart || state.__pref?._occurrenceStart || state.start || state.__pref?.start
-            };
-            window.openDeleteModal(eventForDelete, closeModal);
-            setTimeout(function () {
-              try {
-                var el = document.getElementById('mp-delete-modal');
-                if (el && typeof el.focus === 'function') el.focus();
-              } catch (_) {}
-            }, 100);
-          } catch (e) {
-            console.warn('MainPro v70 openDeleteModal error:', e);
-            closeModal();
-          }
-          return;
-        }
-
         let deleteSeries = false;
         if(seriesId){
+          // Safer default: OK = delete only this task. Entire series requires explicit confirm.
           const onlyThis = confirm('Delete ONLY this task?\nOK = only this task, Cancel = choose series delete');
-          if(!onlyThis){
+          if(onlyThis){
+            // continue as single delete
+          } else {
             if(!confirm('Delete ENTIRE series?\nThis may remove MANY tasks.')) return;
             deleteSeries = true;
           }

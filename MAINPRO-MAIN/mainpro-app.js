@@ -29,13 +29,6 @@
     return d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit', hour12:true});
   };
 
-  /** Haptic feedback (Graceful Degradation: no console errors if denied/unsupported). */
-  function hapticLight() {
-    try {
-      if (typeof navigator !== 'undefined' && navigator.vibrate && typeof navigator.vibrate === 'function') navigator.vibrate(10);
-    } catch (_) {}
-  }
-
   const addDays   = (d,days)=>{const x=new Date(d);x.setDate(x.getDate()+days);return x;}
 
   const addMonths = (d,months)=>{const x=new Date(d);x.setMonth(x.getMonth()+months);return x;}
@@ -147,33 +140,22 @@
       }
     });
 
-    const [workspaceId, setWorkspaceId] = useState(() => {
-      try {
-        return localStorage.getItem('mainpro_workspace_id') || 'default';
-      } catch {
-        return 'default';
-      }
-    });
-
-    const [dataSyncStatus, setDataSyncStatus] = useState('synced');
-
-    // events - now loads from current calendar (workspace-aware; SWR via StorageEngine when available)
+    // events - now loads from current calendar
     const [events, setEvents] = useState(() => {
-      var wid = 'default';
-      try { wid = localStorage.getItem('mainpro_workspace_id') || 'default'; } catch (_) {}
-      var calendarKey = (wid && wid !== 'default') ? ('mainpro_ws_' + wid + '_calendar_' + currentCalendarId) : ('mainpro_calendar_' + currentCalendarId);
-      var current = safeParse(calendarKey, []);
+      const calendarKey = `mainpro_calendar_${currentCalendarId}`;
+      const current = safeParse(calendarKey, []);
+      // Migration: if calendar is empty but legacy key has tasks, import once.
       try {
         if ((!current || !current.length)) {
-          var legacy = safeParse('mainpro_events_v60', []);
+          const legacy = safeParse('mainpro_events_v60', []);
           if (Array.isArray(legacy) && legacy.length) {
-            var cleaned = legacy.filter(function(e){ return !e || !e.isInstance; });
-            try { localStorage.setItem(calendarKey, JSON.stringify(cleaned)); } catch (_) {}
+            const cleaned = stripInstances(legacy);
+            try { localStorage.setItem(calendarKey, JSON.stringify(cleaned)); } catch {}
             return cleaned;
           }
         }
-      } catch (_) {}
-      return Array.isArray(current) ? current.filter(function(e){ return !e || !e.isInstance; }) : [];
+      } catch {}
+      return Array.isArray(current) ? current.filter(e => !e || !e.isInstance) : [];
     });
 
     const [docs, setDocs] = useState([]);
@@ -257,168 +239,6 @@
       return Array.isArray(list) ? list.filter(e => !e || !e.isInstance) : [];
     }
 
-    /** Master–Exception: get base (master) task for a series instance or exception event. */
-    function getBaseForSeriesEvent(event) {
-      if (!event || !eventsRef.current) return null;
-      const idStr = String(event.id || '');
-      const seriesId = event.seriesId || (idStr.includes('-') ? idStr.replace(/-?\d+$/, '') : null);
-      if (!seriesId) return null;
-      return eventsRef.current.find(e => !e.isInstance && e.seriesId && String(e.seriesId) === seriesId) || null;
-    }
-
-    /** Add occurrence date to master's recur.exceptions (deduped). Returns updated base. */
-    function addExceptionToMaster(base, dateStr) {
-      if (!base || !dateStr) return base;
-      const d = String(dateStr).slice(0, 10);
-      const prev = base.recur && base.recur.exceptions ? base.recur.exceptions : [];
-      if (prev.some(x => String(x).slice(0, 10) === d)) return base;
-      return { ...base, recur: { ...(base.recur || {}), exceptions: [...prev, d] } };
-    }
-
-    /** Delete only this occurrence: add date to master exceptions; series stays. Never remove parent. */
-    function deleteSingleOccurrence(event) {
-      const ev = event && event.event ? event.event : event;
-      const taskId = ev && (ev.id || ev.title || 'unknown');
-      try {
-        console.log('MainPro Debug: Starting Delete', taskId);
-      } catch (_) {}
-      if (!ev) return;
-      try {
-        const list = eventsRef.current || [];
-        const idStr = String(ev.id || '');
-        const occurrenceDate = ev._occurrenceStart != null
-          ? (typeof ev._occurrenceStart === 'string' ? ev._occurrenceStart.slice(0, 10) : new Date(ev._occurrenceStart).toISOString().slice(0, 10))
-          : (ev.start && String(ev.start).slice(0, 10)) || (idStr.includes('-') ? null : null);
-        const seriesId = ev.seriesId || (idStr.includes('-') ? idStr.replace(/-?\d+$/, '') : null);
-        const base = seriesId ? list.find(e => !e.isInstance && e.seriesId && String(e.seriesId) === seriesId) : null;
-        if (base && occurrenceDate) {
-          const updated = addExceptionToMaster(base, occurrenceDate);
-          setEvents(prev => prev.map(e => e.id === base.id ? updated : e));
-          eventsRef.current = eventsRef.current.map(e => e.id === base.id ? updated : e);
-          addAuditLog('TASK_DELETED', { taskId: ev.id, title: ev.title, taskType: ev.taskType, scope: 'single' });
-          showToast('🗑️ Deleted this occurrence');
-          try { console.log('MainPro Debug: Success', taskId); } catch (_) {}
-          return;
-        }
-        setEvents(prev => prev.filter(e => String(e.id) !== idStr));
-        addAuditLog('TASK_DELETED', { taskId: ev.id, title: ev.title, taskType: ev.taskType });
-        showToast('🗑️ Deleted');
-        try { console.log('MainPro Debug: Success', taskId); } catch (_) {}
-      } catch (err) {
-        console.warn('MainPro Delete error:', err);
-        showToast('Delete failed');
-      }
-    }
-
-    /** Delete entire series by seriesId. */
-    function deleteEntireSeries(event) {
-      const ev = event && event.event ? event.event : event;
-      const taskId = ev && (ev.id || ev.seriesId || ev.title || 'unknown');
-      try {
-        console.log('MainPro Debug: Starting Delete', taskId);
-      } catch (_) {}
-      if (!ev) return;
-      try {
-        const seriesId = ev.seriesId || (String(ev.id || '').includes('-') ? String(ev.id).replace(/-?\d+$/, '') : null);
-        if (!seriesId) {
-          setEvents(prev => prev.filter(e => String(e.id) !== String(ev.id)));
-          showToast('🗑️ Deleted');
-          try { console.log('MainPro Debug: Success', taskId); } catch (_) {}
-          return;
-        }
-        setEvents(prev => prev.filter(e => e.seriesId !== seriesId));
-        addAuditLog('TASK_SERIES_DELETED', { seriesId, taskId: ev.id, title: ev.title });
-        showToast('🗑️ Series deleted');
-        try { console.log('MainPro Debug: Success', taskId); } catch (_) {}
-      } catch (err) {
-        console.warn('MainPro Delete error:', err);
-        showToast('Delete failed');
-      }
-    }
-
-    function openDeleteModal(event, onClose) {
-      if (!event) return;
-      const ev = event && event.event ? event.event : event;
-      const idStr = String(ev.id || '');
-      const hasSeries = !!(ev.seriesId || (idStr.includes('-') && idStr.replace(/-?\d+$/, '')));
-      setDeleteModalTarget({ type: hasSeries ? 'series' : 'single', event: ev, onClose: onClose || null });
-    }
-
-    function closeDeleteModal() {
-      const target = deleteModalTarget;
-      setDeleteModalTarget(null);
-      if (target && typeof target.onClose === 'function') target.onClose();
-    }
-
-    /**
-     * handleTaskUpdate(eventData, mode) — Master–Exception update.
-     * mode: 'single' = this occurrence only (add to exceptions + optional one-off);
-     *       'future' = this and future (split series); 'all' = entire series.
-     */
-    function handleTaskUpdate(eventData, mode) {
-      if (!eventData) return;
-      const ev = eventData;
-      const list = eventsRef.current || [];
-      if (mode === 'all') {
-        setEvents(prev => prev.map(e => (e.seriesId !== ev.seriesId ? e : { ...e, ...ev, id: e.id, seriesId: e.seriesId, recur: e.recur })));
-        if (settings.autoStatusEnabled) runSmartStatusOnce();
-        return;
-      }
-      if (mode === 'single') {
-        const occurrenceDate = ev._occurrenceStart != null
-          ? (typeof ev._occurrenceStart === 'string' ? ev._occurrenceStart.slice(0, 10) : new Date(ev._occurrenceStart).toISOString().slice(0, 10))
-          : (ev.start && String(ev.start).slice(0, 10)) || null;
-        const seriesId = ev.seriesId || (String(ev.id || '').includes('-') ? String(ev.id).replace(/-?\d+$/, '') : null);
-        const base = seriesId ? list.find(e => !e.isInstance && e.seriesId && String(e.seriesId) === seriesId) : null;
-        if (base && occurrenceDate) {
-          const updated = addExceptionToMaster(base, occurrenceDate);
-          const oneOff = {
-            ...base,
-            ...ev,
-            id: Date.now(),
-            seriesId: null,
-            groupId: base.seriesId || base.id,
-            isException: true,
-            start: ev.start || (occurrenceDate + 'T09:00'),
-            end: ev.end || ev.start || (occurrenceDate + 'T09:00'),
-            recur: { freq: 'none', interval: 1, end: { type: 'never' }, exceptions: [] },
-            isInstance: false
-          };
-          setEvents(prev => {
-            const next = prev.map(e => (e.id === base.id ? updated : e));
-            return stripInstances([...next, oneOff]);
-          });
-          if (settings.autoStatusEnabled) runSmartStatusOnce();
-          return;
-        }
-        setEvents(prev => prev.map(e => (String(e.id) === String(ev.id) ? { ...e, ...ev } : e)));
-        if (settings.autoStatusEnabled) runSmartStatusOnce();
-        return;
-      }
-      if (mode === 'future') {
-        if (!ev.seriesId) return;
-        const occurrenceDate = ev._occurrenceStart != null
-          ? (typeof ev._occurrenceStart === 'string' ? ev._occurrenceStart.slice(0, 10) : new Date(ev._occurrenceStart).toISOString().slice(0, 10))
-          : (ev.start && String(ev.start).slice(0, 10)) || null;
-        if (!occurrenceDate) return;
-        const base = list.find(e => !e.isInstance && e.seriesId && String(e.seriesId) === ev.seriesId);
-        if (!base) return;
-        const newSeriesId = 'S' + Date.now();
-        const oneOff = { ...base, ...ev, id: Date.now(), seriesId: newSeriesId, start: ev.start || occurrenceDate + 'T09:00', end: ev.end || ev.start, recur: base.recur, isInstance: false };
-        const endCfg = (base.recur && base.recur.end) || { type: 'never' };
-        const until = endCfg.type === 'until' && endCfg.until ? endCfg.until : null;
-        const newEnd = until ? { type: 'until', until: occurrenceDate } : { type: 'never' };
-        setEvents(prev => {
-          const next = prev.map(e => {
-            if (e.id !== base.id) return e;
-            return { ...e, recur: { ...(e.recur || {}), end: newEnd } };
-          });
-          return stripInstances([...next, oneOff]);
-        });
-        if (settings.autoStatusEnabled) runSmartStatusOnce();
-      }
-    }
-
     // Documents initialization moved to state declaration
 
     // Folders initialization moved to state declaration
@@ -449,6 +269,8 @@
     const [settingsTab, setSettingsTab] = useState('general'); // 'general', 'categories', 'ai', 'cloud', 'export'
 
     const [monthLabel,setMonthLabel] = useState('');
+    const [visibleMonthStart, setVisibleMonthStart] = useState(null);
+    const [visibleMonthEnd, setVisibleMonthEnd] = useState(null);
 
     const [showPicker,setShowPicker] = useState(false);
 
@@ -457,9 +279,6 @@
     const [search,setSearch] = useState('');
     const [showHotkeyHelp, setShowHotkeyHelp] = useState(false);
     const [showTemplates, setShowTemplates] = useState(false);
-    const [showQuickActionBar, setShowQuickActionBar] = useState(false);
-    const [quickActionQuery, setQuickActionQuery] = useState('');
-    const [modalSkeleton, setModalSkeleton] = useState(false);
     const [showList, setShowList] = useState(false); // Agenda/List view modal
     const [listRange, setListRange] = useState('day'); // 'day' | 'week'
     const [listAnchorDate, setListAnchorDate] = useState(() => {
@@ -497,24 +316,7 @@
     const undoClearAllTimerRef = useRef(null);
     const [undoDelete, setUndoDelete] = useState(null); // { items: [{event,index}], expiresAt: number }
     const undoDeleteTimerRef = useRef(null);
-    /** Undo for delete modal: restore events from snapshot. */
-    const [undoDeleteTask, setUndoDeleteTask] = useState(null); // { eventsSnapshot: [], expiresAt: number }
-    const undoDeleteTaskTimerRef = useRef(null);
-    /** Delete modal: { type: 'single'|'series', event: {...}, onClose?: fn }. null = closed. */
-    const [deleteModalTarget, setDeleteModalTarget] = useState(null);
-    const deleteModalContentReadyRef = useRef(false);
-
-    useEffect(function focusDeleteModal() {
-      if (!deleteModalTarget) return;
-      var t = setTimeout(function () {
-        try {
-          var el = document.getElementById('mp-delete-modal');
-          if (el && typeof el.focus === 'function') el.focus();
-        } catch (_) {}
-      }, 50);
-      return function () { clearTimeout(t); };
-    }, [deleteModalTarget]);
-
+    
     // Calendar improvements: Dark mode, sorting, stats, notifications
     const [darkMode, setDarkMode] = useState(() => {
       try {
@@ -647,29 +449,6 @@
 
     });
 
-    useEffect(function nlpDateFromTitle() {
-      if (!form.title || !(window.MainProEventLogic && window.MainProEventLogic.safeApplyParsedToFormData)) return;
-      var t = setTimeout(function() {
-        try {
-          var parsed = window.MainProEventLogic.parseDateFromTitle(form.title);
-          if (!parsed) return;
-          var result = window.MainProEventLogic.safeApplyParsedToFormData(form, parsed);
-          if (result.changed && result.formData) {
-            setForm(result.formData);
-            hapticLight();
-            showToast('📅 Date/time set from title');
-            if (window.MainProEventLogic.flashNlpApplied) {
-              var dateEl = document.querySelector('input[type="date"], input[id*="date"], input[data-field="date"]');
-              var timeEl = document.querySelector('input[type="time"], input[id*="time"], input[data-field="time"]');
-              if (result.changedFields.indexOf('date') !== -1 && dateEl) window.MainProEventLogic.flashNlpApplied(dateEl);
-              if (result.changedFields.indexOf('time') !== -1 && timeEl) window.MainProEventLogic.flashNlpApplied(timeEl);
-            }
-          }
-        } catch (_) {}
-      }, 600);
-      return function() { clearTimeout(t); };
-    }, [form.title]);
-
     const [showNewCat,setShowNewCat] = useState(false);
 
     const [newCat,setNewCat] = useState({ name:'', color:'#6b7280' });
@@ -742,7 +521,15 @@
 
         datesSet:(info)=>{
           try{
-            const center = info.view.calendar.getDate();
+            const view = info.view;
+            if (view && view.activeStart) {
+              const start = view.activeStart;
+              const y = start.getFullYear(), m = start.getMonth();
+              setVisibleMonthStart(y + '-' + String(m + 1).padStart(2, '0') + '-01');
+              const lastDay = new Date(y, m + 1, 0).getDate();
+              setVisibleMonthEnd(y + '-' + String(m + 1).padStart(2, '0') + '-' + String(lastDay).padStart(2, '0'));
+            }
+            const center = view.calendar.getDate();
             const label = center.toLocaleString(undefined,{month:'long',year:'numeric'});
             setMonthLabel(label);
             try{ localStorage.setItem('mainpro_lastdate_v1', center.toISOString().slice(0,10)); }catch{}
@@ -775,7 +562,6 @@
           if(src && typeof window.openAddTaskModal === 'function'){
             const startStr = src.start || info.event.startStr;
             const endStr = src.end || info.event.endStr;
-            const isInstance = idStr.includes('-');
             const editPref = {
               ...src,
               id: src.id,
@@ -799,7 +585,6 @@
               start: startStr,
               end: endStr
             };
-            if (isInstance) editPref._occurrenceStart = info.event.startStr || startStr;
             if(!editPref.time && startStr){
               const startDate = new Date(startStr);
               if(!Number.isNaN(startDate.getTime())){
@@ -808,8 +593,7 @@
             }
             window.openAddTaskModal(editPref);
           } else if(src){
-            const isInstance = idStr.includes('-');
-            setEditEvent({ ...src, _seriesScope: 'one', ...(isInstance ? { _occurrenceStart: info.event.startStr || src.start } : {}) });
+            setEditEvent({...src, _seriesScope:'one'});
           }
 
         },
@@ -829,8 +613,6 @@
                 ...base,
                 id: Date.now(),
                 seriesId: null,
-                groupId: base.seriesId || base.id,
-                isException: true,
                 recur: base.recur && base.recur.freq && base.recur.freq !== 'none' ? { freq: 'none', interval: 1, end: { type: 'never' }, exceptions: [] } : (base.recur || {}),
                 start,
                 end,
@@ -935,9 +717,6 @@
           const line1 = document.createElement('div');
 
           line1.style.display='flex'; line1.style.alignItems='center'; line1.style.gap='6px';
-
-          var badgeIcon = (window.MainProEventLogic && window.MainProEventLogic.getEventBadgeIcon) ? window.MainProEventLogic.getEventBadgeIcon(title) : '';
-          if (badgeIcon) { var badgeSpan = document.createElement('span'); badgeSpan.style.fontSize='11px'; badgeSpan.textContent = badgeIcon; line1.appendChild(badgeSpan); }
 
           const t = document.createElement('span');
 
@@ -1200,76 +979,31 @@
       document.title = `${base}${month} • ${viewLabel} • ${filterLabel}`;
     }, [monthLabel, view, filter]);
 
-    // persist & re-render: single dispatcher (StorageEngine), outbox-aware status
-    useEffect(()=>{
-      try {
-        window.MainProEvents = Array.isArray(events) ? events : [];
-      } catch (_) {}
+    // persist & re-render (optimized: debounced localStorage write)
 
-      var StorageEngine = window.MainProStorageEngine;
-      var toStore = stripInstances(events);
-
-      function updateSyncStatusFromOutbox() {
-        try {
-          if (StorageEngine && StorageEngine.getOutboxLength && StorageEngine.getOutboxLength() > 0)
-            setDataSyncStatus('pending');
-        } catch (_) {}
-      }
-
-      if (StorageEngine && (StorageEngine.dispatchEventAction || StorageEngine.saveEvents)) {
-        try {
-          var result = StorageEngine.dispatchEventAction
-            ? StorageEngine.dispatchEventAction('replace', { events: toStore }, { workspaceId: workspaceId || 'default', calendarId: currentCalendarId }, setDataSyncStatus)
-            : StorageEngine.saveEvents(toStore, { workspaceId: workspaceId || 'default', calendarId: currentCalendarId }, setDataSyncStatus);
-          if (result && !result.ok && result.error) showToast(result.error);
-          else updateSyncStatusFromOutbox();
-        } catch (e) {
-          console.warn('MainPro StorageEngine save:', e);
-          setDataSyncStatus('error');
-          showToast('Save failed');
-        }
-      } else {
-        try {
-          var calendarKey = (workspaceId && workspaceId !== 'default') ? ('mainpro_ws_' + workspaceId + '_calendar_' + currentCalendarId) : ('mainpro_calendar_' + currentCalendarId);
-          var json = JSON.stringify(toStore);
-          try { localStorage.setItem(calendarKey, json); } catch (e) { console.warn('MainPro localStorage write failed:', e); showToast('Storage write failed'); }
-          try { localStorage.setItem('mainpro_events_v60', json); } catch (_) {}
-          try { localStorage.setItem('mainpro_events_v70', json); } catch (_) {}
-        } catch (e) {
-          console.warn('MainPro persist error:', e);
-          showToast('Save failed');
-        }
-      }
-
+    useEffect(()=>{ 
+      // Use requestAnimationFrame for smooth calendar updates
       requestAnimationFrame(() => {
-        try { refreshCalendar(events); } catch (e) { console.warn('MainPro refreshCalendar in effect:', e); }
+        refreshCalendar(events);
       });
-    },[events,filter,search,currentCalendarId,sortBy,groupBy,workspaceId]);
 
-    useEffect(function setupOnlineAndOutboxSync() {
-      var StorageEngine = window.MainProStorageEngine;
-      if (StorageEngine && StorageEngine.setupOnlineListener) StorageEngine.setupOnlineListener(setDataSyncStatus);
-      if (StorageEngine && StorageEngine.getOutboxLength && StorageEngine.getOutboxLength() > 0) setDataSyncStatus('pending');
-    }, []);
-
-    useEffect(function persistWorkspaceId() {
-      try {
-        if (workspaceId) localStorage.setItem('mainpro_workspace_id', workspaceId);
-      } catch (_) {}
-    }, [workspaceId]);
-
-    useEffect(function loadEventsForWorkspace() {
-      var key = (workspaceId && workspaceId !== 'default') ? ('mainpro_ws_' + workspaceId + '_calendar_' + currentCalendarId) : ('mainpro_calendar_' + currentCalendarId);
-      try {
-        var raw = localStorage.getItem(key);
-        var next = raw ? JSON.parse(raw) : [];
-        if (Array.isArray(next)) setEvents(next.filter(function(e){ return !e || !e.isInstance; }));
-      } catch (_) {}
-    }, [workspaceId, currentCalendarId]);
-
-    useEffect(function clearQuickActionQuery() {
-      if (!showQuickActionBar) setQuickActionQuery('');
-    }, [showQuickActionBar]);
+      // Keep legacy Add Task scripts in sync (Undo relies on this)
+      try { window.MainProEvents = Array.isArray(events) ? events : []; } catch {}
+      
+      // Debounce localStorage writes to avoid blocking (300ms delay)
+      const calendarKey = `mainpro_calendar_${currentCalendarId}`;
+      const saveTimeout = setTimeout(() => {
+        try {
+          localStorage.setItem(calendarKey, JSON.stringify(stripInstances(events)));
+          try { localStorage.setItem('mainpro_events_v60', JSON.stringify(stripInstances(events))); } catch {}
+          try { localStorage.setItem('mainpro_events_v70', JSON.stringify(stripInstances(events))); } catch {}
+        } catch (e) {
+          console.warn('localStorage write failed:', e);
+        }
+      }, 300);
+      
+      return () => clearTimeout(saveTimeout);
+    },[events,filter,search,currentCalendarId,sortBy,groupBy]);
 
     useEffect(()=>{ localStorage.setItem('mainpro_categories_v60', JSON.stringify(categories)); },[categories]);
 
@@ -1703,26 +1437,18 @@
 
     useEffect(()=>{ localStorage.setItem('mainpro_autostatus_v1', JSON.stringify({enabled: !!settings.autoStatusEnabled})); },[settings.autoStatusEnabled]);
     
-    // Dark mode: apply theme to DOM immediately; debounce localStorage write (300ms) to avoid flicker on fast toggle
+    // Dark mode effect
     useEffect(() => {
       try {
+        localStorage.setItem('mainpro_darkmode', String(darkMode));
         if (darkMode) {
           document.documentElement.classList.add('dark');
-          document.documentElement.setAttribute('data-theme', 'dark');
         } else {
           document.documentElement.classList.remove('dark');
-          document.documentElement.removeAttribute('data-theme');
         }
-      } catch (_) {}
-    }, [darkMode]);
-    const darkModeSaveRef = useRef(null);
-    useEffect(() => {
-      if (darkModeSaveRef.current) clearTimeout(darkModeSaveRef.current);
-      darkModeSaveRef.current = setTimeout(function () {
-        try { localStorage.setItem('mainpro_darkmode', String(darkMode)); } catch (_) {}
-        darkModeSaveRef.current = null;
-      }, 300);
-      return function () { if (darkModeSaveRef.current) clearTimeout(darkModeSaveRef.current); };
+      } catch (e) {
+        console.warn('Failed to save dark mode:', e);
+      }
     }, [darkMode]);
 
     // Persist templates
@@ -1773,16 +1499,6 @@
         } catch {}
       };
     }, [undoDelete]);
-
-    useEffect(function undoDeleteTaskTimer() {
-      try {
-        if (undoDeleteTaskTimerRef.current) { clearTimeout(undoDeleteTaskTimerRef.current); undoDeleteTaskTimerRef.current = null; }
-      } catch {}
-      if (!undoDeleteTask || !undoDeleteTask.expiresAt) return;
-      var ms = Math.max(0, Number(undoDeleteTask.expiresAt) - Date.now());
-      undoDeleteTaskTimerRef.current = setTimeout(function () { setUndoDeleteTask(null); undoDeleteTaskTimerRef.current = null; }, ms);
-      return function () { try { if (undoDeleteTaskTimerRef.current) clearTimeout(undoDeleteTaskTimerRef.current); undoDeleteTaskTimerRef.current = null; } catch {}; };
-    }, [undoDeleteTask]);
     
     // Keyboard shortcuts for better UX
     useEffect(() => {
@@ -1810,7 +1526,7 @@
         // If any modal/picker is open, avoid accidental calendar navigation hotkeys.
         // Allow Esc and Ctrl/Cmd shortcuts (search/help) to still work.
         const modalOpen = !!(
-          showAdd || openSettings || showAnalytics || showPicker || editEvent || showHotkeyHelp || showTemplates || showList || showQuickActionBar ||
+          showAdd || openSettings || showAnalytics || showPicker || editEvent || showHotkeyHelp || showTemplates || showList ||
           dmShow || previewDoc || showTeamSettings || showInviteModal || showAuditDashboard ||
           showReports || showAIPanel || showProjectSharing || showCrossCompanyCollaboration ||
           showGuestAccess || showSecureVault || showAICompliance || showCloudSync ||
@@ -1883,7 +1599,6 @@
           if (showAuthModal) { setShowAuthModal(false); didClose = true; }
           if (showAIChat) { setShowAIChat(false); didClose = true; }
           if (showTemplates) { setShowTemplates(false); didClose = true; }
-          if (showQuickActionBar) { setShowQuickActionBar(false); didClose = true; }
           if (showHotkeyHelp) { setShowHotkeyHelp(false); didClose = true; }
           if (showList) { setShowList(false); didClose = true; }
           // If nothing to close, clear search (nice UX)
@@ -1938,13 +1653,9 @@
           });
         }
         
-        // Ctrl+K / Cmd+K Quick Action Bar (tasks & docs search)
-        if ((e.code === 'KeyK' || e.key === 'k') && (e.ctrlKey || e.metaKey)) {
-          e.preventDefault();
-          setShowQuickActionBar(prev => !prev);
-          showToast(showQuickActionBar ? 'Quick actions closed' : '⌘ Quick actions');
-        }
-
+        // Note: Search hotkeys like Ctrl+K / Ctrl+L / / are often intercepted by the browser.
+        // We intentionally avoid binding them here to prevent "opens browser search" behavior.
+        
         // F to focus search (layout-independent)
         if (e.code === 'KeyF' && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
           e.preventDefault();
@@ -2238,93 +1949,82 @@
       const cal = calRef.current; if(!cal) return;
       const listToUse = list !== undefined ? list : (eventsRef.current || []);
       requestAnimationFrame(() => {
+        let rangeStart, rangeEnd;
         try {
-          let rangeStart, rangeEnd;
-          try {
-            const view = cal.getView();
-            if (view && view.activeStart && view.activeEnd) {
-              rangeStart = view.activeStart;
-              rangeEnd = view.activeEnd;
-            } else {
-              const now = new Date();
-              rangeStart = new Date(now.getFullYear(), now.getMonth(), 1);
-              rangeEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
-            }
-          } catch (_) {
+          const view = cal.getView();
+          if (view && view.activeStart && view.activeEnd) {
+            rangeStart = view.activeStart;
+            rangeEnd = view.activeEnd;
+          } else {
             const now = new Date();
             rangeStart = new Date(now.getFullYear(), now.getMonth(), 1);
             rangeEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
           }
-
-          const baseList = Array.isArray(listToUse) ? listToUse.filter(e => !e.isInstance) : [];
-          const expanded = [];
-          for (const e of baseList) {
-            if (e.isException === true) {
-              expanded.push(e);
-              continue;
-            }
-            const recur = e.recur;
-            if (!recur || recur.freq === 'none') {
-              expanded.push(e);
-            } else {
-              expanded.push(...generateOccurrences({ ...e }, rangeStart, rangeEnd));
-            }
-          }
-
+        } catch (_) {
           const now = new Date();
-          let src = (filter==='all') ? expanded : expanded.filter(e=> {
-            var effective = (typeof computeNewStatus === 'function' ? computeNewStatus(e, now) : null) || (e.status || 'pending');
-            return effective === filter;
-          });
-
-          const q = (search||'').trim().toLowerCase();
-          if(q){
-            src = src.filter(e=>{
-              const catName = (categories.find(c=>c.id===e.catId)?.name)||'';
-              return [e.title,e.taskType,e.location,e.notes,catName].some(v=> (v||'').toLowerCase().includes(q));
-            });
-          }
-          if (sortBy !== 'none') {
-            src = [...src].sort((a, b) => {
-              if (sortBy === 'title') return (a.title || '').localeCompare(b.title || '');
-              if (sortBy === 'priority') {
-                const priorityOrder = { high: 3, medium: 2, normal: 2, low: 1 };
-                return (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0);
-              }
-              if (sortBy === 'status') {
-                const statusOrder = { done: 3, pending: 2, missed: 1, none: 0 };
-                return (statusOrder[b.status] || 0) - (statusOrder[a.status] || 0);
-              }
-              if (sortBy === 'date') return new Date(a.start || 0) - new Date(b.start || 0);
-              return 0;
-            });
-          }
-
-          const eventsToAdd = src.map(e=>{
-            let start = e.start;
-            if (/^\d{4}-\d{2}-\d{2}$/.test(start)) start += 'T09:00';
-            const status = (typeof computeNewStatus === 'function' ? computeNewStatus(e, now) : null) || e.status || 'pending';
-            const color = statusColor(status);
-            let displayTitle = e.title || 'Untitled';
-            if (displayTitle.length > 12) displayTitle = displayTitle.substring(0, 12) + '...';
-            const priority = e.priority || 'normal';
-            if (priority === 'high') displayTitle = '🔴 ' + displayTitle;
-            else if (priority === 'low') displayTitle = '⬇️ ' + displayTitle;
-            return {
-              id:e.id,
-              title: displayTitle,
-              start,
-              allDay:false,
-              color, backgroundColor: color, borderColor: color, textColor: '#111827',
-              extendedProps: {...e, status}
-            };
-          });
-
-          cal.removeAllEvents();
-          eventsToAdd.forEach(event => cal.addEvent(event));
-        } catch (err) {
-          console.warn('MainPro refreshCalendar error:', err);
+          rangeStart = new Date(now.getFullYear(), now.getMonth(), 1);
+          rangeEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
         }
+
+        const baseList = Array.isArray(listToUse) ? listToUse.filter(e => !e.isInstance) : [];
+        const expanded = [];
+        for (const e of baseList) {
+          const recur = e.recur;
+          if (!recur || recur.freq === 'none') {
+            expanded.push(e);
+          } else {
+            expanded.push(...generateOccurrences({ ...e }, rangeStart, rangeEnd));
+          }
+        }
+
+        let src = (filter==='all') ? expanded : expanded.filter(e=> e.status===filter);
+
+        const q = (search||'').trim().toLowerCase();
+        if(q){
+          src = src.filter(e=>{
+            const catName = (categories.find(c=>c.id===e.catId)?.name)||'';
+            return [e.title,e.taskType,e.location,e.notes,catName].some(v=> (v||'').toLowerCase().includes(q));
+          });
+        }
+        if (sortBy !== 'none') {
+          src = [...src].sort((a, b) => {
+            if (sortBy === 'title') return (a.title || '').localeCompare(b.title || '');
+            if (sortBy === 'priority') {
+              const priorityOrder = { high: 3, medium: 2, normal: 2, low: 1 };
+              return (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0);
+            }
+            if (sortBy === 'status') {
+              const statusOrder = { done: 3, pending: 2, missed: 1, none: 0 };
+              return (statusOrder[b.status] || 0) - (statusOrder[a.status] || 0);
+            }
+            if (sortBy === 'date') return new Date(a.start || 0) - new Date(b.start || 0);
+            return 0;
+          });
+        }
+
+        const now = new Date();
+        const eventsToAdd = src.map(e=>{
+          let start = e.start;
+          if (/^\d{4}-\d{2}-\d{2}$/.test(start)) start += 'T09:00';
+          const status = (typeof computeNewStatus === 'function' ? computeNewStatus(e, now) : null) || e.status || 'pending';
+          const color = statusColor(status);
+          let displayTitle = e.title || 'Untitled';
+          if (displayTitle.length > 12) displayTitle = displayTitle.substring(0, 12) + '...';
+          const priority = e.priority || 'normal';
+          if (priority === 'high') displayTitle = '🔴 ' + displayTitle;
+          else if (priority === 'low') displayTitle = '⬇️ ' + displayTitle;
+          return {
+            id:e.id,
+            title: displayTitle,
+            start,
+            allDay:false,
+            color, backgroundColor: color, borderColor: color, textColor: '#111827',
+            extendedProps: {...e, status}
+          };
+        });
+
+        cal.removeAllEvents();
+        eventsToAdd.forEach(event => cal.addEvent(event));
       });
     }
 
@@ -2488,57 +2188,60 @@
     };
     
     // Notification function
-    function showNotification(title, options) {
-      try {
-        if (typeof window === 'undefined' || !('Notification' in window) || Notification.permission !== 'granted') return;
-        var opts = Object.assign({ icon: '/manifest.json', badge: '/manifest.json' }, options || {});
-        if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-          navigator.serviceWorker.controller.postMessage({ type: 'SHOW_NOTIFICATION', title: title, options: opts });
-        } else {
-          new Notification(title, opts);
-        }
-      } catch (_) {}
+    function showNotification(title, options = {}) {
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification(title, {
+          icon: 'https://i.imgur.com/SW6T4ZL.png',
+          badge: 'https://i.imgur.com/SW6T4ZL.png',
+          ...options
+        });
+      }
     }
     
-    // Smart Notifications: High-priority with time → 15 min before; others 30 min / 1 h (Graceful: skip if denied)
+    // Check for upcoming tasks and show notifications
     useEffect(() => {
+      if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
+      
       const checkUpcomingTasks = () => {
-        try {
-          if (typeof window === 'undefined' || !('Notification' in window) || Notification.permission !== 'granted') return;
-        } catch (_) { return; }
-        var now = Date.now();
-        var in15 = now + 15 * 60 * 1000;
-        var in30 = now + 30 * 60 * 1000;
-        var in1h = now + 60 * 60 * 1000;
-        events.forEach(function (event) {
-          if (event.status !== 'pending' || !event.start) return;
-          try {
-            var startTs = new Date(event.start).getTime();
-            if (startTs <= now) return;
-            var hasTime = String(event.start).indexOf('T') !== -1;
-            var isHigh = (event.priority || '').toLowerCase() === 'high';
-            var tag = 'task-' + (event.id || startTs);
-            var notifiedKey = 'mainpro_notified_' + tag;
-            if (localStorage.getItem(notifiedKey)) return;
-            if (hasTime && isHigh && startTs > now && startTs <= in15) {
-              showNotification('⏰ ' + (event.title || 'Task'), { body: 'Starts in 15 min', tag: tag });
-              localStorage.setItem(notifiedKey, '1');
-              setTimeout(function () { localStorage.removeItem(notifiedKey); }, 60 * 60 * 1000);
-            } else if (startTs > now && startTs <= in30) {
-              showNotification('⏰ ' + (event.title || 'Task'), { body: 'Starts in 30 min', tag: tag });
-              localStorage.setItem(notifiedKey, '1');
-              setTimeout(function () { localStorage.removeItem(notifiedKey); }, 2 * 60 * 60 * 1000);
-            } else if (startTs > in30 && startTs <= in1h) {
-              showNotification('📅 ' + (event.title || 'Task'), { body: 'Starts in 1 hour', tag: tag + '-1h' });
-              localStorage.setItem(notifiedKey, '1');
-              setTimeout(function () { localStorage.removeItem(notifiedKey); }, 2 * 60 * 60 * 1000);
+        const now = new Date();
+        const in30Min = new Date(now.getTime() + 30 * 60 * 1000);
+        const in1Hour = new Date(now.getTime() + 60 * 60 * 1000);
+        
+        events.forEach(event => {
+          if (event.status === 'pending' && event.start) {
+            try {
+              const eventDate = new Date(event.start);
+              if (eventDate > now && eventDate <= in30Min) {
+                showNotification(`⏰ Upcoming: ${event.title}`, {
+                  body: `Task starts in less than 30 minutes`,
+                  tag: `task-${event.id}`,
+                  requireInteraction: false
+                });
+              } else if (eventDate > in30Min && eventDate <= in1Hour) {
+                const notifiedKey = `notified_${event.id}`;
+                if (!localStorage.getItem(notifiedKey)) {
+                  showNotification(`📅 Reminder: ${event.title}`, {
+                    body: `Task starts in 1 hour`,
+                    tag: `task-${event.id}-1h`,
+                    requireInteraction: false
+                  });
+                  localStorage.setItem(notifiedKey, 'true');
+                  setTimeout(() => localStorage.removeItem(notifiedKey), 2 * 60 * 60 * 1000);
+                }
+              }
+            } catch (e) {
+              // Ignore invalid dates
             }
-          } catch (_) {}
+          }
         });
       };
-      var interval = setInterval(checkUpcomingTasks, 2 * 60 * 1000);
+      
+      const interval = setInterval(checkUpcomingTasks, 5 * 60 * 1000);
       checkUpcomingTasks();
-      return function () { clearInterval(interval); };
+      
+      return () => clearInterval(interval);
     }, [events]);
     
     // Export to iCal function
@@ -3575,6 +3278,7 @@
         recentActivity
       };
       
+      console.log('Calculating audit stats:', newStats);
       setAuditStats(newStats);
     }
 
@@ -5328,9 +5032,6 @@
     window.showToast = showToast;
     window.getCurrentUser = () => ({ id: currentUser.id, name: currentUser.name });
     window.refreshCalendar = refreshCalendar;
-    window.openDeleteModal = openDeleteModal;
-    window.closeDeleteModal = closeDeleteModal;
-    window.handleTaskUpdate = handleTaskUpdate;
     // Allow external (non-React) modals to queue Undo for single delete
     window.mainproQueueUndoDeleteOne = (ev, index) => {
       try {
@@ -5352,8 +5053,8 @@
     // CRUD
 
     function addEvent(){
-      try {
-      if(!form.title || !form.date) { showToast('Please fill Title and Date'); return; }
+
+      if(!form.title || !form.date) return alert('Please fill Title and Date');
 
       const hh = String(form.time||'09:00').slice(0,2).padStart(2,'0');
 
@@ -5438,8 +5139,6 @@
       if(!taskTypes.includes(form.taskType)) setTaskTypes(prev=>[...prev,form.taskType]);
 
       setShowAdd(false);
-      hapticLight();
-      showToast('💾 Saved');
 
       setForm({
 
@@ -5463,15 +5162,14 @@
       
       // Trigger real-time update for team collaboration
       simulateRealtimeUpdate('task_created', `Created task: ${base.title}`);
-      } catch (e) {
-        console.warn('addEvent error', e);
-        showToast('Failed to add task');
-      }
+
+      // Show success notification
+      showToast(`✅ Task "${base.title}" added successfully!`);
 
     }
 
     function saveEdit(){
-      try {
+
       if(!editEvent) return;
 
       const scope = editEvent._seriesScope || 'one';
@@ -5510,25 +5208,67 @@
 
         }));
 
-      } else if((editEvent.seriesId || (String(editEvent.id||'').includes('-'))) && editEvent._occurrenceStart){
-        handleTaskUpdate({ ...editEvent, start: editEvent.start || (String(editEvent._occurrenceStart).slice(0,10) + 'T' + (editEvent.time || '09:00')) }, 'single');
-      } else {
+      }else{
+
         setEvents(prev=> prev.map(e=> e.id===editEvent.id ? {...editEvent} : e));
+
       }
 
       setEditEvent(null);
-      hapticLight();
-      showToast('💾 Saved');
+
       if(settings.autoStatusEnabled) runSmartStatusOnce();
-      } catch (e) {
-        console.warn('saveEdit error', e);
-        showToast('Failed to save');
-      }
+
     }
 
     function deleteEventAction(){
+
       if(!editEvent) return;
-      openDeleteModal(editEvent, ()=> setEditEvent(null));
+
+      if(editEvent.seriesId){
+
+        const choice=confirm('Delete ENTIRE series?\nOK = entire series, Cancel = only this');
+
+        if(choice){
+
+          setEvents(prev=> prev.filter(e=> e.seriesId!==editEvent.seriesId));
+          
+          // Audit logging for series deletion
+          addAuditLog('TASK_SERIES_DELETED', { 
+            seriesId: editEvent.seriesId,
+            taskId: editEvent.id,
+            title: editEvent.title
+          });
+
+        }else{
+
+          setEvents(prev=> prev.filter(e=> e.id!==editEvent.id));
+          
+          // Audit logging for single task deletion
+          addAuditLog('TASK_DELETED', { 
+            taskId: editEvent.id,
+            title: editEvent.title,
+            taskType: editEvent.taskType
+          });
+
+        }
+
+      }else{
+
+        if(!confirm('Delete this task?')) return;
+
+        setEvents(prev=> prev.filter(e=> e.id!==editEvent.id));
+        
+        // Audit logging for single task deletion
+        addAuditLog('TASK_DELETED', { 
+          taskId: editEvent.id,
+          title: editEvent.title,
+          taskType: editEvent.taskType
+        });
+
+      }
+
+      setEditEvent(null);
+
     }
 
     // === deleteEvent() function - Remove selected task from events array ===
@@ -6488,9 +6228,7 @@
     }
     function mpFilterSearch(list){
       let src = Array.isArray(list) ? list : [];
-      var now = new Date();
-      function effStatus(ev){ return (typeof computeNewStatus === 'function' ? computeNewStatus(ev, now) : null) || (ev.status || 'pending'); }
-      src = (filter==='all') ? src : src.filter(e=> effStatus(e) === filter);
+      src = (filter==='all') ? src : src.filter(e=> (e.status||'pending')===filter);
       const q = (search||'').trim().toLowerCase();
       if(q){
         src = src.filter(e=>{
@@ -6611,6 +6349,65 @@
         return { startISO, endISO, rangeLabel, days, total: inRange.length, conflictsTotal };
       }catch{
         return { startISO:'', endISO:'', rangeLabel:'', days:[], total:0, conflictsTotal:0 };
+      }
+    })();
+
+    const monthStats = (() => {
+      try {
+        let monthStartStr, monthEndStr, rangeStart, rangeEnd;
+        const cal = calRef.current;
+        if (cal) {
+          try {
+            const view = cal.getView();
+            if (view && view.activeStart && view.activeEnd) {
+              rangeStart = new Date(view.activeStart);
+              rangeEnd = new Date(view.activeEnd);
+              const y = rangeStart.getFullYear(), m = rangeStart.getMonth();
+              monthStartStr = y + '-' + String(m + 1).padStart(2, '0') + '-01';
+              const lastDay = new Date(y, m + 1, 0).getDate();
+              monthEndStr = y + '-' + String(m + 1).padStart(2, '0') + '-' + String(lastDay).padStart(2, '0');
+            }
+          } catch (_) {}
+        }
+        if (!monthStartStr) {
+          const d = new Date();
+          monthStartStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-01';
+          const y = d.getFullYear(), m = d.getMonth();
+          const lastDay = new Date(y, m + 1, 0).getDate();
+          monthEndStr = y + '-' + String(m + 1).padStart(2, '0') + '-' + String(lastDay).padStart(2, '0');
+          rangeStart = new Date(monthStartStr);
+          rangeEnd = new Date(monthEndStr + 'T23:59:59');
+        }
+        const listToUse = Array.isArray(eventsRef.current) ? eventsRef.current : (Array.isArray(events) ? events : []);
+        const baseList = listToUse.filter(e => !e.isInstance);
+        const expanded = [];
+        for (const e of baseList) {
+          const recur = e.recur;
+          if (!recur || recur.freq === 'none') {
+            expanded.push(e);
+          } else {
+            expanded.push(...generateOccurrences({ ...e }, rangeStart, rangeEnd));
+          }
+        }
+        const inMonth = expanded.filter(e => {
+          const d = String(e.start || '').slice(0, 10);
+          return d >= monthStartStr && d <= monthEndStr;
+        });
+        const now = new Date();
+        const withStatus = inMonth.map(e => ({ ...e, effectiveStatus: (typeof computeNewStatus === 'function' ? computeNewStatus(e, now) : e.status) || e.status || 'pending' }));
+        return {
+          total: withStatus.length,
+          done: withStatus.filter(e => e.effectiveStatus === 'done').length,
+          pending: withStatus.filter(e => e.effectiveStatus === 'pending').length,
+          missed: withStatus.filter(e => e.effectiveStatus === 'missed').length
+        };
+      } catch (err) {
+        return {
+          total: (Array.isArray(events) ? events.length : 0),
+          done: (Array.isArray(events) ? events.filter(e => e.status === 'done').length : 0),
+          pending: (Array.isArray(events) ? events.filter(e => e.status === 'pending').length : 0),
+          missed: (Array.isArray(events) ? events.filter(e => e.status === 'missed').length : 0)
+        };
       }
     })();
 
@@ -6949,50 +6746,16 @@
           // Search Bar - Right Corner
           React.createElement('div',{className:"ml-auto flex items-center gap-2"},
 
-            // Smart Notifications: bell → request permission (Graceful Degradation: no errors if denied)
-            React.createElement('button',{
-              onClick: function () {
-                try {
-                  if (typeof window === 'undefined' || !('Notification' in window)) { showToast('Notifications not supported'); return; }
-                  if (Notification.permission === 'granted') { showToast('🔔 Notifications already enabled'); return; }
-                  Notification.requestPermission().then(function (p) {
-                    showToast(p === 'granted' ? '🔔 Notifications enabled' : p === 'denied' ? 'Notifications blocked' : 'Permission dismissed');
-                  }).catch(function () {});
-                } catch (_) {}
-              },
-              className: "px-3 py-1 rounded-lg text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors tooltip-bottom",
-              'data-tooltip': 'Enable notifications (bell)'
-            }, '🔔'),
-            // Dark Mode Toggle (Premium UI: moon/sun)
+            // Dark Mode Toggle
             React.createElement('button',{
               onClick: () => setDarkMode(prev => {
                 const next = !prev;
-                try { localStorage.setItem('mainpro_darkmode', String(next)); } catch (_) {}
-                showToast(next ? '🌙 Dark mode' : '☀️ Light mode');
+                showToast(next ? '🌙 Dark mode: ON' : '☀️ Dark mode: OFF');
                 return next;
               }),
               className: "px-3 py-1 rounded-lg text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors tooltip-bottom",
-              'data-tooltip': 'Toggle theme (D)'
+              'data-tooltip': 'Toggle dark mode (D)'
             }, darkMode ? '☀️' : '🌙'),
-
-            (function(){
-              var outboxLen = 0;
-              try { if (window.MainProStorageEngine && window.MainProStorageEngine.getOutboxLength) outboxLen = window.MainProStorageEngine.getOutboxLength(); } catch(_) {}
-              var status = outboxLen > 0 ? 'pending' : dataSyncStatus;
-              var tip = status === 'synced' ? 'Synced' : status === 'pending' ? (outboxLen > 0 ? outboxLen + ' pending sync' : 'Syncing…') : status === 'offline' ? 'Offline (saved locally)' : 'Sync error';
-              var icon = status === 'synced' ? '☁️' : status === 'pending' ? '⏳' : status === 'offline' ? '📴' : '⚠️';
-              return React.createElement('span',{ className: 'px-2 py-1 rounded-lg text-sm tooltip-bottom', 'data-tooltip': tip, title: tip }, icon);
-            })(),
-
-            React.createElement('select',{
-              value: workspaceId || 'default',
-              onChange: function(e){ var v = e.target.value; setWorkspaceId(v); showToast(v === 'default' ? 'Workspace: Personal' : 'Workspace: ' + v); },
-              className: 'px-2 py-1 border rounded-lg text-xs bg-white dark:bg-gray-800 dark:text-white dark:border-gray-600',
-              title: 'Workspace'
-            },
-              React.createElement('option', {value: 'default'}, 'Personal'),
-              React.createElement('option', {value: 'work'}, 'Work')
-            ),
             
             // Sort Dropdown
             React.createElement('select',{
@@ -7088,29 +6851,29 @@
 
         ),
 
-        // Stats Widget
+        // Stats Widget (full month: expanded recurring, effective status)
         showStats && React.createElement('div',{className:"mb-4 bg-white dark:bg-gray-800 rounded-xl p-4 shadow border border-amber-200"},
           React.createElement('div',{className:"grid grid-cols-2 sm:grid-cols-4 gap-4"},
             React.createElement('div',{className:"text-center p-3 bg-blue-50 dark:bg-blue-900 rounded-lg"},
-              React.createElement('div',{className:"text-2xl font-bold text-blue-600 dark:text-blue-300"}, events.length),
+              React.createElement('div',{className:"text-2xl font-bold text-blue-600 dark:text-blue-300"}, monthStats.total),
               React.createElement('div',{className:"text-xs text-gray-600 dark:text-gray-400"}, 'Total Tasks')
             ),
             React.createElement('div',{className:"text-center p-3 bg-yellow-50 dark:bg-yellow-900 rounded-lg"},
-              React.createElement('div',{className:"text-2xl font-bold text-yellow-600 dark:text-yellow-300"}, events.filter(e => e.status === 'pending').length),
+              React.createElement('div',{className:"text-2xl font-bold text-yellow-600 dark:text-yellow-300"}, monthStats.pending),
               React.createElement('div',{className:"text-xs text-gray-600 dark:text-gray-400"}, 'Pending')
             ),
             React.createElement('div',{className:"text-center p-3 bg-green-50 dark:bg-green-900 rounded-lg"},
-              React.createElement('div',{className:"text-2xl font-bold text-green-600 dark:text-green-300"}, events.filter(e => e.status === 'done').length),
+              React.createElement('div',{className:"text-2xl font-bold text-green-600 dark:text-green-300"}, monthStats.done),
               React.createElement('div',{className:"text-xs text-gray-600 dark:text-gray-400"}, 'Done')
             ),
             React.createElement('div',{className:"text-center p-3 bg-red-50 dark:bg-red-900 rounded-lg"},
-              React.createElement('div',{className:"text-2xl font-bold text-red-600 dark:text-red-300"}, events.filter(e => e.status === 'missed').length),
+              React.createElement('div',{className:"text-2xl font-bold text-red-600 dark:text-red-300"}, monthStats.missed),
               React.createElement('div',{className:"text-xs text-gray-600 dark:text-gray-400"}, 'Missed')
             )
           ),
           React.createElement('div',{className:"mt-4 pt-4 border-t border-gray-200 dark:border-gray-700"},
             React.createElement('div',{className:"text-sm text-gray-600 dark:text-gray-400"},
-              `Completion Rate: ${events.length > 0 ? Math.round((events.filter(e => e.status === 'done').length / events.length) * 100) : 0}%`
+              `Completion Rate: ${monthStats.total > 0 ? Math.round((monthStats.done / monthStats.total) * 100) : 0}%`
             )
           )
         ),
@@ -7590,10 +7353,6 @@
                                 React.createElement('button',{
                                   onClick:()=>{
                                     try{
-                                      const eventForDelete = ev.seriesId || String(ev.id||'').includes('-')
-                                        ? { ...ev, _occurrenceStart: ev.start || ev.date }
-                                        : ev;
-                                      if(typeof window.openDeleteModal === 'function'){ window.openDeleteModal(eventForDelete); return; }
                                       if(!confirm('Delete this task?')) return;
                                       const idx = (eventsRef?.current && Array.isArray(eventsRef.current))
                                         ? eventsRef.current.findIndex(e => String(e.id)===String(ev.id))
@@ -7637,135 +7396,6 @@
                   )
                 )
               : React.createElement('div',{className:"text-sm text-gray-500 bg-white border border-amber-200 rounded-xl px-4 py-3"},'No tasks in this range')
-          )
-        )
-      ),
-
-      deleteModalTarget && ReactDOM.createPortal(
-        React.createElement('div',{
-          className:"mp-delete-modal-overlay bg-black/40 p-4",
-          'data-mp-overlay':'1',
-          'data-mp-delete-overlay':'1',
-          onClick:function(e){ if(e.target===e.currentTarget) closeDeleteModal(); }
-        },
-          React.createElement('div',{
-            id:'mp-delete-modal',
-            tabIndex:-1,
-            className:"mp-delete-modal bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-amber-200 dark:border-gray-600 overflow-hidden max-w-md w-full",
-            'data-mp-modal':'1',
-            onClick:function(e){ e.stopPropagation(); }
-          },
-            React.createElement('div',{className:"h-1 bg-gradient-to-r from-amber-300 to-amber-500"}),
-            React.createElement('div',{className:"p-6"},
-              React.createElement('div',null,
-              React.createElement('h3',{className:"text-lg font-semibold text-gray-900 dark:text-white mb-1"},'Delete task'),
-              React.createElement('p',{className:"text-sm text-gray-500 dark:text-gray-400 mb-5"},
-                deleteModalTarget?.type==='series' ? 'This task is part of a series. Choose what to delete:' : 'Delete this task?'
-              ),
-              React.createElement('div',{className:"flex flex-col gap-3"},
-                React.createElement('button',{
-                  type:'button',
-                  onClick:function(){
-                    var ev = deleteModalTarget?.event;
-                    var snap = (eventsRef.current || []).slice(0);
-                    closeDeleteModal();
-                    if(ev) setTimeout(function(){
-                      deleteSingleOccurrence(ev);
-                      setUndoDeleteTask({ eventsSnapshot: snap, expiresAt: Date.now() + 8000 });
-                      showToast('Deleted. Undo?');
-                    }, 0);
-                  },
-                  className:"w-full py-3 px-4 rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-600 text-amber-900 dark:text-amber-100 font-medium hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors"
-                },'Only this occurrence'),
-                deleteModalTarget?.type==='series' && React.createElement('button',{
-                  type:'button',
-                  onClick:function(){
-                    var ev = deleteModalTarget?.event;
-                    var snap = (eventsRef.current || []).slice(0);
-                    closeDeleteModal();
-                    if(ev) setTimeout(function(){
-                      deleteEntireSeries(ev);
-                      setUndoDeleteTask({ eventsSnapshot: snap, expiresAt: Date.now() + 8000 });
-                      showToast('Deleted. Undo?');
-                    }, 0);
-                  },
-                  className:"w-full py-3 px-4 rounded-xl border border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-600 text-red-800 dark:text-red-200 font-medium hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
-                },'Entire series'),
-                React.createElement('button',{
-                  type:'button',
-                  onClick:closeDeleteModal,
-                  className:"w-full py-3 px-4 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                },'Cancel')
-              )
-              )
-            )
-          )
-        ),
-        document.body
-      ),
-
-      showQuickActionBar && React.createElement('div',{
-        className: 'fixed inset-0 bg-black/40 flex items-start justify-center pt-[15vh] z-[9998] p-4',
-        'data-mp-overlay': '1',
-        onClick: function(e){ if (e.target === e.currentTarget) setShowQuickActionBar(false); }
-      },
-        React.createElement('div',{
-          className: 'bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-amber-200 dark:border-gray-600 w-full max-w-xl max-h-[70vh] overflow-hidden',
-          onClick: function(e){ e.stopPropagation(); }
-        },
-            React.createElement('div', {className: 'p-3 border-b border-amber-100 dark:border-gray-600'},
-            React.createElement('input',{
-              type: 'text',
-              value: quickActionQuery,
-              onChange: function(e){ setQuickActionQuery(e.target.value); },
-              placeholder: 'Search tasks and documents… (Ctrl+K to close)',
-              className: 'w-full px-4 py-2 rounded-lg border border-amber-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white outline-none focus:ring-2 focus:ring-amber-400',
-              autoFocus: true,
-              onKeyDown: function(e){ if (e.key === 'Escape') setShowQuickActionBar(false); }
-            })
-          ),
-          React.createElement('div', {className: 'overflow-y-auto max-h-[50vh]'},
-            (function(){
-              var low = (quickActionQuery || '').trim().toLowerCase();
-              var taskItems = !low ? events.slice(0, 15) : events.filter(function(e){ return (e.title || '').toLowerCase().includes(low); }).slice(0, 20);
-              var docItems = [];
-              try {
-                if (Array.isArray(dmDocs)) {
-                  if (!low) docItems = dmDocs.slice(0, 5);
-                  else docItems = dmDocs.filter(function(d){
-                    var nameTitle = (d.name || d.title || '').toLowerCase();
-                    var desc = (d.description || d.desc || '').toLowerCase();
-                    var tags = Array.isArray(d.tags) ? d.tags.join(' ').toLowerCase() : (d.tags || '').toString().toLowerCase();
-                    var type = (d.type || d.kind || '').toString().toLowerCase();
-                    return nameTitle.includes(low) || desc.includes(low) || tags.includes(low) || type.includes(low);
-                  }).slice(0, 10);
-                }
-              } catch(_) {}
-              return React.createElement(React.Fragment, null,
-                React.createElement('div', {className: 'px-3 py-2 text-xs font-semibold text-amber-700 dark:text-amber-300'}, 'Tasks'),
-                taskItems.map(function(ev, i){
-                  return React.createElement('button',{
-                    key: 't-' + (ev.id || i),
-                    type: 'button',
-                    className: 'w-full text-left px-4 py-2 hover:bg-amber-50 dark:hover:bg-gray-700 flex items-center gap-2',
-                    onClick: function(){
-                      setShowQuickActionBar(false);
-                      if (typeof window.openAddTaskModal === 'function') window.openAddTaskModal({ id: ev.id, title: ev.title, date: (ev.start || '').slice(0,10), time: (ev.start || '').slice(11,16), seriesId: ev.seriesId, start: ev.start, end: ev.end });
-                      else setEditEvent(ev);
-                    }
-                  }, React.createElement('span', {}, '📅'), ev.title || 'Untitled');
-                }),
-                React.createElement('div', {className: 'px-3 py-2 text-xs font-semibold text-amber-700 dark:text-amber-300 mt-2'}, 'Documents'),
-                docItems.length ? docItems.map(function(d, i){
-                  return React.createElement('button',{
-                    key: 'd-' + (d.id || i),
-                    type: 'button',
-                    className: 'w-full text-left px-4 py-2 hover:bg-amber-50 dark:hover:bg-gray-700 flex items-center gap-2',
-                    onClick: function(){ setShowQuickActionBar(false); setDmShow(true); setPreviewDoc(d); }
-                  }, React.createElement('span', {}, '📄'), d.name || d.title || 'Document');
-                }) : React.createElement('div', {className: 'px-4 py-2 text-sm text-gray-500'}, 'No documents match')
-              );
-            })()
           )
         )
       ),
@@ -7871,40 +7501,6 @@
             },'Undo'),
             React.createElement('button',{
               onClick:()=>setUndoDelete(null),
-              className:"px-3 py-1.5 rounded-lg text-sm bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-100"
-            },'Dismiss')
-          )
-        )
-      ),
-
-      // Undo bar for delete modal (Only this / Entire series)
-      (!undoClearAll && !undoDelete && undoDeleteTask) && React.createElement('div',{
-        className:"fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[min(92vw,560px)]"
-      },
-        React.createElement('div',{
-          className:"flex items-center justify-between gap-3 bg-white dark:bg-gray-800 border border-amber-200 dark:border-gray-700 shadow-xl rounded-xl px-4 py-3"
-        },
-          React.createElement('div',{className:"text-sm text-gray-800 dark:text-gray-100"},
-            '🗑️ Task deleted',
-            React.createElement('span',{className:"text-gray-500 dark:text-gray-400"},' • Undo (8s)')
-          ),
-          React.createElement('div',{className:"flex items-center gap-2"},
-            React.createElement('button',{
-              onClick:function(){
-                try {
-                  var snap = undoDeleteTask && Array.isArray(undoDeleteTask.eventsSnapshot) ? undoDeleteTask.eventsSnapshot : [];
-                  setUndoDeleteTask(null);
-                  var cleaned = stripInstances(snap);
-                  setEvents(cleaned);
-                  try { refreshCalendar(cleaned); } catch (_) {}
-                  showToast('↩️ Restored');
-                } catch (_) {}
-              },
-              className:"px-3 py-1.5 rounded-lg text-sm font-semibold text-white",
-              style:{background: ui.primary}
-            },'Undo'),
-            React.createElement('button',{
-              onClick:function(){ setUndoDeleteTask(null); },
               className:"px-3 py-1.5 rounded-lg text-sm bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-100"
             },'Dismiss')
           )

@@ -3,18 +3,3 @@ html, body { height: 100%; }
 iframe { display: block; width: 100%; height: 100%; border: 0; }
 .fallback { padding: 1rem; background: #fef3c7; font-family: sans-serif; }
 .fallback a { color: #b45309; }
-
-/* Delete Task modal: always on top of FullCalendar and other overlays */
-.mp-delete-modal-overlay {
-  position: fixed !important;
-  inset: 0 !important;
-  z-index: 9999 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  background: rgba(0, 0, 0, 0.4) !important;
-}
-.mp-delete-modal {
-  position: relative !important;
-  z-index: 10000 !important;
-}
