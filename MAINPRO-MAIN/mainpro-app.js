@@ -140,22 +140,33 @@
       }
     });
 
-    // events - now loads from current calendar
+    const [workspaceId, setWorkspaceId] = useState(() => {
+      try {
+        return localStorage.getItem('mainpro_workspace_id') || 'default';
+      } catch {
+        return 'default';
+      }
+    });
+
+    const [dataSyncStatus, setDataSyncStatus] = useState('synced');
+
+    // events - now loads from current calendar (workspace-aware; SWR via StorageEngine when available)
     const [events, setEvents] = useState(() => {
-      const calendarKey = `mainpro_calendar_${currentCalendarId}`;
-      const current = safeParse(calendarKey, []);
-      // Migration: if calendar is empty but legacy key has tasks, import once.
+      var wid = 'default';
+      try { wid = localStorage.getItem('mainpro_workspace_id') || 'default'; } catch (_) {}
+      var calendarKey = (wid && wid !== 'default') ? ('mainpro_ws_' + wid + '_calendar_' + currentCalendarId) : ('mainpro_calendar_' + currentCalendarId);
+      var current = safeParse(calendarKey, []);
       try {
         if ((!current || !current.length)) {
-          const legacy = safeParse('mainpro_events_v60', []);
+          var legacy = safeParse('mainpro_events_v60', []);
           if (Array.isArray(legacy) && legacy.length) {
-            const cleaned = stripInstances(legacy);
-            try { localStorage.setItem(calendarKey, JSON.stringify(cleaned)); } catch {}
+            var cleaned = legacy.filter(function(e){ return !e || !e.isInstance; });
+            try { localStorage.setItem(calendarKey, JSON.stringify(cleaned)); } catch (_) {}
             return cleaned;
           }
         }
-      } catch {}
-      return Array.isArray(current) ? current.filter(e => !e || !e.isInstance) : [];
+      } catch (_) {}
+      return Array.isArray(current) ? current.filter(function(e){ return !e || !e.isInstance; }) : [];
     });
 
     const [docs, setDocs] = useState([]);
@@ -439,6 +450,9 @@
     const [search,setSearch] = useState('');
     const [showHotkeyHelp, setShowHotkeyHelp] = useState(false);
     const [showTemplates, setShowTemplates] = useState(false);
+    const [showQuickActionBar, setShowQuickActionBar] = useState(false);
+    const [quickActionQuery, setQuickActionQuery] = useState('');
+    const [modalSkeleton, setModalSkeleton] = useState(false);
     const [showList, setShowList] = useState(false); // Agenda/List view modal
     const [listRange, setListRange] = useState('day'); // 'day' | 'week'
     const [listAnchorDate, setListAnchorDate] = useState(() => {
@@ -481,13 +495,15 @@
 
     useEffect(function focusDeleteModal() {
       if (!deleteModalTarget) return;
-      var t = setTimeout(function () {
+      setModalSkeleton(true);
+      var t = setTimeout(function () { setModalSkeleton(false); }, 80);
+      var t2 = setTimeout(function () {
         try {
           var el = document.getElementById('mp-delete-modal');
           if (el && typeof el.focus === 'function') el.focus();
         } catch (_) {}
-      }, 50);
-      return function () { clearTimeout(t); };
+      }, 120);
+      return function () { clearTimeout(t); clearTimeout(t2); };
     }, [deleteModalTarget]);
 
     // Calendar improvements: Dark mode, sorting, stats, notifications
@@ -621,6 +637,19 @@
       recurFreq:'none', recurMonths:12, recurInterval:1, recurUnit:'day', recurEndDate:'', repeatEndMonths:''
 
     });
+
+    useEffect(function nlpDateFromTitle() {
+      if (!form.title || !(window.MainProEventLogic && window.MainProEventLogic.parseDateFromTitle)) return;
+      var t = setTimeout(function() {
+        try {
+          var parsed = window.MainProEventLogic.parseDateFromTitle(form.title);
+          if (parsed && (parsed.date || parsed.time)) setForm(function(prev) {
+            return { ...prev, date: parsed.date || prev.date, time: parsed.time || prev.time };
+          });
+        } catch (_) {}
+      }, 600);
+      return function() { clearTimeout(t); };
+    }, [form.title]);
 
     const [showNewCat,setShowNewCat] = useState(false);
 
@@ -1149,46 +1178,57 @@
       document.title = `${base}${month} • ${viewLabel} • ${filterLabel}`;
     }, [monthLabel, view, filter]);
 
-    // persist & re-render: write localStorage first, then refresh calendar to avoid loops/hangs
+    // persist & re-render: Stale-While-Revalidate (StorageEngine when available)
     useEffect(()=>{
-      const calendarKey = `mainpro_calendar_${currentCalendarId}`;
-      let saveTimeout;
       try {
         window.MainProEvents = Array.isArray(events) ? events : [];
       } catch (_) {}
 
-      try {
-        const toStore = stripInstances(events);
-        const json = JSON.stringify(toStore);
-        saveTimeout = setTimeout(() => {
-          try {
-            localStorage.setItem(calendarKey, json);
-          } catch (e) {
-            console.warn('MainPro localStorage write failed:', e);
-          }
-          try {
-            localStorage.setItem('mainpro_events_v60', json);
-          } catch (_) {}
-          try {
-            localStorage.setItem('mainpro_events_v70', json);
-          } catch (_) {}
-          requestAnimationFrame(() => {
-            try {
-              refreshCalendar(events);
-            } catch (e) {
-              console.warn('MainPro refreshCalendar in effect:', e);
-            }
-          });
-        }, 0);
-      } catch (e) {
-        console.warn('MainPro persist error:', e);
-        requestAnimationFrame(() => {
-          try { refreshCalendar(events); } catch (_) {}
-        });
+      var StorageEngine = window.MainProStorageEngine;
+      var toStore = stripInstances(events);
+
+      if (StorageEngine && StorageEngine.saveEvents) {
+        try {
+          StorageEngine.saveEvents(toStore, { workspaceId: workspaceId || 'default', calendarId: currentCalendarId }, setDataSyncStatus);
+        } catch (e) {
+          console.warn('MainPro StorageEngine save:', e);
+          setDataSyncStatus('error');
+        }
+      } else {
+        var calendarKey = (workspaceId && workspaceId !== 'default') ? ('mainpro_ws_' + workspaceId + '_calendar_' + currentCalendarId) : ('mainpro_calendar_' + currentCalendarId);
+        try {
+          var json = JSON.stringify(toStore);
+          try { localStorage.setItem(calendarKey, json); } catch (e) { console.warn('MainPro localStorage write failed:', e); }
+          try { localStorage.setItem('mainpro_events_v60', json); } catch (_) {}
+          try { localStorage.setItem('mainpro_events_v70', json); } catch (_) {}
+        } catch (e) {
+          console.warn('MainPro persist error:', e);
+        }
       }
 
-      return () => { if (saveTimeout) clearTimeout(saveTimeout); };
-    },[events,filter,search,currentCalendarId,sortBy,groupBy]);
+      requestAnimationFrame(() => {
+        try { refreshCalendar(events); } catch (e) { console.warn('MainPro refreshCalendar in effect:', e); }
+      });
+    },[events,filter,search,currentCalendarId,sortBy,groupBy,workspaceId]);
+
+    useEffect(function persistWorkspaceId() {
+      try {
+        if (workspaceId) localStorage.setItem('mainpro_workspace_id', workspaceId);
+      } catch (_) {}
+    }, [workspaceId]);
+
+    useEffect(function loadEventsForWorkspace() {
+      var key = (workspaceId && workspaceId !== 'default') ? ('mainpro_ws_' + workspaceId + '_calendar_' + currentCalendarId) : ('mainpro_calendar_' + currentCalendarId);
+      try {
+        var raw = localStorage.getItem(key);
+        var next = raw ? JSON.parse(raw) : [];
+        if (Array.isArray(next)) setEvents(next.filter(function(e){ return !e || !e.isInstance; }));
+      } catch (_) {}
+    }, [workspaceId, currentCalendarId]);
+
+    useEffect(function clearQuickActionQuery() {
+      if (!showQuickActionBar) setQuickActionQuery('');
+    }, [showQuickActionBar]);
 
     useEffect(()=>{ localStorage.setItem('mainpro_categories_v60', JSON.stringify(categories)); },[categories]);
 
@@ -1711,7 +1751,7 @@
         // If any modal/picker is open, avoid accidental calendar navigation hotkeys.
         // Allow Esc and Ctrl/Cmd shortcuts (search/help) to still work.
         const modalOpen = !!(
-          showAdd || openSettings || showAnalytics || showPicker || editEvent || showHotkeyHelp || showTemplates || showList ||
+          showAdd || openSettings || showAnalytics || showPicker || editEvent || showHotkeyHelp || showTemplates || showList || showQuickActionBar ||
           dmShow || previewDoc || showTeamSettings || showInviteModal || showAuditDashboard ||
           showReports || showAIPanel || showProjectSharing || showCrossCompanyCollaboration ||
           showGuestAccess || showSecureVault || showAICompliance || showCloudSync ||
@@ -1784,6 +1824,7 @@
           if (showAuthModal) { setShowAuthModal(false); didClose = true; }
           if (showAIChat) { setShowAIChat(false); didClose = true; }
           if (showTemplates) { setShowTemplates(false); didClose = true; }
+          if (showQuickActionBar) { setShowQuickActionBar(false); didClose = true; }
           if (showHotkeyHelp) { setShowHotkeyHelp(false); didClose = true; }
           if (showList) { setShowList(false); didClose = true; }
           // If nothing to close, clear search (nice UX)
@@ -1838,9 +1879,13 @@
           });
         }
         
-        // Note: Search hotkeys like Ctrl+K / Ctrl+L / / are often intercepted by the browser.
-        // We intentionally avoid binding them here to prevent "opens browser search" behavior.
-        
+        // Ctrl+K / Cmd+K Quick Action Bar (tasks & docs search)
+        if ((e.code === 'KeyK' || e.key === 'k') && (e.ctrlKey || e.metaKey)) {
+          e.preventDefault();
+          setShowQuickActionBar(prev => !prev);
+          showToast(showQuickActionBar ? 'Quick actions closed' : '⌘ Quick actions');
+        }
+
         // F to focus search (layout-independent)
         if (e.code === 'KeyF' && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
           e.preventDefault();
@@ -5335,6 +5380,7 @@
       if(!taskTypes.includes(form.taskType)) setTaskTypes(prev=>[...prev,form.taskType]);
 
       setShowAdd(false);
+      showToast('💾 Saved');
 
       setForm({
 
@@ -5411,6 +5457,7 @@
       }
 
       setEditEvent(null);
+      showToast('💾 Saved');
       if(settings.autoStatusEnabled) runSmartStatusOnce();
     }
 
@@ -6845,6 +6892,22 @@
               className: "px-3 py-1 rounded-lg text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors tooltip-bottom",
               'data-tooltip': 'Toggle dark mode (D)'
             }, darkMode ? '☀️' : '🌙'),
+
+            React.createElement('span',{
+              className: 'px-2 py-1 rounded-lg text-sm tooltip-bottom',
+              'data-tooltip': dataSyncStatus === 'synced' ? 'Synced' : dataSyncStatus === 'pending' ? 'Syncing…' : 'Sync error',
+              title: dataSyncStatus === 'synced' ? 'Synced' : dataSyncStatus === 'pending' ? 'Syncing…' : 'Sync error'
+            }, dataSyncStatus === 'synced' ? '☁️' : dataSyncStatus === 'pending' ? '⏳' : '⚠️'),
+
+            React.createElement('select',{
+              value: workspaceId || 'default',
+              onChange: function(e){ var v = e.target.value; setWorkspaceId(v); showToast(v === 'default' ? 'Workspace: Personal' : 'Workspace: ' + v); },
+              className: 'px-2 py-1 border rounded-lg text-xs bg-white dark:bg-gray-800 dark:text-white dark:border-gray-600',
+              title: 'Workspace'
+            },
+              React.createElement('option', {value: 'default'}, 'Personal'),
+              React.createElement('option', {value: 'work'}, 'Work')
+            ),
             
             // Sort Dropdown
             React.createElement('select',{
@@ -7508,6 +7571,13 @@
         },
           React.createElement('div',{className:"h-1 bg-gradient-to-r from-amber-300 to-amber-500"}),
           React.createElement('div',{className:"p-6"},
+            modalSkeleton ? React.createElement('div',{className:"animate-pulse"},
+              React.createElement('div',{className:"mp-skeleton mp-skeleton-title"}),
+              React.createElement('div',{className:"mp-skeleton mp-skeleton-line"}),
+              React.createElement('div',{className:"mp-skeleton mp-skeleton-line"}),
+              React.createElement('div',{className:"mp-skeleton mp-skeleton-btn"}),
+              React.createElement('div',{className:"mp-skeleton mp-skeleton-btn"})
+            ) : React.createElement(React.Fragment, null,
             React.createElement('h3',{className:"text-lg font-semibold text-gray-900 dark:text-white mb-1"},'Delete task'),
             React.createElement('p',{className:"text-sm text-gray-500 dark:text-gray-400 mb-5"},
               deleteModalTarget?.type==='series' ? 'This task is part of a series. Choose what to delete:' : 'Delete this task?'
@@ -7537,6 +7607,62 @@
                 className:"w-full py-3 px-4 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
               },'Cancel')
             )
+            )
+          )
+        )
+      ),
+
+      showQuickActionBar && React.createElement('div',{
+        className: 'fixed inset-0 bg-black/40 flex items-start justify-center pt-[15vh] z-[9998] p-4',
+        'data-mp-overlay': '1',
+        onClick: function(e){ if (e.target === e.currentTarget) setShowQuickActionBar(false); }
+      },
+        React.createElement('div',{
+          className: 'bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-amber-200 dark:border-gray-600 w-full max-w-xl max-h-[70vh] overflow-hidden',
+          onClick: function(e){ e.stopPropagation(); }
+        },
+            React.createElement('div', {className: 'p-3 border-b border-amber-100 dark:border-gray-600'},
+            React.createElement('input',{
+              type: 'text',
+              value: quickActionQuery,
+              onChange: function(e){ setQuickActionQuery(e.target.value); },
+              placeholder: 'Search tasks and documents… (Ctrl+K to close)',
+              className: 'w-full px-4 py-2 rounded-lg border border-amber-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white outline-none focus:ring-2 focus:ring-amber-400',
+              autoFocus: true,
+              onKeyDown: function(e){ if (e.key === 'Escape') setShowQuickActionBar(false); }
+            })
+          ),
+          React.createElement('div', {className: 'overflow-y-auto max-h-[50vh]'},
+            (function(){
+              var q = (quickActionQuery || '').trim().toLowerCase();
+              var taskItems = !low ? events.slice(0, 15) : events.filter(function(e){ return (e.title || '').toLowerCase().includes(low); }).slice(0, 20);
+              var docItems = [];
+              try { if (Array.isArray(dmDocs)) docItems = !low ? dmDocs.slice(0, 5) : dmDocs.filter(function(d){ return (d.name || d.title || '').toLowerCase().includes(low); }).slice(0, 10); } catch(_) {}
+              return React.createElement(React.Fragment, null,
+                React.createElement('div', {className: 'px-3 py-2 text-xs font-semibold text-amber-700 dark:text-amber-300'}, 'Tasks'),
+                taskItems.map(function(ev, i){
+                  return React.createElement('button',{
+                    key: 't-' + (ev.id || i),
+                    type: 'button',
+                    className: 'w-full text-left px-4 py-2 hover:bg-amber-50 dark:hover:bg-gray-700 flex items-center gap-2',
+                    onClick: function(){
+                      setShowQuickActionBar(false);
+                      if (typeof window.openAddTaskModal === 'function') window.openAddTaskModal({ id: ev.id, title: ev.title, date: (ev.start || '').slice(0,10), time: (ev.start || '').slice(11,16), seriesId: ev.seriesId, start: ev.start, end: ev.end });
+                      else setEditEvent(ev);
+                    }
+                  }, React.createElement('span', {}, '📅'), ev.title || 'Untitled');
+                }),
+                React.createElement('div', {className: 'px-3 py-2 text-xs font-semibold text-amber-700 dark:text-amber-300 mt-2'}, 'Documents'),
+                docItems.length ? docItems.map(function(d, i){
+                  return React.createElement('button',{
+                    key: 'd-' + (d.id || i),
+                    type: 'button',
+                    className: 'w-full text-left px-4 py-2 hover:bg-amber-50 dark:hover:bg-gray-700 flex items-center gap-2',
+                    onClick: function(){ setShowQuickActionBar(false); setDmShow(true); setPreviewDoc(d); }
+                  }, React.createElement('span', {}, '📄'), d.name || d.title || 'Document');
+                }) : React.createElement('div', {className: 'px-4 py-2 text-sm text-gray-500'}, 'No documents match')
+              );
+            })()
           )
         )
       ),

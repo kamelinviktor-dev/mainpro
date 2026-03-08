@@ -74,6 +74,14 @@
     z-index: 10000 !important;
   }
 
+  /* Skeleton loaders for modals (instant perceived UI) */
+  .mp-skeleton { background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%); background-size: 200% 100%; animation: mp-skeleton-shine 1s ease-in-out infinite; border-radius: 8px; }
+  .mp-skeleton-line { height: 14px; margin-bottom: 8px; }
+  .mp-skeleton-title { height: 20px; width: 60%; margin-bottom: 12px; }
+  .mp-skeleton-btn { height: 40px; width: 100%; margin-top: 8px; }
+  .dark .mp-skeleton { background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%); background-size: 200% 100%; }
+  @keyframes mp-skeleton-shine { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
   /* Fixed calendar area */
 
   #calendar-shell { height: 720px; }

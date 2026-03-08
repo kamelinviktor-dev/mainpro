@@ -604,6 +604,19 @@
     if(pref.title && titleInput){
       titleInput.value = pref.title;
     }
+    if(titleInput && window.MainProEventLogic && window.MainProEventLogic.parseDateFromTitle){
+      titleInput.addEventListener('blur', function(){
+        try {
+          var parsed = window.MainProEventLogic.parseDateFromTitle(titleInput.value);
+          if(parsed && (parsed.date || parsed.time)){
+            var dEl = overlay.querySelector('#mp_date');
+            var timeInput = overlay.querySelector('#mp_start');
+            if(parsed.date && dEl) dEl.value = parsed.date;
+            if(parsed.time && timeInput) timeInput.value = parsed.time;
+          }
+        } catch(_) {}
+      });
+    }
     if(locationInput){
       locationInput.value = pref.location || '';
     }
