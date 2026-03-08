@@ -164,12 +164,38 @@
     } catch (_) {}
   }
 
+  /** Smart Badges: return icon (emoji) for event title keywords. */
+  var SMART_BADGE_MAP = [
+    { keys: ['звонок', 'call', 'phone', 'телефон', 'созвон'], icon: '📞' },
+    { keys: ['ремонт', 'repair', 'fix', 'гаечный', 'wrench'], icon: '🔧' },
+    { keys: ['встреча', 'meeting', 'совещание', 'meet'], icon: '👥' },
+    { keys: ['документ', 'document', 'договор', 'contract'], icon: '📄' },
+    { keys: ['оплата', 'payment', 'invoice', 'счёт'], icon: '💰' },
+    { keys: ['доставка', 'delivery', 'поставка'], icon: '🚚' },
+    { keys: ['проверка', 'inspection', 'check', 'аудит'], icon: '✅' },
+    { keys: ['сервис', 'service', 'обслуживание'], icon: '🛠️' },
+    { keys: ['интервью', 'interview'], icon: '📝' },
+    { keys: ['тренинг', 'training', 'обучение'], icon: '📚' }
+  ];
+  function getEventBadgeIcon(title) {
+    if (!title || typeof title !== 'string') return '';
+    var lower = title.toLowerCase();
+    for (var i = 0; i < SMART_BADGE_MAP.length; i++) {
+      var row = SMART_BADGE_MAP[i];
+      for (var j = 0; j < row.keys.length; j++) {
+        if (lower.indexOf(row.keys[j]) !== -1) return row.icon;
+      }
+    }
+    return '';
+  }
+
   window.MainProEventLogic = {
     validateEvent: validateEvent,
     parseDateFromTitle: parseDateFromTitle,
     applyParsedToFormData: applyParsedToFormData,
     safeApplyParsedToFormData: safeApplyParsedToFormData,
     flashNlpApplied: flashNlpApplied,
+    getEventBadgeIcon: getEventBadgeIcon,
     isValidParsedDate: isValidParsedDate,
     isValidParsedTime: isValidParsedTime
   };

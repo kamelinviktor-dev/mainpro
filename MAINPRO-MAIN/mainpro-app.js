@@ -29,6 +29,13 @@
     return d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit', hour12:true});
   };
 
+  /** Haptic feedback (Graceful Degradation: no console errors if denied/unsupported). */
+  function hapticLight() {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.vibrate && typeof navigator.vibrate === 'function') navigator.vibrate(10);
+    } catch (_) {}
+  }
+
   const addDays   = (d,days)=>{const x=new Date(d);x.setDate(x.getDate()+days);return x;}
 
   const addMonths = (d,months)=>{const x=new Date(d);x.setMonth(x.getMonth()+months);return x;}
@@ -649,6 +656,7 @@
           var result = window.MainProEventLogic.safeApplyParsedToFormData(form, parsed);
           if (result.changed && result.formData) {
             setForm(result.formData);
+            hapticLight();
             showToast('📅 Date/time set from title');
             if (window.MainProEventLogic.flashNlpApplied) {
               var dateEl = document.querySelector('input[type="date"], input[id*="date"], input[data-field="date"]');
@@ -927,6 +935,9 @@
           const line1 = document.createElement('div');
 
           line1.style.display='flex'; line1.style.alignItems='center'; line1.style.gap='6px';
+
+          var badgeIcon = (window.MainProEventLogic && window.MainProEventLogic.getEventBadgeIcon) ? window.MainProEventLogic.getEventBadgeIcon(title) : '';
+          if (badgeIcon) { var badgeSpan = document.createElement('span'); badgeSpan.style.fontSize='11px'; badgeSpan.textContent = badgeIcon; line1.appendChild(badgeSpan); }
 
           const t = document.createElement('span');
 
@@ -1692,18 +1703,26 @@
 
     useEffect(()=>{ localStorage.setItem('mainpro_autostatus_v1', JSON.stringify({enabled: !!settings.autoStatusEnabled})); },[settings.autoStatusEnabled]);
     
-    // Dark mode effect
+    // Dark mode: apply theme to DOM immediately; debounce localStorage write (300ms) to avoid flicker on fast toggle
     useEffect(() => {
       try {
-        localStorage.setItem('mainpro_darkmode', String(darkMode));
         if (darkMode) {
           document.documentElement.classList.add('dark');
+          document.documentElement.setAttribute('data-theme', 'dark');
         } else {
           document.documentElement.classList.remove('dark');
+          document.documentElement.removeAttribute('data-theme');
         }
-      } catch (e) {
-        console.warn('Failed to save dark mode:', e);
-      }
+      } catch (_) {}
+    }, [darkMode]);
+    const darkModeSaveRef = useRef(null);
+    useEffect(() => {
+      if (darkModeSaveRef.current) clearTimeout(darkModeSaveRef.current);
+      darkModeSaveRef.current = setTimeout(function () {
+        try { localStorage.setItem('mainpro_darkmode', String(darkMode)); } catch (_) {}
+        darkModeSaveRef.current = null;
+      }, 300);
+      return function () { if (darkModeSaveRef.current) clearTimeout(darkModeSaveRef.current); };
     }, [darkMode]);
 
     // Persist templates
@@ -2252,7 +2271,11 @@
             }
           }
 
-          let src = (filter==='all') ? expanded : expanded.filter(e=> e.status===filter);
+          const now = new Date();
+          let src = (filter==='all') ? expanded : expanded.filter(e=> {
+            var effective = (typeof computeNewStatus === 'function' ? computeNewStatus(e, now) : null) || (e.status || 'pending');
+            return effective === filter;
+          });
 
           const q = (search||'').trim().toLowerCase();
           if(q){
@@ -2277,7 +2300,6 @@
             });
           }
 
-          const now = new Date();
           const eventsToAdd = src.map(e=>{
             let start = e.start;
             if (/^\d{4}-\d{2}-\d{2}$/.test(start)) start += 'T09:00';
@@ -2466,60 +2488,57 @@
     };
     
     // Notification function
-    function showNotification(title, options = {}) {
-      if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification(title, {
-          icon: 'https://i.imgur.com/SW6T4ZL.png',
-          badge: 'https://i.imgur.com/SW6T4ZL.png',
-          ...options
-        });
-      }
+    function showNotification(title, options) {
+      try {
+        if (typeof window === 'undefined' || !('Notification' in window) || Notification.permission !== 'granted') return;
+        var opts = Object.assign({ icon: '/manifest.json', badge: '/manifest.json' }, options || {});
+        if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.postMessage({ type: 'SHOW_NOTIFICATION', title: title, options: opts });
+        } else {
+          new Notification(title, opts);
+        }
+      } catch (_) {}
     }
     
-    // Check for upcoming tasks and show notifications
+    // Smart Notifications: High-priority with time → 15 min before; others 30 min / 1 h (Graceful: skip if denied)
     useEffect(() => {
-      if ('Notification' in window && Notification.permission === 'default') {
-        Notification.requestPermission();
-      }
-      
       const checkUpcomingTasks = () => {
-        const now = new Date();
-        const in30Min = new Date(now.getTime() + 30 * 60 * 1000);
-        const in1Hour = new Date(now.getTime() + 60 * 60 * 1000);
-        
-        events.forEach(event => {
-          if (event.status === 'pending' && event.start) {
-            try {
-              const eventDate = new Date(event.start);
-              if (eventDate > now && eventDate <= in30Min) {
-                showNotification(`⏰ Upcoming: ${event.title}`, {
-                  body: `Task starts in less than 30 minutes`,
-                  tag: `task-${event.id}`,
-                  requireInteraction: false
-                });
-              } else if (eventDate > in30Min && eventDate <= in1Hour) {
-                const notifiedKey = `notified_${event.id}`;
-                if (!localStorage.getItem(notifiedKey)) {
-                  showNotification(`📅 Reminder: ${event.title}`, {
-                    body: `Task starts in 1 hour`,
-                    tag: `task-${event.id}-1h`,
-                    requireInteraction: false
-                  });
-                  localStorage.setItem(notifiedKey, 'true');
-                  setTimeout(() => localStorage.removeItem(notifiedKey), 2 * 60 * 60 * 1000);
-                }
-              }
-            } catch (e) {
-              // Ignore invalid dates
+        try {
+          if (typeof window === 'undefined' || !('Notification' in window) || Notification.permission !== 'granted') return;
+        } catch (_) { return; }
+        var now = Date.now();
+        var in15 = now + 15 * 60 * 1000;
+        var in30 = now + 30 * 60 * 1000;
+        var in1h = now + 60 * 60 * 1000;
+        events.forEach(function (event) {
+          if (event.status !== 'pending' || !event.start) return;
+          try {
+            var startTs = new Date(event.start).getTime();
+            if (startTs <= now) return;
+            var hasTime = String(event.start).indexOf('T') !== -1;
+            var isHigh = (event.priority || '').toLowerCase() === 'high';
+            var tag = 'task-' + (event.id || startTs);
+            var notifiedKey = 'mainpro_notified_' + tag;
+            if (localStorage.getItem(notifiedKey)) return;
+            if (hasTime && isHigh && startTs > now && startTs <= in15) {
+              showNotification('⏰ ' + (event.title || 'Task'), { body: 'Starts in 15 min', tag: tag });
+              localStorage.setItem(notifiedKey, '1');
+              setTimeout(function () { localStorage.removeItem(notifiedKey); }, 60 * 60 * 1000);
+            } else if (startTs > now && startTs <= in30) {
+              showNotification('⏰ ' + (event.title || 'Task'), { body: 'Starts in 30 min', tag: tag });
+              localStorage.setItem(notifiedKey, '1');
+              setTimeout(function () { localStorage.removeItem(notifiedKey); }, 2 * 60 * 60 * 1000);
+            } else if (startTs > in30 && startTs <= in1h) {
+              showNotification('📅 ' + (event.title || 'Task'), { body: 'Starts in 1 hour', tag: tag + '-1h' });
+              localStorage.setItem(notifiedKey, '1');
+              setTimeout(function () { localStorage.removeItem(notifiedKey); }, 2 * 60 * 60 * 1000);
             }
-          }
+          } catch (_) {}
         });
       };
-      
-      const interval = setInterval(checkUpcomingTasks, 5 * 60 * 1000);
+      var interval = setInterval(checkUpcomingTasks, 2 * 60 * 1000);
       checkUpcomingTasks();
-      
-      return () => clearInterval(interval);
+      return function () { clearInterval(interval); };
     }, [events]);
     
     // Export to iCal function
@@ -5419,6 +5438,7 @@
       if(!taskTypes.includes(form.taskType)) setTaskTypes(prev=>[...prev,form.taskType]);
 
       setShowAdd(false);
+      hapticLight();
       showToast('💾 Saved');
 
       setForm({
@@ -5497,6 +5517,7 @@
       }
 
       setEditEvent(null);
+      hapticLight();
       showToast('💾 Saved');
       if(settings.autoStatusEnabled) runSmartStatusOnce();
       } catch (e) {
@@ -6467,7 +6488,9 @@
     }
     function mpFilterSearch(list){
       let src = Array.isArray(list) ? list : [];
-      src = (filter==='all') ? src : src.filter(e=> (e.status||'pending')===filter);
+      var now = new Date();
+      function effStatus(ev){ return (typeof computeNewStatus === 'function' ? computeNewStatus(ev, now) : null) || (ev.status || 'pending'); }
+      src = (filter==='all') ? src : src.filter(e=> effStatus(e) === filter);
       const q = (search||'').trim().toLowerCase();
       if(q){
         src = src.filter(e=>{
@@ -6926,15 +6949,30 @@
           // Search Bar - Right Corner
           React.createElement('div',{className:"ml-auto flex items-center gap-2"},
 
-            // Dark Mode Toggle
+            // Smart Notifications: bell → request permission (Graceful Degradation: no errors if denied)
+            React.createElement('button',{
+              onClick: function () {
+                try {
+                  if (typeof window === 'undefined' || !('Notification' in window)) { showToast('Notifications not supported'); return; }
+                  if (Notification.permission === 'granted') { showToast('🔔 Notifications already enabled'); return; }
+                  Notification.requestPermission().then(function (p) {
+                    showToast(p === 'granted' ? '🔔 Notifications enabled' : p === 'denied' ? 'Notifications blocked' : 'Permission dismissed');
+                  }).catch(function () {});
+                } catch (_) {}
+              },
+              className: "px-3 py-1 rounded-lg text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors tooltip-bottom",
+              'data-tooltip': 'Enable notifications (bell)'
+            }, '🔔'),
+            // Dark Mode Toggle (Premium UI: moon/sun)
             React.createElement('button',{
               onClick: () => setDarkMode(prev => {
                 const next = !prev;
-                showToast(next ? '🌙 Dark mode: ON' : '☀️ Dark mode: OFF');
+                try { localStorage.setItem('mainpro_darkmode', String(next)); } catch (_) {}
+                showToast(next ? '🌙 Dark mode' : '☀️ Light mode');
                 return next;
               }),
               className: "px-3 py-1 rounded-lg text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors tooltip-bottom",
-              'data-tooltip': 'Toggle dark mode (D)'
+              'data-tooltip': 'Toggle theme (D)'
             }, darkMode ? '☀️' : '🌙'),
 
             (function(){

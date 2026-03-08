@@ -616,6 +616,7 @@
             var tEl = overlay.querySelector('#mp_start');
             if(result.formData.date && dEl){ dEl.value = result.formData.date; if(window.MainProEventLogic.flashNlpApplied) window.MainProEventLogic.flashNlpApplied(dEl); }
             if(result.formData.time && tEl){ tEl.value = result.formData.time; if(window.MainProEventLogic.flashNlpApplied) window.MainProEventLogic.flashNlpApplied(tEl); }
+            try { if (navigator.vibrate) navigator.vibrate(10); } catch (_) {}
             if(window.showToast) window.showToast('Date/time set from title');
             var magicSpan = overlay.querySelector('#mp_nlp_magic');
             if(magicSpan){ magicSpan.style.display = 'inline'; magicSpan.title = (parsed.matchedPhrase || 'Set from title'); magicSpan.classList.add('mp-nlp-flash'); setTimeout(function(){ magicSpan.style.display = 'none'; magicSpan.classList.remove('mp-nlp-flash'); if(typeof updateDateInfo === 'function') updateDateInfo(); }, 2500); }

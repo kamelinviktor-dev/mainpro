@@ -54,12 +54,45 @@
     }
   }
 
+  var STORAGE_QUOTA_BYTES = 5 * 1024 * 1024;
+
+  function isStorageFull() {
+    try {
+      if (!window.localStorage) return false;
+      var total = 0;
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (k) total += (k.length + (localStorage.getItem(k) || '').length) * 2;
+      }
+      return total >= STORAGE_QUOTA_BYTES * 0.9;
+    } catch (_) { return false; }
+  }
+
+  function cleanOldBackupsAndLogs() {
+    try {
+      var keys = [];
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (k && (k.indexOf(BACKUP_PREFIX) === 0 || k.indexOf('mainpro_notified_') === 0)) keys.push(k);
+      }
+      keys.slice(0, 50).forEach(function (k) { try { localStorage.removeItem(k); } catch (_) {} });
+    } catch (_) {}
+  }
+
   function safeSet(key, value) {
     try {
-      localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value));
+      var str = typeof value === 'string' ? value : JSON.stringify(value);
+      localStorage.setItem(key, str);
       return true;
     } catch (e) {
-      console.warn('StorageEngine: write failed', key, e);
+      if (e && (e.name === 'QuotaExceededError' || e.code === 22)) {
+        notifyToast('Storage full, cleaning old logs...');
+        cleanOldBackupsAndLogs();
+        try {
+          localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value));
+          return true;
+        } catch (_) {}
+      }
       return false;
     }
   }
@@ -260,10 +293,12 @@
       if (!e || e.id == null) return e;
       var prev = idToRev[e.id];
       if (typeof prev === 'number' && prev >= 1) return Object.assign({}, e, { rev: prev + 1 });
-      return e;
+      if (typeof e.rev === 'number' && e.rev >= 1) return Object.assign({}, e, { rev: e.rev });
+      return Object.assign({}, e, { rev: 1 });
     });
 
     try {
+      try { if (isStorageFull()) { cleanOldBackupsAndLogs(); notifyToast('Storage full, cleaning old logs...'); } } catch (_) {}
       atomicUpdate(key, function () {
         safeSet(key, withRev);
         try { safeSet(legacyKey, withRev); } catch (_) {}
