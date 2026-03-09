@@ -438,7 +438,7 @@ export function createEventClick(deps) {
         subtasks: src.subtasks,
         location: src.location,
         notes: src.notes,
-        catId: src.catId,
+        catId: src.catId || src.category || 'other',
         priority: src.priority,
         assignedTo: src.assignedTo,
         taskType: src.taskType,

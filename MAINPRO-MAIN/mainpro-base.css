@@ -74,7 +74,7 @@
   .mp-attach-ind b { font-weight: 600; }
   .dark .mp-attach-ind { opacity: .9; }
 
-  /* Popover (tooltip) — в стиле Documents: amber шапка, светлый фон */
+  /* Popover (tooltip) — фирменный стиль: ровная сетка, понятные иконки */
   .mp-pop {
     position: absolute;
     z-index: 70;
@@ -82,31 +82,109 @@
     color: #1f2937;
     border-radius: 12px;
     padding: 0;
-    font-size: 12px;
-    box-shadow: 0 10px 28px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.06);
+    font-size: 13px;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.12), 0 0 0 1px #fde68a;
     opacity: 0;
     transform: translateY(6px) scale(0.98);
     transition: opacity 0.18s ease, transform 0.18s ease;
     pointer-events: none;
-    max-width: 280px;
+    max-width: 300px;
+    min-width: 220px;
     overflow: hidden;
     border-top: 4px solid #f59e0b;
   }
   .mp-pop.show { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
   .mp-pop button { pointer-events: auto !important; cursor: pointer; }
-  .mp-pop .mp-pop-head {
+  .mp-pop-head {
     background: linear-gradient(135deg, #fef3c7, #fde68a);
     border-bottom: 2px solid #f59e0b;
-    padding: 8px 12px;
+    padding: 10px 14px;
     color: #92400e;
     font-weight: 600;
-    font-size: 13px;
+    font-size: 14px;
+    line-height: 1.3;
   }
-  .mp-pop .mp-pop-body { padding: 10px 12px; }
-  .mp-pop .t { font-weight: 600; font-size: 13px; margin-bottom: 6px; color: #1f2937; }
-  .mp-pop .row { display: flex; gap: 6px; align-items: center; margin: 3px 0; color: #4b5563; }
-  .mp-pop .dot { width: 8px; height: 8px; border-radius: 9999px; display: inline-block; flex-shrink: 0; }
-  .mp-pop .quick-status-btn { font-weight: 500; }
+  .mp-pop-body {
+    padding: 12px 14px;
+  }
+  .mp-pop-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 22px;
+    padding: 2px 0;
+    color: #374151;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+  .mp-pop-ico {
+    width: 20px;
+    min-width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    border-radius: 6px;
+    font-size: 12px;
+    line-height: 1;
+    background: #f3f4f6;
+    color: #4b5563;
+    -webkit-font-smoothing: antialiased;
+  }
+  .mp-pop-ico-time { background: #eff6ff; color: #2563eb; }
+  .mp-pop-ico-cat  { background: #f5f3ff; color: #7c3aed; }
+  .mp-pop-ico-pri { background: #fffbeb; color: #d97706; }
+  .mp-pop-dot {
+    justify-content: center;
+    background: #f3f4f6 !important;
+  }
+  .mp-pop-dot::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--dot-color, #9ca3af);
+    box-shadow: 0 0 0 1.5px #fff, 0 1px 2px rgba(0,0,0,0.2);
+  }
+  .mp-pop-txt {
+    flex: 1;
+    min-width: 0;
+    word-break: break-word;
+  }
+  .mp-pop-actions {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid #fde68a;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .mp-pop-btn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .mp-pop-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  }
+  .mp-pop-btn-pending {
+    background: #eab308;
+    color: #1a1607;
+  }
+  .mp-pop-btn-done {
+    background: #22c55e;
+    color: #fff;
+  }
+  .mp-pop-btn-missed {
+    background: #ef4444;
+    color: #fff;
+  }
 
   /* Modal animation */
 

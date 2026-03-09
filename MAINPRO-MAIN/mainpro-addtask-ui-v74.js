@@ -541,10 +541,12 @@
       : [{id:'maintenance',name:'Maintenance',color:'#f59e0b'},{id:'compliance',name:'Compliance',color:'#38bdf8'},{id:'other',name:'Other',color:'#6b7280'}];
     cats.forEach(c=>{
       const opt=document.createElement('option');
-      opt.value=c.id; opt.textContent=c.name;
+      opt.value=c.id; opt.textContent=c.name||c.id;
       catSel.appendChild(opt);
     });
-    if(pref.catId){ catSel.value = pref.catId; }
+    const catId = pref.catId || pref.category || 'other';
+    if(catId && Array.from(catSel.options).some(o=>o.value===catId)){ catSel.value = catId; }
+    else { catSel.value = 'other'; }
 
     // task type & priority
     let taskType = pref.taskType || 'Maintenance';
@@ -961,7 +963,6 @@ Time: start at ${start}.`;
         endISO = `${dateStr}T${pad(eh)}:${pad(em)}`;
       }
 
-      const catId = catSel.value || 'other';
       const location = locationInput?.value.trim() || '';
       const desc = descInput?.value.trim() || '';
       const assignee = assigneeSelect?.value || 'unassigned';
@@ -1047,13 +1048,14 @@ Time: start at ${start}.`;
         return {};
       })();
 
+      const catIdToSave = (catSel && catSel.value) ? String(catSel.value) : 'other';
       const base = {
         id: baseId,
         title,
         start: startISO,
         end: endISO,
         status: pref?.status || 'none',
-        catId,
+        catId: catIdToSave,
         taskType,
         priority,
         location,
@@ -1078,22 +1080,57 @@ Time: start at ${start}.`;
 
       const eventsToAdd = [base];
       const baseIdStr = String(baseId);
+      var originalOccurrenceDate = (pref.start && String(pref.start).length >= 10) ? String(pref.start).slice(0, 10) : '';
 
       if(typeof window.setEvents === 'function'){
         if(isEditMode){
           window.setEvents(prev => {
-            const filtered = prev.filter(e=>{
-              if(previousSeriesId) return e.seriesId !== previousSeriesId;
-              return String(e.id) !== baseIdStr;
-            });
-            return [...filtered, ...eventsToAdd];
+            var list = Array.isArray(prev) ? prev : [];
+            var next;
+            var isEditingOneOccurrence = previousSeriesId && originalOccurrenceDate;
+            if (isEditingOneOccurrence) {
+              var baseEvent = list.find(function(e){ return String(e.seriesId) === String(previousSeriesId) || String(e.id) === baseIdStr; });
+              if (baseEvent) {
+                var exceptions = Array.isArray(baseEvent.recur && baseEvent.recur.exceptions) ? baseEvent.recur.exceptions.slice() : [];
+                if (exceptions.indexOf(originalOccurrenceDate) === -1) exceptions.push(originalOccurrenceDate);
+                var updatedBase = Object.assign({}, baseEvent, { recur: Object.assign({}, baseEvent.recur || {}, { exceptions: exceptions }) });
+                var singleTask = Object.assign({}, base, {
+                  id: baseIdStr + '-ex-' + originalOccurrenceDate,
+                  seriesId: null,
+                  recur: { freq: 'none', interval: 1, end: { type: 'never' }, exceptions: [] },
+                  recurOptions: {}
+                });
+                next = list.map(function(e){
+                  if (String(e.id) === String(baseEvent.id)) return updatedBase;
+                  return e;
+                });
+                next.push(singleTask);
+              } else {
+                next = list.map(function(e){ return String(e.id) !== baseIdStr ? e : base; });
+                if (!list.some(function(e){ return String(e.id) === baseIdStr; })) next = next.concat(eventsToAdd);
+              }
+            } else {
+              next = list.map(function(e){
+                if (String(e.id) !== baseIdStr) return e;
+                return base;
+              });
+              if (!list.some(function(e){ return String(e.id) === baseIdStr; })) next = next.concat(eventsToAdd);
+            }
+            if (window.eventsRef) window.eventsRef.current = next;
+            if (typeof window.refreshCalendar === 'function') window.refreshCalendar(next);
+            return next;
           });
           window?.showToast?.('Task updated');
         } else {
-          window.setEvents(prev => [...prev, ...eventsToAdd]);
+          window.setEvents(prev => {
+            var list = Array.isArray(prev) ? prev : [];
+            var next = list.concat(eventsToAdd);
+            if (window.eventsRef) window.eventsRef.current = next;
+            if (typeof window.refreshCalendar === 'function') window.refreshCalendar(next);
+            return next;
+          });
           window?.showToast?.('Task saved');
         }
-        if (typeof window.refreshCalendar === 'function') setTimeout(function(){ window.refreshCalendar(); }, 0);
       } else {
         // 2) localStorage fallback
         const key = (() => {
@@ -1119,44 +1156,32 @@ Time: start at ${start}.`;
         window?.showToast?.(isEditMode ? 'вњ… Task updated' : 'вњ… Task saved');
       }
 
-      // 3) Add to FullCalendar if available
-      try{
-        const cal = window.calRef?.current || document.getElementById('calendar')?._fullCalendar;
-        if(window.calRef?.current){
-          if(isEditMode){
-            if(previousSeriesId){
-              window.calRef.current.getEvents().forEach(ev=>{
-                if(ev.extendedProps?.seriesId === previousSeriesId){
-                  ev.remove();
-                }
-              });
-            } else {
+      // 3) FullCalendar already updated via refreshCalendar(next) above when using setEvents
+      if (typeof window.setEvents !== 'function') {
+        try{
+          if(window.calRef?.current){
+            if(isEditMode){
               const existing = window.calRef.current.getEventById(baseIdStr) || window.calRef.current.getEventById(baseId);
               existing?.remove();
             }
-          }
-          eventsToAdd.forEach(e=>{
-            let s = e.start; 
-            if(/^\d{4}-\d{2}-\d{2}$/.test(s)) s+='T09:00';
-            if(!s.includes('T')) s += 'T09:00';
-            window.calRef.current.addEvent({
-              id:String(e.id),
-              title:e.title,
-              start:s,
-              end:e.end,
-              allDay:false,
-              color: window.statusColor ? window.statusColor(e.status) : undefined,
-              backgroundColor: window.statusColor ? window.statusColor(e.status) : undefined,
-              borderColor: window.statusColor ? window.statusColor(e.status) : undefined,
-              textColor:'#111827',
-              extendedProps: {...e}
+            eventsToAdd.forEach(e=>{
+              var s = e.start;
+              if(/^\d{4}-\d{2}-\d{2}$/.test(s)) s+='T09:00';
+              if(!s || !s.includes('T')) s = (s || '').slice(0,10) + 'T09:00';
+              window.calRef.current.addEvent({
+                id: String(e.id),
+                title: e.title,
+                start: s,
+                end: e.end || s,
+                allDay: false,
+                extendedProps: e
+              });
             });
-          });
-          // Refresh calendar display
-          window.calRef.current.render();
+            window.calRef.current.render();
+          }
+        }catch(err){
+          console.error('FullCalendar fallback:', err);
         }
-      }catch(e){
-        console.error('Failed to add to FullCalendar:', e);
       }
 
       // audit if available

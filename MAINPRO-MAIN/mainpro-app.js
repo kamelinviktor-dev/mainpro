@@ -460,7 +460,7 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
               subtasks: src.subtasks,
               location: src.location,
               notes: src.notes,
-              catId: src.catId,
+              catId: src.catId || src.category || 'other',
               priority: src.priority,
               assignedTo: src.assignedTo,
               taskType: src.taskType,
@@ -671,9 +671,9 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
 
             clearTimeout(hoverTimeout);
 
-            const e = arg.event.extendedProps;
-
-            const cat = categories.find(c=>c.id===e.catId);
+            const e = arg.event.extendedProps || {};
+            const eventCatId = e.catId != null && e.catId !== '' ? e.catId : (e.category && typeof e.category === 'string' ? e.category : null);
+            const catName = (typeof window.getCategoryDisplayName === 'function') ? window.getCategoryDisplayName(eventCatId) : (eventCatId && eventCatId !== 'other' ? String(eventCatId) : 'Other');
 
             const statusDotHTML = `<span class="dot" style="background:${statusColor(e.status)}"></span>`;
             
@@ -694,23 +694,30 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
               }
             }
 
+            const esc = (s) => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+            const row = (icon, label, text) => `<div class="mp-pop-row"><span class="mp-pop-ico">${icon}</span><span class="mp-pop-txt">${label}${text ? ': ' + esc(text) : ''}</span></div>`;
+            const attachHtml = (()=>{ const a=(e?.attachments||[]).filter(x=>x?.docId||x?.id||x?.name); if(!a.length) return ''; const raw = a.slice(0,3).map(x=>String(x.name||'file')).join(', '); const suffix = a.length>3 ? ' …' : ''; return row('📎', 'Attachments', a.length + (raw ? ' — ' + raw + suffix : '')); })();
+            const priLabel = (e.priority||'normal') === 'high' ? 'High' : (e.priority||'normal') === 'low' ? 'Low' : 'Normal';
+            const statusLabel = (e.status||'pending').charAt(0).toUpperCase() + (e.status||'pending').slice(1);
+            const statusCol = statusColor(e.status);
+            const rowIco = (icon, label, text, icoClass) => `<div class="mp-pop-row"><span class="mp-pop-ico ${icoClass||''}">${icon}</span><span class="mp-pop-txt">${label}${text ? ': ' + esc(text) : ''}</span></div>`;
             tooltip.innerHTML = `
-              <div class="mp-pop-head">${(arg.event.title||'Task').replace(/</g,'&lt;')}</div>
+              <div class="mp-pop-head">${esc(arg.event.title||'Task')}</div>
               <div class="mp-pop-body">
-                ${tooltipTime ? `<div class="row">🕒 <span>${tooltipTime}</span></div>` : ''}
-                <div class="row">🏷️ <span>${cat?cat.name:'-'}</span></div>
-                <div class="row">⭐ <span>${(e.priority||'normal').toUpperCase()}</span></div>
-                <div class="row">${statusDotHTML}<span>${e.status}</span></div>
-                ${ teamMode.enabled && e.createdBy ? `<div class="row">👤 <span>Created by: ${e.createdBy}</span></div>` : '' }
-                ${ teamMode.enabled && e.assignedTo ? `<div class="row">🎯 <span>Assigned to: ${e.assignedTo}</span></div>` : '' }
-                ${ e.contractorOnSite ? `<div class="row">👷 <span>${e.contractorName||'Contractor'} ${e.contractorPhone?('('+e.contractorPhone+')'):''}</span></div>` : '' }
-                ${ e.location ? `<div class="row">📍 <span>${e.location}</span></div>` : '' }
-                ${ e.notes ? `<div class="row">📝 <span>${e.notes}</span></div>` : '' }
-                ${ (()=>{ const a=(e?.attachments||[]).filter(x=>x?.docId||x?.id||x?.name); if(!a.length) return ''; const raw = a.slice(0,3).map(x=>String(x.name||'file')).join(', '); const esc = raw.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/`/g,'\\`').replace(/\$/g,'\\$'); const suffix = a.length>3 ? ' \u2026' : ''; return '<div class="row">\uD83D\uDCCE <span>Attachments: ' + a.length + (esc ? ' \u2014 ' + esc + suffix : '') + '</span></div>'; })() }
-                <div style="margin-top:8px;padding-top:8px;border-top:1px solid #fde68a;display:flex;gap:6px;flex-wrap:wrap;">
-                  <button data-event-id="${arg.event.id}" data-status="pending" class="quick-status-btn" style="padding:5px 10px;background:#eab308;color:#1a1607;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;">Pending</button>
-                  <button data-event-id="${arg.event.id}" data-status="done" class="quick-status-btn" style="padding:5px 10px;background:#22c55e;color:white;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;">Done</button>
-                  <button data-event-id="${arg.event.id}" data-status="missed" class="quick-status-btn" style="padding:5px 10px;background:#ef4444;color:white;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;">Missed</button>
+                ${tooltipTime ? rowIco('🕐', 'Time', tooltipTime, 'mp-pop-ico-time') : ''}
+                ${rowIco('🏷', 'Category', catName, 'mp-pop-ico-cat')}
+                ${rowIco('⭐', 'Priority', priLabel, 'mp-pop-ico-pri')}
+                <div class="mp-pop-row"><span class="mp-pop-ico mp-pop-dot" style="--dot-color:${statusCol}"></span><span class="mp-pop-txt">Status: ${esc(statusLabel)}</span></div>
+                ${ teamMode.enabled && e.createdBy ? row('👤', 'Created by', e.createdBy) : '' }
+                ${ teamMode.enabled && e.assignedTo ? row('👥', 'Assigned to', e.assignedTo) : '' }
+                ${ e.contractorOnSite ? row('👷', 'Contractor', (e.contractorName||'') + (e.contractorPhone ? ' ('+e.contractorPhone+')' : '')) : '' }
+                ${ e.location ? row('📍', 'Location', e.location) : '' }
+                ${ e.notes ? row('📝', 'Notes', (e.notes||'').slice(0,80) + ((e.notes||'').length > 80 ? '…' : '')) : '' }
+                ${ attachHtml }
+                <div class="mp-pop-actions">
+                  <button data-event-id="${arg.event.id}" data-status="pending" class="mp-pop-btn mp-pop-btn-pending" type="button">Pending</button>
+                  <button data-event-id="${arg.event.id}" data-status="done" class="mp-pop-btn mp-pop-btn-done" type="button">Done</button>
+                  <button data-event-id="${arg.event.id}" data-status="missed" class="mp-pop-btn mp-pop-btn-missed" type="button">Missed</button>
                 </div>
               </div>
             `;
@@ -725,7 +732,7 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
             try { window._mpTooltipEvent = { ...e, id: arg.event.id, start: arg.event.start || e.start }; } catch (_) {}
 
             setTimeout(() => {
-              const buttons = tooltip.querySelectorAll('.quick-status-btn');
+              const buttons = tooltip.querySelectorAll('.mp-pop-btn');
               buttons.forEach(btn => {
                 btn.addEventListener('click', (ev) => {
                   ev.stopPropagation();
@@ -4564,6 +4571,7 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
 
     // Глобальные переменные для интеграции с Add Task v74
     window.setEvents = setEvents;
+    window.eventsRef = eventsRef;
     window.categories = categories;
     window.calRef = calRef;
     window.statusColor = statusColor;
@@ -4582,6 +4590,13 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
     window.showToast = showToast;
     window.getCurrentUser = () => ({ id: currentUser.id, name: currentUser.name });
     window.refreshCalendar = refreshCalendar;
+    window.getCategoryDisplayName = function(catIdOrName) {
+      if (catIdOrName == null || catIdOrName === '') return 'Other';
+      var id = String(catIdOrName);
+      var cats = (typeof window.categories !== 'undefined' && Array.isArray(window.categories)) ? window.categories : [];
+      var c = cats.find(function(x){ return x && (x.id === id || (x.name && String(x.name).toLowerCase() === id.toLowerCase())); });
+      return (c && c.name) ? c.name : (id === 'other' ? 'Other' : id);
+    };
     // Allow external (non-React) modals to queue Undo for single delete
     window.mainproQueueUndoDeleteOne = (ev, index) => {
       try {
@@ -4726,41 +4741,60 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
 
       if(scope==='all' && editEvent.seriesId){
 
-        setEvents(prev=> prev.map(e=> {
+        setEvents(prev=> {
 
-          if(e.seriesId!==editEvent.seriesId) return e;
+          const next = prev.map(e=> {
 
-          const timePart=(editEvent.start||'').slice(11,16) || '09:00';
+            if(e.seriesId!==editEvent.seriesId) return e;
 
-          const newStart=(e.start||'').slice(0,10)+'T'+timePart;
+            const timePart=(editEvent.start||'').slice(11,16) || '09:00';
 
-          return {
+            const newStart=(e.start||'').slice(0,10)+'T'+timePart;
 
-            ...e,
+            return {
 
-            title:editEvent.title, status:editEvent.status, catId:editEvent.catId,
+              ...e,
 
-            taskType:editEvent.taskType, priority:editEvent.priority||'normal',
+              title:editEvent.title, status:editEvent.status, catId:editEvent.catId,
 
-            contractorOnSite: !!editEvent.contractorOnSite,
+              taskType:editEvent.taskType, priority:editEvent.priority||'normal',
 
-            contractorName: editEvent.contractorName||'',
+              contractorOnSite: !!editEvent.contractorOnSite,
 
-            contractorPhone: editEvent.contractorPhone||'',
+              contractorName: editEvent.contractorName||'',
 
-            location: editEvent.location||'',
+              contractorPhone: editEvent.contractorPhone||'',
 
-            notes: editEvent.notes||'',
+              location: editEvent.location||'',
 
-            start:newStart
+              notes: editEvent.notes||'',
 
-          };
+              start:newStart
 
-        }));
+            };
+
+          });
+
+          if (eventsRef) eventsRef.current = next;
+          if (typeof refreshCalendar === 'function') refreshCalendar(next);
+
+          return next;
+
+        });
 
       }else{
 
-        setEvents(prev=> prev.map(e=> e.id===editEvent.id ? {...editEvent} : e));
+        setEvents(prev=> {
+
+          const editId = editEvent.id;
+          const next = prev.map(e=> String(e.id) === String(editId) ? { ...editEvent, isInstance: e.isInstance } : e);
+
+          if (eventsRef) eventsRef.current = next;
+          if (typeof refreshCalendar === 'function') refreshCalendar(next);
+
+          return next;
+
+        });
 
       }
 
@@ -4930,7 +4964,7 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
 
     function exportExcel(){
 
-      const catName = id => (categories.find(c=>c.id===id)?.name)||'-';
+      const catName = id => (categories.find(c=>c.id===id)?.name) || (id && id !== 'other' ? String(id) : 'Other');
 
       const data = events.map(e=>({
 
@@ -4973,7 +5007,7 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
 
       let y=55;
 
-      const catName = id => (categories.find(c=>c.id===id)?.name)||'-';
+      const catName = id => (categories.find(c=>c.id===id)?.name) || (id && id !== 'other' ? String(id) : 'Other');
 
       events.forEach((e,i)=>{
 
@@ -6503,7 +6537,7 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
                             const t = mpTimeStr(ev);
                             const st = String(ev?.status || 'pending');
                             const pri = String(ev?.priority || 'normal');
-                            const catName = (categories.find(c=>c.id===ev.catId)?.name)||String(ev?.catId||'other');
+                            const catName = (typeof window.getCategoryDisplayName === 'function') ? window.getCategoryDisplayName(ev.catId || ev.category) : ((function(){ var c = categories.find(function(cat){ return cat && cat.id === ev.catId; }); return (c && c.name) ? c.name : (ev.catId && ev.catId !== 'other' ? String(ev.catId) : 'Other'); })());
                             const color = (typeof statusColor === 'function') ? statusColor(st) : '#60a5fa';
                             return React.createElement('div',{key: `${day.iso}_${idStr}`, className:"bg-white border border-amber-200 rounded-xl px-3 py-3 flex items-start gap-3"},
                               React.createElement('div',{className:"w-16 flex-shrink-0"},
@@ -6540,7 +6574,8 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
                                           date: startStr ? startStr.slice(0,10) : day.iso,
                                           time: startStr.includes('T') ? startStr.slice(11,16) : '',
                                           start: ev.start,
-                                          end: ev.end
+                                          end: ev.end,
+                                          catId: ev.catId || ev.category || 'other'
                                         });
                                       } else {
                                         setEditEvent({...ev, _seriesScope:'one'});
@@ -8179,6 +8214,13 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
                           try { if (data.settings) setSettings(prev=>({...prev, ...data.settings})); } catch {}
                           try { if (data.ui && data.ui.primary) setUI(prev=>({...prev, ...data.ui})); } catch {}
 
+                          const eventsToShow = isAll ? stripInstances(Array.isArray(eventsByCalendar[targetId]) ? eventsByCalendar[targetId] : []) : cleaned;
+                          setTimeout(function(){
+                            try {
+                              if (window.eventsRef) window.eventsRef.current = eventsToShow;
+                              if (typeof window.refreshCalendar === 'function') window.refreshCalendar(eventsToShow);
+                            } catch (_) {}
+                          }, 0);
                           showToast('✅ Imported');
                         }catch(err){
                           console.error(err);
@@ -8924,6 +8966,9 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
                 setOpenSettings(false);
 
                 if(settings.autoStatusEnabled) runSmartStatusOnce();
+                setTimeout(function(){
+                  try { if (eventsRef && eventsRef.current && typeof refreshCalendar === 'function') refreshCalendar(eventsRef.current); } catch(_) {}
+                }, 0);
 
               }, className:"px-4 py-2 rounded-md text-white font-medium transition-all duration-200 hover:shadow-lg", style:{background:'linear-gradient(135deg, #f6d365, #fda085)', color:'#78350f', fontWeight:'600'}},'💾 Save')
 
