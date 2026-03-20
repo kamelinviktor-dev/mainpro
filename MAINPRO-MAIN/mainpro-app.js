@@ -1,7 +1,7 @@
 // STABILITY LOCK: recurrence-only changes
 // Safe Guard will be added at the end of the file
 
-import { DEFAULT_CATS_SETTINGS, DEFAULT_TEMPLATES } from './src/modules/constants.js';
+import { DEFAULT_CATS_SETTINGS, DEFAULT_CATS, DEFAULT_TEMPLATES } from './src/modules/constants.js';
 import { todayISO, statusColor, formatAmPm, addDays, addMonths, toLocalISO, safeParse, showToast } from './src/modules/utils.js';
 import { stripInstances, generateOccurrences, normalizeRecur, createRefreshCalendar, createEventClick, createEventDrop, createEventResize, createGetCalendarViewRange, generateSeries } from './src/modules/CalendarLogic.js';
 import { useDocumentManager } from './src/modules/DocumentManager.js';
@@ -672,8 +672,10 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
             clearTimeout(hoverTimeout);
 
             const e = arg.event.extendedProps || {};
-            const eventCatId = e.catId != null && e.catId !== '' ? e.catId : (e.category && typeof e.category === 'string' ? e.category : null);
-            const catName = (typeof window.getCategoryDisplayName === 'function') ? window.getCategoryDisplayName(eventCatId) : (eventCatId && eventCatId !== 'other' ? String(eventCatId) : 'Other');
+            // Category display: single source — catId from event, name from getCategoryDisplayName
+            const eventCatId = (e.catId != null && e.catId !== '' && e.catId !== undefined) ? e.catId : (e.category != null && e.category !== '' && typeof e.category === 'string' ? e.category : 'maintenance');
+            var catName = (typeof window.getCategoryDisplayName === 'function') ? window.getCategoryDisplayName(eventCatId) : (eventCatId === 'other' ? 'Other' : String(eventCatId));
+            if (catName == null || catName === undefined || String(catName).trim() === '') catName = 'Other';
 
             const statusDotHTML = `<span class="dot" style="background:${statusColor(e.status)}"></span>`;
             
@@ -705,7 +707,7 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
               <div class="mp-pop-head">${esc(arg.event.title||'Task')}</div>
               <div class="mp-pop-body">
                 ${tooltipTime ? rowIco('🕐', 'Time', tooltipTime, 'mp-pop-ico-time') : ''}
-                ${rowIco('🏷', 'Category', catName, 'mp-pop-ico-cat')}
+                ${rowIco('🏷', 'Category', (catName != null && String(catName).trim() !== '') ? String(catName) : 'Other', 'mp-pop-ico-cat')}
                 ${rowIco('⭐', 'Priority', priLabel, 'mp-pop-ico-pri')}
                 <div class="mp-pop-row"><span class="mp-pop-ico mp-pop-dot" style="--dot-color:${statusCol}"></span><span class="mp-pop-txt">Status: ${esc(statusLabel)}</span></div>
                 ${ teamMode.enabled && e.createdBy ? row('👤', 'Created by', e.createdBy) : '' }
@@ -1121,20 +1123,22 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
           } catch { return false; }
         };
 
+        // One late check only: early timers (0/50ms) ran before React painted and opened a duplicate DOM modal.
         const ensureReactOrFallback = (type) => {
-          // Check twice after render to see if React modal appeared; if not, use DOM fallback.
-          const needle = type === 'login' ? 'Login to MainPro' : (type === 'chat' ? 'MainPro AI Assistant' : '⚙️ Settings');
+          if (type === 'settings') return;
+          const needle = type === 'login' ? 'Login to MainPro' : (type === 'chat' ? 'MainPro AI Assistant' : '');
           const openFallback = type === 'login'
             ? () => { ensureFallbackHelpers(); window.openSimpleAuthModal(); }
             : type === 'chat'
               ? () => { ensureFallbackHelpers(); window.openSimpleAIChatModal(); }
               : null;
-          [0, 50, 120].forEach((ms) => {
-            setTimeout(() => {
-              if (type === 'settings') return; // settings is React-only
-              if (!hasModalWithText(needle) && typeof openFallback === 'function') openFallback();
-            }, ms);
-          });
+          setTimeout(() => {
+            try {
+              if (!needle || !openFallback) return;
+              if (hasModalWithText(needle)) return;
+              openFallback();
+            } catch (_) {}
+          }, 480);
         };
 
         window.openLoginModal = () => {
@@ -1291,9 +1295,13 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
               e.stopPropagation();
               if (e.stopImmediatePropagation) e.stopImmediatePropagation();
 
-              if (lab === LABELS.settings && typeof window.openSettingsModal === 'function') window.openSettingsModal();
-              if (lab === LABELS.chat && typeof window.openAIChatModal === 'function') window.openAIChatModal();
-              if (lab === LABELS.login && typeof window.openLoginModal === 'function') window.openLoginModal();
+              if (lab === LABELS.settings && typeof window.openSettingsModal === 'function') {
+                window.openSettingsModal();
+              } else if (lab === LABELS.chat && typeof window.openAIChatModal === 'function') {
+                window.openAIChatModal();
+              } else if (lab === LABELS.login && typeof window.openLoginModal === 'function') {
+                window.openLoginModal();
+              }
             } catch (err) {
               console.warn('[MainPro] header router failed:', err);
             }
@@ -4572,7 +4580,19 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
     // Глобальные переменные для интеграции с Add Task v74
     window.setEvents = setEvents;
     window.eventsRef = eventsRef;
-    window.categories = categories;
+    // Single list for category display: state + any from window; ensure every item has .id for lookup
+    window.categories = (function(){
+      function ensureId(c) {
+        if (!c || (!c.id && !c.name)) return null;
+        var id = c.id || (c.name && String(c.name).toLowerCase().replace(/\s+/g, '-'));
+        return id ? { id: id, name: c.name || c.id || id, color: c.color } : null;
+      }
+      var base = (Array.isArray(categories) ? categories : []).map(ensureId).filter(Boolean);
+      var win = (typeof window !== 'undefined' && window.categories && Array.isArray(window.categories)) ? window.categories : [];
+      win.forEach(function(c){ var e = ensureId(c); if (e && !base.some(function(x){ return x && x.id === e.id; })) base.push(e); });
+      return base.length ? base : DEFAULT_CATS.slice();
+    })();
+    window.setCategories = setCategories;
     window.calRef = calRef;
     window.statusColor = statusColor;
     window.generateSeries = generateSeries;
@@ -4592,10 +4612,16 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
     window.refreshCalendar = refreshCalendar;
     window.getCategoryDisplayName = function(catIdOrName) {
       if (catIdOrName == null || catIdOrName === '') return 'Other';
-      var id = String(catIdOrName);
-      var cats = (typeof window.categories !== 'undefined' && Array.isArray(window.categories)) ? window.categories : [];
-      var c = cats.find(function(x){ return x && (x.id === id || (x.name && String(x.name).toLowerCase() === id.toLowerCase())); });
-      return (c && c.name) ? c.name : (id === 'other' ? 'Other' : id);
+      var id = String(catIdOrName).trim();
+      if (id === 'undefined' || id === '') return 'Other';
+      var cats = (typeof window.categories !== 'undefined' && Array.isArray(window.categories) && window.categories.length) ? window.categories : DEFAULT_CATS;
+      var c = cats.find(function(x){
+        if (!x) return false;
+        var xId = (x.id && String(x.id)) || (x.name && String(x.name).toLowerCase().replace(/\s+/g, '-'));
+        return xId && (xId === id || xId === id.toLowerCase() || (x.name && String(x.name).toLowerCase() === id.toLowerCase()));
+      });
+      var name = (c && c.name) ? String(c.name) : (id === 'other' ? 'Other' : id);
+      return (name != null && name !== '') ? name : 'Other';
     };
     // Allow external (non-React) modals to queue Undo for single delete
     window.mainproQueueUndoDeleteOne = (ev, index) => {
@@ -5622,9 +5648,9 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
     useEffect(() => {
       window.setEvents = setEvents;
       window.refreshCalendar = () => refreshCalendar(eventsRef.current);
-      window.openLoginModal = () => setShowAuthModal(true);
-      window.openAIChatModal = () => setShowAIChat(true);
-      window.openSettingsModal = () => setOpenSettings(true);
+      // Do NOT assign window.openLoginModal / openAIChatModal / openSettingsModal here:
+      // a dedicated effect (modal API + header capture router) owns them. Overwriting broke
+      // Login/AI after calendar switch (cleanup deleted them) and dropped close-other-modals logic.
       const openTaskModalImpl = (dateOrPref) => {
         const date = typeof dateOrPref === 'string' ? dateOrPref : (dateOrPref?.date || dateOrPref?.start);
         const pref = date ? { date: String(date).slice(0, 10) } : (dateOrPref && typeof dateOrPref === 'object' ? dateOrPref : {});
@@ -5649,9 +5675,6 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
         delete window.showDeleteChoiceModal;
         delete window.setEvents;
         delete window.refreshCalendar;
-        delete window.openLoginModal;
-        delete window.openAIChatModal;
-        delete window.openSettingsModal;
         delete window.openTaskModal;
       };
     }, [currentCalendarId]);
@@ -5778,18 +5801,18 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
 
             ),
 
-            React.createElement('button',{onClick:(e)=>{ e.stopPropagation(); if (window.openSettingsModal) window.openSettingsModal(); else if(!openSettings) setOpenSettings(true); }, className:"px-3 py-2 rounded-lg bg-white border hover:bg-gray-100 shadow-sm"},'⚙️ Settings'),
+            React.createElement('button',{onClick:(e)=>{ e.stopPropagation(); if (typeof window.openSettingsModal === 'function') window.openSettingsModal(); else if(!openSettings) setOpenSettings(true); }, className:"px-3 py-2 rounded-lg bg-white border hover:bg-gray-100 shadow-sm"},'⚙️ Settings'),
             
             // 💬 AI Chat Button (simple fallback — React modal may not open)
             React.createElement('button',{
-              onClick:()=>{ if (window.openAIChatModal) window.openAIChatModal(); else if (window.openSimpleAIChatModal) window.openSimpleAIChatModal(); else setShowAIChat(true); },
+              onClick:(e)=>{ e.stopPropagation(); if (typeof window.openAIChatModal === 'function') window.openAIChatModal(); else if (typeof window.openSimpleAIChatModal === 'function') window.openSimpleAIChatModal(); else setShowAIChat(true); },
               className:"px-3 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:opacity-90 shadow-sm"
             },'💬 AI Chat'),
             
             // 🔐 Auth Button (simple fallback — React modal may not open)
             !isAuthenticated ? 
               React.createElement('button',{
-                onClick:()=>{ if (window.openLoginModal) window.openLoginModal(); else if (window.openSimpleAuthModal) window.openSimpleAuthModal(); else { setAuthMode('login'); setShowAuthModal(true); } },
+                onClick:(e)=>{ e.stopPropagation(); if (typeof window.openLoginModal === 'function') window.openLoginModal(); else if (typeof window.openSimpleAuthModal === 'function') window.openSimpleAuthModal(); else { setAuthMode('login'); setShowAuthModal(true); } },
                 className:"px-3 py-2 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-500 text-white hover:opacity-90 shadow-sm"
               },'🔐 Login') :
               React.createElement('div',{className:"flex items-center gap-2"},
@@ -6537,7 +6560,8 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
                             const t = mpTimeStr(ev);
                             const st = String(ev?.status || 'pending');
                             const pri = String(ev?.priority || 'normal');
-                            const catName = (typeof window.getCategoryDisplayName === 'function') ? window.getCategoryDisplayName(ev.catId || ev.category) : ((function(){ var c = categories.find(function(cat){ return cat && cat.id === ev.catId; }); return (c && c.name) ? c.name : (ev.catId && ev.catId !== 'other' ? String(ev.catId) : 'Other'); })());
+                            var catName = (typeof window.getCategoryDisplayName === 'function') ? window.getCategoryDisplayName(ev.catId || ev.category || 'maintenance') : ((function(){ var c = categories.find(function(cat){ return cat && (cat.id === ev.catId || (cat.name && String(cat.name).toLowerCase() === String(ev.catId||'').toLowerCase())); }); return (c && c.name) ? c.name : (ev.catId && ev.catId !== 'other' ? String(ev.catId) : 'Other'); })());
+                            if (catName == null || catName === undefined || String(catName).trim() === '') catName = 'Other';
                             const color = (typeof statusColor === 'function') ? statusColor(st) : '#60a5fa';
                             return React.createElement('div',{key: `${day.iso}_${idStr}`, className:"bg-white border border-amber-200 rounded-xl px-3 py-3 flex items-start gap-3"},
                               React.createElement('div',{className:"w-16 flex-shrink-0"},

@@ -544,6 +544,7 @@
       opt.value=c.id; opt.textContent=c.name||c.id;
       catSel.appendChild(opt);
     });
+    // Category: only select value. Saved at submit from #mp_cat.value (see save handler).
     const catId = pref.catId || pref.category || 'other';
     if(catId && Array.from(catSel.options).some(o=>o.value===catId)){ catSel.value = catId; }
     else { catSel.value = 'other'; }
@@ -585,6 +586,7 @@
         if(window.categories.some(c=>c.id===id)){ alert('Category exists'); return; }
         const item = {id, name, color:'#6b7280'};
         window.categories = [...window.categories, item];
+        if (typeof window.setCategories === 'function') window.setCategories(function(prev){ return [...(prev||[]), item]; });
       }
       const opt=document.createElement('option'); opt.value=id; opt.textContent=name;
       catSel.appendChild(opt); catSel.value=id;
@@ -944,6 +946,10 @@ Time: start at ${start}.`;
 
     // save
     overlay.querySelector('#mp_save').onclick = async ()=>{
+      // Category: single source — value of #mp_cat at save time
+      var catSelEl = overlay.querySelector('#mp_cat');
+      var catIdToSave = (catSelEl && catSelEl.value && String(catSelEl.value).trim()) ? String(catSelEl.value).trim() : 'other';
+
       const title = titleInput.value.trim();
       if(!title){ alert('Enter title'); return; }
 
@@ -1048,7 +1054,6 @@ Time: start at ${start}.`;
         return {};
       })();
 
-      const catIdToSave = (catSel && catSel.value) ? String(catSel.value) : 'other';
       const base = {
         id: baseId,
         title,
@@ -1097,6 +1102,9 @@ Time: start at ${start}.`;
                 var singleTask = Object.assign({}, base, {
                   id: baseIdStr + '-ex-' + originalOccurrenceDate,
                   seriesId: null,
+                  catId: catIdToSave,
+                  start: startISO,
+                  end: endISO,
                   recur: { freq: 'none', interval: 1, end: { type: 'never' }, exceptions: [] },
                   recurOptions: {}
                 });
