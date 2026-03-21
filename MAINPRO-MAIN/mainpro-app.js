@@ -9,7 +9,6 @@ import {
   initMainProModalController,
   MAINPRO_MODAL_ID,
   mainProModalOpen,
-  mainProModalNotifyExclusiveDomAddTask,
 } from './mainpro-modal-controller.js';
 import {
   useMainProSettingsModal,
@@ -35,6 +34,12 @@ import {
   mainProTemplatesClose,
   mainProTemplatesCloseWithAnim,
 } from './mainpro-templates-module.js';
+import {
+  useMainProAddTaskModal,
+  mainProAddTaskOpen,
+  mainProAddTaskClose,
+  mainProAddTaskPrepareDomOpen,
+} from './mainpro-addtask-modal-module.js';
 
 (() => {
   const { useState, useEffect, useRef, useMemo } = React;
@@ -181,7 +186,7 @@ import {
       }
     });
 
-    const [showAdd,setShowAdd] = useState(false);
+    const { showAdd, setShowAdd } = useMainProAddTaskModal(React);
 
     const [editEvent,setEditEvent] = useState(null);
 
@@ -468,11 +473,8 @@ import {
             window.openTaskModal(info.dateStr);
           } else {
             // Fallback to old behavior if v70.6 form not available
-            try {
-              mainProModalNotifyExclusiveDomAddTask();
-            } catch (_) {}
             setForm(f=>({...f,date:info.dateStr}));
-            mainProModalOpen(MAINPRO_MODAL_ID.ADD_TASK);
+            mainProAddTaskOpen();
           }
 
         },
@@ -1098,11 +1100,8 @@ import {
           if (window.openTaskModal) {
             window.openTaskModal();
           } else {
-            try {
-              mainProModalNotifyExclusiveDomAddTask();
-            } catch (_) {}
             setForm(f => ({ ...f, date: todayISO() }));
-            mainProModalOpen(MAINPRO_MODAL_ID.ADD_TASK);
+            mainProAddTaskOpen();
           }
         }
 
@@ -1115,11 +1114,8 @@ import {
             if (window.openTaskModal) {
               window.openTaskModal();
             } else {
-              try {
-                mainProModalNotifyExclusiveDomAddTask();
-              } catch (_) {}
               setForm(f => ({ ...f, date: todayISO() }));
-              mainProModalOpen(MAINPRO_MODAL_ID.ADD_TASK);
+              mainProAddTaskOpen();
             }
           }
         }
@@ -1127,7 +1123,7 @@ import {
         // Esc to close modals
         if (e.key === 'Escape') {
           let didClose = false;
-          if (showAdd) { setShowAdd(false); didClose = true; }
+          if (showAdd) { mainProAddTaskClose(); didClose = true; }
           if (openSettings) { mainProSettingsClose(); didClose = true; }
           if (showAnalytics) { setShowAnalytics(false); didClose = true; }
           if (showPicker) { setShowPicker(false); didClose = true; }
@@ -4390,7 +4386,7 @@ import {
 
       if(!taskTypes.includes(form.taskType)) setTaskTypes(prev=>[...prev,form.taskType]);
 
-      setShowAdd(false);
+      mainProAddTaskClose();
 
       setForm({
 
@@ -5314,7 +5310,7 @@ import {
       // Login/AI after calendar switch (cleanup deleted them) and dropped close-other-modals logic.
       const openTaskModalImpl = (dateOrPref) => {
         try {
-          mainProModalNotifyExclusiveDomAddTask();
+          mainProAddTaskPrepareDomOpen();
         } catch (_) {}
         const date = typeof dateOrPref === 'string' ? dateOrPref : (dateOrPref?.date || dateOrPref?.start);
         const pref = date ? { date: String(date).slice(0, 10) } : (dateOrPref && typeof dateOrPref === 'object' ? dateOrPref : {});
@@ -5322,7 +5318,7 @@ import {
           window.openAddTaskModal(pref);
         } else {
           setForm(f => ({ ...f, date: (pref && pref.date) || todayISO() }));
-          mainProModalOpen(MAINPRO_MODAL_ID.ADD_TASK);
+          mainProAddTaskOpen();
         }
       };
       window.openTaskModal = openTaskModalImpl;
@@ -6023,10 +6019,7 @@ import {
                     } catch {}
                     try { setForm(f => ({...f, title: pref.title || '', date: pref.date || f.date, time: pref.time || f.time, catId: pref.catId || f.catId })); } catch {}
                     try {
-                      mainProModalNotifyExclusiveDomAddTask();
-                    } catch (_) {}
-                    try {
-                      mainProModalOpen(MAINPRO_MODAL_ID.ADD_TASK);
+                      mainProAddTaskOpen();
                     } catch (_) {}
                   },
                   className:"w-full text-left px-4 py-3 hover:bg-amber-50",
@@ -6468,7 +6461,7 @@ import {
             catId: form.catId
           });
           // Закрываем старую модалку
-          setShowAdd(false);
+          mainProAddTaskClose();
         }
       }, [showAdd]),
       // Edit Modal (disabled: duplicate/legacy block; keep the newer one below)
