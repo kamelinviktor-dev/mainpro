@@ -11,6 +11,12 @@ import {
   mainProModalOpen,
   mainProModalNotifyExclusiveDomAddTask,
 } from './mainpro-modal-controller.js';
+import {
+  useMainProSettingsModal,
+  mainProSettingsOpen,
+  mainProSettingsClose,
+  mainProSettingsCloseWithAnim,
+} from './mainpro-settings-module.js';
 
 (() => {
   const { useState, useEffect, useRef, useMemo } = React;
@@ -161,8 +167,12 @@ import {
 
     const [editEvent,setEditEvent] = useState(null);
 
-    const [openSettings,setOpenSettings] = useState(false);
-    const [settingsTab, setSettingsTab] = useState('general'); // 'general', 'categories', 'ai', 'cloud', 'export'
+    const {
+      openSettings,
+      setOpenSettings,
+      settingsTab,
+      setSettingsTab,
+    } = useMainProSettingsModal(React); // tabs: general, categories, ai, cloud, install, backup
 
     const [monthLabel,setMonthLabel] = useState('');
     const [visibleMonthStart, setVisibleMonthStart] = useState(null);
@@ -1095,7 +1105,7 @@ import {
         if (e.key === 'Escape') {
           let didClose = false;
           if (showAdd) { setShowAdd(false); didClose = true; }
-          if (openSettings) { setOpenSettings(false); didClose = true; }
+          if (openSettings) { mainProSettingsClose(); didClose = true; }
           if (showAnalytics) { setShowAnalytics(false); didClose = true; }
           if (showPicker) { setShowPicker(false); didClose = true; }
           if (editEvent) { setEditEvent(null); didClose = true; }
@@ -5442,7 +5452,7 @@ import {
 
             ),
 
-            React.createElement('button',{onClick:(e)=>{ e.stopPropagation(); if (typeof window.openSettingsModal === 'function') window.openSettingsModal(); else if(!openSettings) setOpenSettings(true); }, className:"px-3 py-2 rounded-lg bg-white border hover:bg-gray-100 shadow-sm"},'⚙️ Settings'),
+            React.createElement('button',{onClick:(e)=>{ e.stopPropagation(); if (typeof window.openSettingsModal === 'function') window.openSettingsModal(); else if(!openSettings) mainProSettingsOpen(); }, className:"px-3 py-2 rounded-lg bg-white border hover:bg-gray-100 shadow-sm"},'⚙️ Settings'),
             
             // 💬 AI Chat Button (simple fallback — React modal may not open)
             React.createElement('button',{
@@ -7660,7 +7670,7 @@ import {
       ),
 
       // Settings — та же оболочка, что у Documents (оверлей, max-height 80vh, отступы, без задержки на клик по фону)
-      openSettings && React.createElement('div',{className:"fixed inset-0 bg-black/40 flex items-start justify-center z-50 p-3 sm:p-6 mp-overlay-anim", style:{zIndex:9999, position:'fixed'}, 'data-mp-overlay':'1', onClick:(e)=>{ if(e.target===e.currentTarget) mpCloseWithAnim(()=>setOpenSettings(false), e); }},
+      openSettings && React.createElement('div',{className:"fixed inset-0 bg-black/40 flex items-start justify-center z-50 p-3 sm:p-6 mp-overlay-anim", style:{zIndex:9999, position:'fixed'}, 'data-mp-overlay':'1', onClick:(e)=>{ if(e.target===e.currentTarget) mainProSettingsCloseWithAnim(mpCloseWithAnim, e); }},
 
         React.createElement('div',{className:"bg-white w-full max-w-4xl lg:max-w-5xl xl:max-w-6xl rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col modal-enter modal-ready min-h-0", style:{borderTop:'4px solid', borderTopColor:'#f59e0b', maxHeight:'80vh', zIndex:10000, position:'relative'}, 'data-mp-modal':'1'},
 
@@ -7672,7 +7682,7 @@ import {
             ),
 
             React.createElement('button',{
-              onClick:(e)=>mpCloseWithAnim(()=>setOpenSettings(false), e),
+              onClick:(e)=>mainProSettingsCloseWithAnim(mpCloseWithAnim, e),
               className:"text-gray-600 hover:text-gray-800 px-3 py-1.5 rounded-lg hover:bg-white/50 transition-colors flex-shrink-0 tooltip-bottom",
               'data-tooltip':"Close"
             },'✕')
@@ -8234,7 +8244,7 @@ import {
 
                       setShowAnalytics(true);
 
-                      setOpenSettings(false);
+                      mainProSettingsClose();
 
                     },
 
@@ -8284,7 +8294,7 @@ import {
 
                   React.createElement('button',{
 
-                    onClick: () => { setWorkflowShow(true); setOpenSettings(false); },
+                    onClick: () => { setWorkflowShow(true); mainProSettingsClose(); },
 
                     className: "px-3 py-2 rounded-lg text-white bg-gradient-to-r from-blue-500 to-cyan-500 hover:opacity-90 shadow-sm text-sm font-medium transition-all duration-200 hover:shadow-md"
 
@@ -8292,7 +8302,7 @@ import {
 
                   React.createElement('button',{
 
-                    onClick: () => { setShowAIPanel(true); setOpenSettings(false); },
+                    onClick: () => { setShowAIPanel(true); mainProSettingsClose(); },
 
                     className: "px-3 py-2 rounded-lg text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90 shadow-sm text-sm font-medium transition-all duration-200 hover:shadow-md"
 
@@ -8300,7 +8310,7 @@ import {
 
                   React.createElement('button',{
 
-                    onClick: () => { setShowAuditDashboard(true); setOpenSettings(false); },
+                    onClick: () => { setShowAuditDashboard(true); mainProSettingsClose(); },
 
                     className: "px-3 py-2 rounded-lg text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:opacity-90 shadow-sm text-sm font-medium transition-all duration-200 hover:shadow-md"
 
@@ -8308,7 +8318,7 @@ import {
 
                   React.createElement('button',{
 
-                    onClick: () => { setShowReports(true); setOpenSettings(false); },
+                    onClick: () => { setShowReports(true); mainProSettingsClose(); },
 
                     className: "px-3 py-2 rounded-lg text-white bg-gradient-to-r from-green-600 to-green-700 hover:opacity-90 shadow-sm text-sm font-medium transition-all duration-200 hover:shadow-md"
 
@@ -8614,7 +8624,7 @@ import {
 
           React.createElement('div',{className:"px-4 py-2 border-t flex justify-end gap-2 flex-shrink-0", style:{background:'#fffbeb', borderTop:'2px solid #fde68a'}},
 
-            React.createElement('button',{onClick:()=>setOpenSettings(false), className:"px-4 py-2 rounded-md border transition-all duration-200", style:{background:'white', borderColor:'#f59e0b', color:'#92400e', fontWeight:'500'}},'Close'),
+            React.createElement('button',{onClick:()=>mainProSettingsClose(), className:"px-4 py-2 rounded-md border transition-all duration-200", style:{background:'white', borderColor:'#f59e0b', color:'#92400e', fontWeight:'500'}},'Close'),
 
             React.createElement('button',{onClick:()=>{
 
@@ -8632,7 +8642,7 @@ import {
 
                 localStorage.setItem('mainpro_autostatus_v1', JSON.stringify({enabled: !!settings.autoStatusEnabled}));
 
-                setOpenSettings(false);
+                mainProSettingsClose();
 
                 if(settings.autoStatusEnabled) runSmartStatusOnce();
                 setTimeout(function(){
