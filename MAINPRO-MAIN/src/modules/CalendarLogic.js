@@ -5,6 +5,11 @@
 
 import { statusColor } from './utils.js';
 import { generateOccurrences } from '../../mainpro-recurring-engine.js';
+import {
+  mainProFilterEventsByViewTab,
+  mainProCompareEventsForCalendarSort,
+  mainProSearchFilterExpandedEvents,
+} from '../../mainpro-filters-status-module.js';
 export { createEventDrop, createEventResize } from '../../mainpro-drag-resize-module.js';
 
 /** Bases-only integrity: remove any instance events. */
@@ -60,31 +65,11 @@ export function createRefreshCalendar(deps) {
         }
       }
 
-      let src = filter === 'all' ? expanded : expanded.filter((e) => e.status === filter);
+      let src = mainProFilterEventsByViewTab(expanded, filter);
 
-      const q = (search || '').trim().toLowerCase();
-      if (q) {
-        src = src.filter((e) => {
-          const catName = (categories.find((c) => c.id === e.catId)?.name) || '';
-          return [e.title, e.taskType, e.location, e.notes, catName].some((v) =>
-            (v || '').toLowerCase().includes(q)
-          );
-        });
-      }
+      src = mainProSearchFilterExpandedEvents(src, search, categories);
       if (sortBy !== 'none') {
-        src = [...src].sort((a, b) => {
-          if (sortBy === 'title') return (a.title || '').localeCompare(b.title || '');
-          if (sortBy === 'priority') {
-            const priorityOrder = { high: 3, medium: 2, normal: 2, low: 1 };
-            return (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0);
-          }
-          if (sortBy === 'status') {
-            const statusOrder = { done: 3, pending: 2, missed: 1, none: 0 };
-            return (statusOrder[b.status] || 0) - (statusOrder[a.status] || 0);
-          }
-          if (sortBy === 'date') return new Date(a.start || 0) - new Date(b.start || 0);
-          return 0;
-        });
+        src = [...src].sort((a, b) => mainProCompareEventsForCalendarSort(a, b, sortBy));
       }
 
       const now = new Date();

@@ -71,6 +71,13 @@ import {
   mainProRemoveEventByIdString,
   mainProMapEventStatusById,
 } from './mainpro-calendar-actions-module.js';
+import {
+  mainProComputeEffectiveStatus,
+  mainProRunSmartStatusOnce,
+  mainProFilterTabLabel,
+  mainProAttachEffectiveStatuses,
+  mainProCountEffectiveStatusInView,
+} from './mainpro-filters-status-module.js';
 
 (() => {
   const { useState, useEffect, useRef, useMemo } = React;
@@ -924,11 +931,7 @@ import {
         view === 'dayGridMonth' ? 'Month' :
         view === 'timeGridWeek' ? 'Week' :
         view === 'timeGridDay' ? 'Day' : view;
-      const filterLabel =
-        filter === 'all' ? 'All' :
-        filter === 'pending' ? 'Pending' :
-        filter === 'done' ? 'Done' :
-        filter === 'missed' ? 'Missed' : filter;
+      const filterLabel = mainProFilterTabLabel(filter);
       const month = monthLabel ? ` • ${monthLabel}` : '';
       // Keep base title stable (strip any previous suffix we added)
       const base = String(baseTitleRef.current || '').split(' • ')[0] || 'MainPro Calendar';
@@ -1512,96 +1515,22 @@ import {
     window.listCalendars = () => calendars;
 
     // refreshCalendar from CalendarLogic module
+    const computeNewStatus = mainProComputeEffectiveStatus;
+
     const refreshCalendar = useMemo(() => createRefreshCalendar({
       calRef, eventsRef, filter, search, categories, sortBy, computeNewStatus, setEvents
     }), [filter, search, categories, sortBy]);
 
     // Smart Status Engine
-
-    function computeNewStatus(e, now){
-
-      try{
-
-        const dt = new Date(e.start);
-
-        if (isNaN(dt.getTime())) return e.status||'pending';
-
-        if (e.status==='done') return 'done';
-
-        const eventDay = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate()).getTime();
-        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-        if (eventDay < todayStart) return 'missed';
-
-        return 'pending';
-
-      }catch{
-
-        return e.status||'pending';
-
-      }
-
-    }
-
-    function runSmartStatusOnce(){
-
-      const now = new Date();
-
-      let changed = 0;
-
-      setEvents(prev=>{
-
-        const next = prev.map(ev=>{
-
-          const ns = computeNewStatus(ev, now);
-
-          if(ns !== ev.status){
-
-            changed++;
-
-            return {...ev, status: ns};
-
-          }
-
-          return ev;
-
-        });
-
-        return next;
-
+    function runSmartStatusOnce() {
+      mainProRunSmartStatusOnce({
+        setEvents,
+        calRef,
+        eventsRef,
+        showToast,
+        statusColor,
+        computeEffectiveStatus: mainProComputeEffectiveStatus,
       });
-
-      if(changed>0){
-
-        // обновить цвета на календаре без полной перерисовки
-
-        try{
-
-          const cal = calRef.current;
-
-          if(cal){
-
-            cal.getEvents().forEach(fcEv=>{
-
-              const src = eventsRef.current.find(e=> String(e.id)===String(fcEv.id));
-
-              if(src){
-                const col = statusColor(src.status);
-                fcEv.setProp('color', col);
-                fcEv.setProp('backgroundColor', col);
-                fcEv.setProp('borderColor', col);
-                fcEv.setProp('textColor', '#111827');
-              }
-
-            });
-
-          }
-
-        }catch{}
-
-        showToast(`Smart Status updated (${changed}) tasks.`);
-
-      }
-
     }
 
     // периодический авто-двигатель
@@ -5245,13 +5174,8 @@ import {
           return d >= monthStartStr && d <= monthEndStr;
         });
         const now = new Date();
-        const withStatus = inMonth.map(e => ({ ...e, effectiveStatus: (typeof computeNewStatus === 'function' ? computeNewStatus(e, now) : e.status) || e.status || 'pending' }));
-        return {
-          total: withStatus.length,
-          done: withStatus.filter(e => e.effectiveStatus === 'done').length,
-          pending: withStatus.filter(e => e.effectiveStatus === 'pending').length,
-          missed: withStatus.filter(e => e.effectiveStatus === 'missed').length
-        };
+        const withStatus = mainProAttachEffectiveStatuses(inMonth, now, computeNewStatus);
+        return mainProCountEffectiveStatusInView(withStatus);
       } catch (err) {
         return {
           total: (Array.isArray(events) ? events.length : 0),
