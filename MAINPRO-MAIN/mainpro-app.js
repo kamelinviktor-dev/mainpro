@@ -17,6 +17,12 @@ import {
   mainProSettingsClose,
   mainProSettingsCloseWithAnim,
 } from './mainpro-settings-module.js';
+import {
+  useMainProAuthModal,
+  mainProAuthOpenLogin,
+  mainProAuthClose,
+  mainProAuthCloseWithAnim,
+} from './mainpro-auth-module.js';
 
 (() => {
   const { useState, useEffect, useRef, useMemo } = React;
@@ -313,8 +319,13 @@ import {
   const [showBusinessModal, setShowBusinessModal] = useState(false);
   const [businessType, setBusinessType] = useState('office');
   const [businessModules, setBusinessModules] = useState([]);
-    const [showAuthModal, setShowAuthModal] = useState(false);
-    const [authMode, setAuthMode] = useState('login'); // 'login', 'signup', 'profile'
+    const {
+      showAuthModal,
+      setShowAuthModal,
+      authMode,
+      setAuthMode,
+      openAuthAs,
+    } = useMainProAuthModal(React); // 'login' | 'signup' | 'profile'
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [authUser, setAuthUser] = useState(null);
     const [showAIChat, setShowAIChat] = useState(false);
@@ -1126,7 +1137,7 @@ import {
           if (showSubscriptionModal) { setShowSubscriptionModal(false); didClose = true; }
           if (showEmergencyModal) { setShowEmergencyModal(false); didClose = true; }
           if (showBusinessModal) { setShowBusinessModal(false); didClose = true; }
-          if (showAuthModal) { setShowAuthModal(false); didClose = true; }
+          if (showAuthModal) { mainProAuthClose(); didClose = true; }
           if (showAIChat) { setShowAIChat(false); didClose = true; }
           if (showTemplates) { setShowTemplates(false); didClose = true; }
           if (showHotkeyHelp) { setShowHotkeyHelp(false); didClose = true; }
@@ -5463,16 +5474,13 @@ import {
             // 🔐 Auth Button (simple fallback — React modal may not open)
             !isAuthenticated ? 
               React.createElement('button',{
-                onClick:(e)=>{ e.stopPropagation(); if (typeof window.openLoginModal === 'function') window.openLoginModal(); else if (typeof window.openSimpleAuthModal === 'function') window.openSimpleAuthModal(); else { setAuthMode('login'); setShowAuthModal(true); } },
+                onClick:(e)=>{ e.stopPropagation(); if (typeof window.openLoginModal === 'function') window.openLoginModal(); else if (typeof window.openSimpleAuthModal === 'function') window.openSimpleAuthModal(); else { mainProAuthOpenLogin(); } },
                 className:"px-3 py-2 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-500 text-white hover:opacity-90 shadow-sm"
               },'🔐 Login') :
               React.createElement('div',{className:"flex items-center gap-2"},
                 React.createElement('span',{className:"text-sm text-gray-600"},`👤 ${authUser?.name || 'User'}`),
                 React.createElement('button',{
-                  onClick:()=>{
-                    setAuthMode('profile');
-                    setShowAuthModal(true);
-                  },
+                  onClick:()=>{ openAuthAs('profile'); },
                   className:"px-2 py-1 rounded text-xs bg-gray-100 hover:bg-gray-200"
                 },'Profile')
               )
@@ -11511,7 +11519,7 @@ import {
             const t = (window.__mainproModalOpenedAt && window.__mainproModalOpenedAt.login) ? window.__mainproModalOpenedAt.login : 0;
             if (t && (Date.now() - t) < 350) return;
           } catch {}
-          mpCloseWithAnim(()=>setShowAuthModal(false), e); 
+          mainProAuthCloseWithAnim(mpCloseWithAnim, e); 
         } 
       }},
         React.createElement('div',{className:"modal-enter modal-ready bg-white w-full max-w-md rounded-2xl p-0 shadow-xl border border-amber-200 overflow-hidden", style:{borderTop:'4px solid', borderTopColor:'#f59e0b'}, 'data-mp-modal':'1'},
@@ -11523,7 +11531,7 @@ import {
               authMode === 'signup' ? 'Sign Up' : 'User Profile'
             ),
             React.createElement('button',{
-              onClick:(e)=>mpCloseWithAnim(()=>setShowAuthModal(false), e),
+              onClick:(e)=>mainProAuthCloseWithAnim(mpCloseWithAnim, e),
               className:"text-gray-600 hover:text-gray-800 px-3 py-1.5 rounded-lg hover:bg-white/50 transition-colors flex-shrink-0 tooltip-bottom",
               'data-tooltip':"Close"
             },'✕')
@@ -11554,7 +11562,7 @@ import {
                     // Simulate login
                     setIsAuthenticated(true);
                     setAuthUser({name: 'Demo User', email: 'demo@mainpro.com', plan: 'Professional'});
-                    setShowAuthModal(false);
+                    mainProAuthClose();
                     showToast('✅ Successfully logged in!');
                   },
                   className:"w-full px-4 py-2 text-white rounded-lg hover:opacity-90 font-medium",
@@ -11611,7 +11619,7 @@ import {
                     // Simulate signup
                     setIsAuthenticated(true);
                     setAuthUser({name: 'New User', email: 'new@mainpro.com', plan: 'Free', organization: 'hotel'});
-                    setShowAuthModal(false);
+                    mainProAuthClose();
                     showToast('🎉 Welcome to MainPro!');
                   },
                   className:"w-full px-4 py-2 text-white rounded-lg hover:opacity-90 font-medium",
@@ -11645,7 +11653,7 @@ import {
                     onClick:()=>{
                       setIsAuthenticated(false);
                       setAuthUser(null);
-                      setShowAuthModal(false);
+                      mainProAuthClose();
                       showToast('👋 Goodbye!');
                     },
                     className:"w-full px-4 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100"
