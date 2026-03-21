@@ -3,7 +3,7 @@
  * React windows register via init; window.open*Modal APIs stay for header / legacy scripts.
  */
 
-import { showToast } from './src/modules/utils.js';
+import { showToast } from './mainpro-utils-module.js';
 
 export const MAINPRO_MODAL_ID = {
   SETTINGS: 'settings',

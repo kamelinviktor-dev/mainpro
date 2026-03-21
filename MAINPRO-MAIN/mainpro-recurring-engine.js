@@ -3,7 +3,7 @@
  * Calendar refresh, drag/drop, and UI stay in CalendarLogic / mainpro-app.js.
  */
 
-import { addDays, addMonths, toLocalISO } from './src/modules/utils.js';
+import { addDays, addMonths, toLocalISO } from './mainpro-utils-module.js';
 import { RECUR_SAFE_CAP, RECUR_RANGE_BUFFER_DAYS } from './src/modules/constants.js';
 
 function lastDayOfMonth(d) {

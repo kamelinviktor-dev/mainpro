@@ -2,7 +2,22 @@
 // Safe Guard will be added at the end of the file
 
 import { DEFAULT_CATS_SETTINGS, DEFAULT_CATS, DEFAULT_TEMPLATES } from './src/modules/constants.js';
-import { todayISO, statusColor, formatAmPm, addDays, addMonths, toLocalISO, showToast } from './src/modules/utils.js';
+import {
+  todayISO,
+  statusColor,
+  formatAmPm,
+  addDays,
+  addMonths,
+  toLocalISO,
+  showToast,
+  stripInstances,
+  mainProParseISODateLocalMidday as mpParseISODate,
+  mainProDateToISODate as mpISO,
+  mainProEventStartTimeHHmm as mpTimeStr,
+  mainProTimeHHmmToMinutes as mpTimeVal,
+  mainProEventEndTimeHHmm as mpEndTimeStr,
+  mainProAnnotateTimeSlotConflicts as mpAnnotateConflicts,
+} from './mainpro-utils-module.js';
 import {
   MP_STORAGE_KEYS,
   mainProStorageParse,
@@ -19,7 +34,7 @@ import {
   mainProStorageLoadSettingsBase,
   mainProStorageSaveSettingsFields,
 } from './mainpro-storage-engine.js';
-import { stripInstances, createRefreshCalendar, createEventClick, createEventDrop, createEventResize, createGetCalendarViewRange } from './src/modules/CalendarLogic.js';
+import { createRefreshCalendar, createGetCalendarViewRange } from './src/modules/CalendarLogic.js';
 import {
   generateOccurrences,
   normalizeRecur,
@@ -4987,25 +5002,6 @@ import {
       setTimeout(() => { try { closeFn && closeFn(); } catch {} }, MP_MODAL_ANIM_MS);
     }
 
-    function mpParseISODate(iso){
-      try{
-        const parts = String(iso||'').slice(0,10).split('-').map(n=>parseInt(n,10));
-        const y = parts[0] || new Date().getFullYear();
-        const m = (parts[1] || 1) - 1;
-        const d = parts[2] || 1;
-        return new Date(y, m, d, 12, 0, 0, 0); // local midday (DST-safe)
-      }catch{
-        return new Date();
-      }
-    }
-    function mpISO(d){
-      try{
-        const dd = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0, 0, 0);
-        return dd.toISOString().slice(0,10);
-      }catch{
-        return (typeof todayISO === 'function') ? todayISO() : new Date().toISOString().slice(0,10);
-      }
-    }
     function mpFilterSearch(list){
       let src = Array.isArray(list) ? list : [];
       src = (filter==='all') ? src : src.filter(e=> (e.status||'pending')===filter);
@@ -5017,60 +5013,6 @@ import {
         });
       }
       return src;
-    }
-    function mpTimeStr(ev){
-      const s = String(ev?.start || '');
-      if (s.includes('T')) return s.slice(11,16);
-      return '';
-    }
-    function mpTimeVal(t){
-      try{
-        if(!t) return 0; // all-day first
-        const hh = parseInt(String(t).slice(0,2), 10) || 0;
-        const mm = parseInt(String(t).slice(3,5), 10) || 0;
-        return hh*60 + mm;
-      }catch{
-        return 0;
-      }
-    }
-    function mpEndTimeStr(ev){
-      try{
-        const end = String(ev?.end || '');
-        if (end.includes('T')) return end.slice(11,16);
-      }catch{}
-      return '';
-    }
-    function mpAnnotateConflicts(items){
-      try{
-        const list = Array.isArray(items) ? items : [];
-        const out = list.map(ev => ({...ev, __conflict:false}));
-        const idxs = out
-          .map((ev, idx) => ({ ev, idx }))
-          .filter(x => !!mpTimeStr(x.ev)) // skip all-day / no-time tasks
-          .sort((a,b)=> mpTimeVal(mpTimeStr(a.ev)) - mpTimeVal(mpTimeStr(b.ev)));
-
-        let conflicts = 0;
-        let maxEnd = -1;
-        let maxIdx = -1;
-        idxs.forEach(({ev, idx})=>{
-          const st = mpTimeVal(mpTimeStr(ev));
-          let en = mpTimeVal(mpEndTimeStr(ev));
-          // If end time is missing or invalid, assume 60 minutes duration (safe default)
-          if (!en || en <= st) en = st + 60;
-
-          if (st < maxEnd && maxIdx >= 0) {
-            if (!out[idx].__conflict) { out[idx].__conflict = true; conflicts++; }
-            if (!out[maxIdx].__conflict) { out[maxIdx].__conflict = true; conflicts++; }
-          }
-          if (en > maxEnd) {
-            maxEnd = en;
-            maxIdx = idx;
-          }
-        });
-        return { items: out, conflicts };
-      }catch{
-        return { items: Array.isArray(items) ? items : [], conflicts: 0 };
-      }
     }
 
     const agendaData = (() => {

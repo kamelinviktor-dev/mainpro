@@ -3,7 +3,7 @@
  * Calendar / recurrence / UI logic stay in mainpro-app.js; this module only persists reads/writes.
  */
 
-import { safeParse } from './src/modules/utils.js';
+import { safeParse } from './mainpro-utils-module.js';
 
 /** Exact storage keys (do not rename). */
 export const MP_STORAGE_KEYS = Object.freeze({

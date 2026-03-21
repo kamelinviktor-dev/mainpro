@@ -3,7 +3,7 @@
  * STABILITY LOCK: recurrence-only changes
  */
 
-import { statusColor } from './utils.js';
+import { statusColor } from '../../mainpro-utils-module.js';
 import { generateOccurrences } from '../../mainpro-recurring-engine.js';
 import {
   mainProFilterEventsByViewTab,
@@ -11,12 +11,6 @@ import {
   mainProSearchFilterExpandedEvents,
 } from '../../mainpro-filters-status-module.js';
 export { createEventDrop, createEventResize } from '../../mainpro-drag-resize-module.js';
-
-/** Bases-only integrity: remove any instance events. */
-export function stripInstances(list) {
-  if (list == null) return [];
-  return Array.isArray(list) ? list.filter((e) => !e || !e.isInstance) : [];
-}
 
 /**
  * Factory: returns refreshCalendar(list) that uses calRef, eventsRef, filter, search, categories, sortBy, computeNewStatus, setEvents.
