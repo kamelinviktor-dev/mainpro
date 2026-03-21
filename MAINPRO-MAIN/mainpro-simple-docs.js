@@ -218,6 +218,28 @@
           #mp-simple-docs-overlay button{ opacity: 1 !important; }
           #mp-simple-docs-overlay button[disabled]{ opacity: 1 !important; }
           .mp-docs-tt::after,.mp-docs-tt::before{ display:none !important; }
+          /* Floating tooltip — тот же вид, что .tooltip-bottom в mainpro-base.css (крем + янтарь) */
+          .mp-docs-floating-tooltip {
+            position: fixed;
+            z-index: 2147483647;
+            pointer-events: none;
+            visibility: hidden;
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            color: #92400e;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            white-space: nowrap;
+            border: 1px solid #f59e0b;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          }
+          .dark .mp-docs-floating-tooltip {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            color: #92400e;
+            border-color: #f59e0b;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+          }
           /* Safety: if any element still uses global tooltip-bottom inside this modal */
           #mp-simple-docs-overlay .min-h-0 { min-height: 0 !important; }
           .mp-docs-action-btn { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s ease; flex-shrink: 0; }
@@ -318,7 +340,8 @@
 
     const tooltipEl = document.createElement('div');
     tooltipEl.id = 'mp-docs-global-tooltip';
-    tooltipEl.style.cssText = 'position:fixed;z-index:2147483647;pointer-events:none;visibility:hidden;background:#92400e;color:#fff;padding:5px 10px;border-radius:6px;font-size:11px;white-space:nowrap;filter:drop-shadow(0 4px 12px rgba(146,64,14,.4));';
+    tooltipEl.className = 'mp-docs-floating-tooltip';
+    tooltipEl.style.visibility = 'hidden';
     overlay.appendChild(tooltipEl);
     let tooltipHideT = 0;
     overlay.addEventListener('mouseover', (e) => {

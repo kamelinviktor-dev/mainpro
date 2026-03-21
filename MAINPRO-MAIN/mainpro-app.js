@@ -12987,7 +12987,7 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
                         const tag = prompt('Enter tag name:');
                         if (tag) dmAddDocumentTag(doc.id, tag.trim());
                       },
-                      className:"px-2 py-1 bg-purple-500 text-white rounded text-xs hover:bg-purple-600 tooltip",
+                      className:"px-2 py-1 bg-purple-500 text-white rounded text-xs hover:bg-purple-600 tooltip-bottom",
                       'data-tooltip':"Add Tag"
                     },'🏷️'),
                     
@@ -12997,7 +12997,7 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
                         const comment = prompt('Enter comment:');
                         if (comment) dmAddDocumentComment(doc.id, comment.trim());
                       },
-                      className:"px-2 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600 tooltip",
+                      className:"px-2 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600 tooltip-bottom",
                       'data-tooltip':"Add Comment"
                     },'💬'),
                     
@@ -13103,7 +13103,7 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
                           }
                         };
                         
-                      }, className:"px-2 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600 tooltip", 'data-tooltip':"Preview Options"},'👁️')
+                      }, className:"px-2 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600 tooltip-bottom", 'data-tooltip':"Preview Options"},'👁️')
                     ),
                     React.createElement('button',{onClick:()=>{
                       console.log('Download button clicked for:', doc.name, 'URL:', doc.url);
@@ -13131,14 +13131,14 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
                         console.error('Download error:', error);
                         showToast('❌ Download failed');
                       }
-                    }, className:"px-2 py-1 bg-amber-500 text-white rounded text-xs hover:bg-amber-600 tooltip", 'data-tooltip':"Download"},'📄'),
+                    }, className:"px-2 py-1 bg-amber-500 text-white rounded text-xs hover:bg-amber-600 tooltip-bottom", 'data-tooltip':"Download"},'📄'),
                     React.createElement('button',{onClick:()=>{
                       const nn=prompt('Rename file',doc.name);
                       if(nn&&nn.trim()) {
                         setDmDocs(prev=>prev.map(x=>x.id===doc.id?{...x,name:nn.trim()}:x));
                         showToast(`✏️ File renamed to "${nn.trim()}"`);
                       }
-                    }, className:"px-2 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 tooltip", 'data-tooltip':"Rename"},'✏️'),
+                    }, className:"px-2 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 tooltip-bottom", 'data-tooltip':"Rename"},'✏️'),
                     React.createElement('button',{onClick:()=>{
                       const availableFolders = dmFolders.filter(f => f.name !== doc.folder);
                       if(availableFolders.length === 0) {
@@ -13168,7 +13168,7 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
                         });
                         showToast(`🗑️ "${doc.name}" deleted`);
                       }
-                    }, className:"px-2 py-1 bg-yellow-500 text-white rounded text-xs hover:bg-yellow-600 font-bold transition-all duration-200 shadow-sm hover:shadow-md transform hover:scale-105 tooltip", 'data-tooltip':"Delete"},'🗑️')
+                    }, className:"px-2 py-1 bg-yellow-500 text-white rounded text-xs hover:bg-yellow-600 font-bold transition-all duration-200 shadow-sm hover:shadow-md transform hover:scale-105 tooltip-bottom", 'data-tooltip':"Delete"},'🗑️')
                   )
                 )
               ),

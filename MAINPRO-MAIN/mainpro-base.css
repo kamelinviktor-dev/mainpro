@@ -628,6 +628,16 @@
     visibility: visible;
   }
 
+  /* Documents (.dm): тултипы поверх карточек и скролла — тот же янтарный стиль, что везде */
+  .dm .tooltip-bottom::after,
+  .dm .tooltip-bottom::before,
+  .dm .tooltip::after,
+  .dm .tooltip::before,
+  .dm .tooltip-left::after,
+  .dm .tooltip-left::before {
+    z-index: 50000;
+  }
+
   .tooltip-left {
     position: relative;
   }
