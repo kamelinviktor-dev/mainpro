@@ -29,6 +29,12 @@ import {
   mainProAIChatClose,
   mainProAIChatCloseWithAnim,
 } from './mainpro-ai-chat-module.js';
+import {
+  useMainProTemplatesModal,
+  mainProTemplatesOpen,
+  mainProTemplatesClose,
+  mainProTemplatesCloseWithAnim,
+} from './mainpro-templates-module.js';
 
 (() => {
   const { useState, useEffect, useRef, useMemo } = React;
@@ -196,7 +202,7 @@ import {
 
     const [search,setSearch] = useState('');
     const [showHotkeyHelp, setShowHotkeyHelp] = useState(false);
-    const [showTemplates, setShowTemplates] = useState(false);
+    const { showTemplates, setShowTemplates } = useMainProTemplatesModal(React);
     const [showList, setShowList] = useState(false); // Agenda/List view modal
     const [listRange, setListRange] = useState('day'); // 'day' | 'week'
     const [listAnchorDate, setListAnchorDate] = useState(() => {
@@ -1145,7 +1151,7 @@ import {
           if (showBusinessModal) { setShowBusinessModal(false); didClose = true; }
           if (showAuthModal) { mainProAuthClose(); didClose = true; }
           if (showAIChat) { mainProAIChatClose(); didClose = true; }
-          if (showTemplates) { setShowTemplates(false); didClose = true; }
+          if (showTemplates) { mainProTemplatesClose(); didClose = true; }
           if (showHotkeyHelp) { setShowHotkeyHelp(false); didClose = true; }
           if (showList) { setShowList(false); didClose = true; }
           // If nothing to close, clear search (nice UX)
@@ -5601,7 +5607,7 @@ import {
           }, className:btn('bg-yellow-500') + " tooltip-bottom", 'data-tooltip':'Add Task (N or +, Enter)'},'Add Task'),
 
           React.createElement('button',{
-            onClick:()=>{ try { mainProModalOpen(MAINPRO_MODAL_ID.TEMPLATES); } catch (_) { setShowTemplates(true); } },
+            onClick:()=>{ try { mainProTemplatesOpen(); } catch (_) { setShowTemplates(true); } },
             className:"px-3 py-2 rounded-md bg-white border hover:bg-gray-100 shadow-sm tooltip-bottom",
             'data-tooltip':"Task templates"
           },'📋 Templates'),
@@ -5977,7 +5983,7 @@ import {
       showTemplates && React.createElement('div',{
         className:"fixed inset-0 bg-black/40 flex items-start justify-center z-50 p-3 sm:p-6 mp-overlay-anim",
         'data-mp-overlay':'1',
-        onClick:(e)=>{ if(e.target===e.currentTarget) mpCloseWithAnim(()=>setShowTemplates(false), e); }
+        onClick:(e)=>{ if(e.target===e.currentTarget) mainProTemplatesCloseWithAnim(mpCloseWithAnim, e); }
       },
         React.createElement('div',{
           className:"modal-enter modal-ready bg-white dark:bg-gray-800 w-full sm:max-w-xl rounded-t-2xl sm:rounded-2xl p-0 shadow-2xl flex flex-col",
@@ -5990,7 +5996,7 @@ import {
           },
             React.createElement('div',{className:"text-lg font-semibold", style:{color:'#92400e'}},'📋 Templates'),
             React.createElement('button',{
-              onClick:(e)=>mpCloseWithAnim(()=>setShowTemplates(false), e),
+              onClick:(e)=>mainProTemplatesCloseWithAnim(mpCloseWithAnim, e),
               className:"text-gray-600 hover:text-gray-800 px-3 py-1.5 rounded-lg hover:bg-white/50 transition-colors flex-shrink-0 tooltip-bottom",
               'data-tooltip':"Close"
             },'✕')
@@ -6001,7 +6007,7 @@ import {
               React.createElement('div',{key: tpl.id, className:"rounded-xl border border-amber-200 overflow-hidden bg-white"},
                 React.createElement('button',{
                   onClick:()=>{
-                    try { setShowTemplates(false); } catch {}
+                    try { mainProTemplatesClose(); } catch {}
                     try { showToast(`📋 Template: ${tpl.label || tpl.title || 'Template'}`); } catch {}
                     const pref = {
                       title: tpl.title || '',
