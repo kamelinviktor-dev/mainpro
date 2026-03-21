@@ -8009,22 +8009,17 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
         document.body
       ),
 
-      // Settings (+ новый тумблер Auto Status Engine)
-      openSettings && React.createElement('div',{className:"fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 mp-overlay-anim", style:{overflow:'hidden'}, 'data-mp-overlay':'1', onClick:(e)=>{ 
-        if(e.target===e.currentTarget) { 
-          try {
-            const t = (window.__mainproModalOpenedAt && window.__mainproModalOpenedAt.settings) ? window.__mainproModalOpenedAt.settings : 0;
-            if (t && (Date.now() - t) < 350) return;
-          } catch {}
-          mpCloseWithAnim(()=>setOpenSettings(false), e); 
-        } 
-      }},
+      // Settings — та же оболочка, что у Documents (оверлей, max-height 80vh, отступы, без задержки на клик по фону)
+      openSettings && React.createElement('div',{className:"fixed inset-0 bg-black/40 flex items-start justify-center z-50 p-3 sm:p-6 mp-overlay-anim", style:{zIndex:9999, position:'fixed'}, 'data-mp-overlay':'1', onClick:(e)=>{ if(e.target===e.currentTarget) mpCloseWithAnim(()=>setOpenSettings(false), e); }},
 
-        React.createElement('div',{className:"modal-enter modal-ready bg-white w-full sm:max-w-6xl rounded-t-2xl sm:rounded-2xl p-0 shadow-2xl flex flex-col h-[calc(100vh-2rem)] sm:h-[90vh] max-h-[calc(100vh-2rem)] sm:max-h-[90vh]", style:{borderTop:'4px solid', borderTopColor:'#f59e0b'}, 'data-mp-modal':'1'},
+        React.createElement('div',{className:"bg-white w-full max-w-4xl lg:max-w-5xl xl:max-w-6xl rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col modal-enter modal-ready min-h-0", style:{borderTop:'4px solid', borderTopColor:'#f59e0b', maxHeight:'80vh', zIndex:10000, position:'relative'}, 'data-mp-modal':'1'},
 
-          React.createElement('div',{className:"px-4 pt-3 pb-2 border-b flex items-center justify-between flex-shrink-0", style:{background:'linear-gradient(135deg, #fef3c7, #fde68a)', borderBottom:'2px solid #f59e0b'}},
+          React.createElement('div',{className:"px-5 py-4 border-b flex items-center justify-between flex-shrink-0", style:{background:'linear-gradient(135deg, #fef3c7, #fde68a)', borderBottom:'2px solid #f59e0b'}},
 
-            React.createElement('div',{className:"text-lg font-semibold", style:{color:'#92400e'}},'⚙️ Settings'),
+            React.createElement('div',{className:"text-lg font-semibold flex items-center gap-2", style:{color:'#92400e'}},
+              React.createElement('span',null,'⚙️'),
+              'Settings'
+            ),
 
             React.createElement('button',{
               onClick:(e)=>mpCloseWithAnim(()=>setOpenSettings(false), e),
@@ -8034,8 +8029,8 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
 
           ),
 
-          // Tabs Navigation
-          React.createElement('div',{className:"px-4 pt-2 pb-1.5 border-b flex gap-1 overflow-x-auto flex-shrink-0", style:{background:'#fffbeb', borderBottom:'2px solid #fde68a'}},
+          // Tabs Navigation (вторая полоса как тулбар Documents — белый фон)
+          React.createElement('div',{className:"px-3 sm:px-4 py-2 border-b flex gap-1 overflow-x-auto flex-shrink-0 bg-white", style:{borderBottom:'1px solid #fde68a'}},
             React.createElement('button',{
               onClick:()=>setSettingsTab('general'),
               className:`px-4 py-2 text-sm font-medium rounded-t-lg transition-all duration-200 ${
@@ -8081,7 +8076,7 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
             },'💾 Backup')
           ),
 
-          React.createElement('div',{className:"px-6 pb-4 overflow-y-auto flex-1", style:{minHeight:'400px'}},
+          React.createElement('div',{className:"px-3 sm:px-6 py-3 sm:py-4 overflow-y-auto flex-1 min-h-0", style:{background:'#fffbeb'}},
 
             // Backup / Import / Export Tab (relocated to ensure it renders)
             settingsTab === 'backup' && React.createElement('div',{className:"space-y-4 pt-4", style:{position:'relative', zIndex:2}},

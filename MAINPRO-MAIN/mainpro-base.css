@@ -638,6 +638,16 @@
     z-index: 50000;
   }
 
+  /* Любая модалка [data-mp-modal] (Settings, …) — тултипы как в Documents, поверх скролла */
+  [data-mp-modal] .tooltip-bottom::after,
+  [data-mp-modal] .tooltip-bottom::before,
+  [data-mp-modal] .tooltip::after,
+  [data-mp-modal] .tooltip::before,
+  [data-mp-modal] .tooltip-left::after,
+  [data-mp-modal] .tooltip-left::before {
+    z-index: 50000;
+  }
+
   .tooltip-left {
     position: relative;
   }
