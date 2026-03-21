@@ -19,7 +19,13 @@ import {
   mainProStorageLoadSettingsBase,
   mainProStorageSaveSettingsFields,
 } from './mainpro-storage-engine.js';
-import { stripInstances, generateOccurrences, normalizeRecur, createRefreshCalendar, createEventClick, createEventDrop, createEventResize, createGetCalendarViewRange, generateSeries } from './src/modules/CalendarLogic.js';
+import { stripInstances, createRefreshCalendar, createEventClick, createEventDrop, createEventResize, createGetCalendarViewRange } from './src/modules/CalendarLogic.js';
+import {
+  generateOccurrences,
+  normalizeRecur,
+  generateSeries,
+  mainProRecurringTransformListForDelete,
+} from './mainpro-recurring-engine.js';
 import { useDocumentManager } from './src/modules/DocumentManager.js';
 import { initMainProModalController } from './mainpro-modal-controller.js';
 import {
@@ -57,6 +63,14 @@ import {
   mainProDocumentsCloseReact,
   mainProDocumentsCloseReactWithAnim,
 } from './mainpro-documents-module.js';
+import {
+  mainProAppendEvent,
+  mainProAppendEvents,
+  mainProMergeEditIntoEventById,
+  mainProRemoveEventStrictId,
+  mainProRemoveEventByIdString,
+  mainProMapEventStatusById,
+} from './mainpro-calendar-actions-module.js';
 
 (() => {
   const { useState, useEffect, useRef, useMemo } = React;
@@ -1617,8 +1631,7 @@ import {
       const idStr = String(eventId);
       setFilter('all');
 
-      const updateOneById = (prev) =>
-        prev.map(e => String(e.id) === idStr ? { ...e, status: newStatus } : e);
+      const updateOneById = (prev) => mainProMapEventStatusById(prev, idStr, newStatus);
 
       if (!idStr.includes('-')) {
         setEvents(updateOneById);
@@ -2563,7 +2576,7 @@ import {
           suggestionId: suggestion.id
         };
         
-        setEvents(prev => [...prev, newTask]);
+        setEvents(prev => mainProAppendEvent(prev, newTask));
         showToast('✅ AI suggestion applied!');
       }
     }
@@ -4232,7 +4245,7 @@ import {
       }
     }, [authUser]);
 
-    // recurrence: generateOccurrences, normalizeRecur, generateSeries from CalendarLogic.js
+    // recurrence: generateOccurrences, normalizeRecur, generateSeries from mainpro-recurring-engine.js
 
     // Глобальные переменные для интеграции с Add Task v74
     window.setEvents = setEvents;
@@ -4366,7 +4379,7 @@ import {
 
       });
 
-      setEvents(prev=> [...prev, base]);
+      setEvents(prev=> mainProAppendEvent(prev, base));
 
       addAuditLog('TASK_CREATED', {
         taskId: base.id,
@@ -4508,7 +4521,7 @@ import {
 
         }else{
 
-          setEvents(prev=> prev.filter(e=> e.id!==editEvent.id));
+          setEvents(prev=> mainProRemoveEventStrictId(prev, editEvent.id));
           
           // Audit logging for single task deletion
           addAuditLog('TASK_DELETED', { 
@@ -4523,7 +4536,7 @@ import {
 
         if(!confirm('Delete this task?')) return;
 
-        setEvents(prev=> prev.filter(e=> e.id!==editEvent.id));
+        setEvents(prev=> mainProRemoveEventStrictId(prev, editEvent.id));
         
         // Audit logging for single task deletion
         addAuditLog('TASK_DELETED', { 
@@ -4543,65 +4556,13 @@ import {
       const idStr = String(id);
       if (!skipConfirm && !confirm(seriesScope === 'all' ? "Delete entire series?" : "Delete this occurrence?")) return false;
 
-      const matchId = (e, sid) => String(e.id) === sid || e.id == sid || (e.extendedProps && (String(e.extendedProps.id) === sid || e.extendedProps.id == sid));
-
       setEvents(prev => {
-        const list = Array.isArray(prev) ? prev : [];
-        const byId = list.find(e => matchId(e, idStr));
-        const eventToDelete = byId || (idStr.includes('-') ? list.find(e => e.seriesId != null && (String(e.seriesId) === idStr.replace(/-?\d+$/, '') || e.seriesId == idStr.replace(/-?\d+$/, ''))) : null);
-        const baseId = eventToDelete ? String(eventToDelete.id) : idStr;
-        const sid = eventToDelete && eventToDelete.seriesId != null ? String(eventToDelete.seriesId) : '';
-        const hasRecur = !!(eventToDelete && eventToDelete.recur && eventToDelete.recur.freq && eventToDelete.recur.freq !== 'none');
-        const hasSeries = sid.length > 0;
-        let next;
-        if (seriesScope === 'all' && (hasSeries || hasRecur)) {
-          next = list.filter(e => (String(e.id) !== baseId && e.id != baseId) && (sid ? (String(e.seriesId || '') !== sid && e.seriesId != sid) : true));
-        } else if (seriesScope === 'one' && hasRecur) {
-          let dateStr = '';
-          const toLocalDate = (d) => (d && !isNaN(d.getTime()) ? toLocalISO(d).slice(0, 10) : '');
-          if (occurrenceStart != null && occurrenceStart !== '') {
-            if (typeof occurrenceStart === 'string') {
-              const s = occurrenceStart.slice(0, 10);
-              if (/^\d{4}-\d{2}-\d{2}$/.test(s)) dateStr = s;
-              else dateStr = toLocalDate(new Date(occurrenceStart));
-            } else if (occurrenceStart instanceof Date) dateStr = toLocalDate(occurrenceStart);
-            else dateStr = toLocalDate(new Date(occurrenceStart));
-          }
-          if (dateStr && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-            next = list.map(e => {
-              if (String(e.id) !== baseId && e.id != baseId) return e;
-              const prevEx = (e.recur?.exceptions || []).map(d => String(d).slice(0, 10));
-              const already = prevEx.includes(dateStr);
-              const ex = already ? (e.recur?.exceptions || []) : [...(e.recur?.exceptions || []), dateStr];
-              return { ...e, recur: { ...(e.recur || {}), exceptions: ex } };
-            });
-          } else {
-            next = list;
-          }
-        } else if (idStr.includes('-') && hasSeries && eventToDelete) {
-          const seriesId = idStr.replace(/-?\d+$/, '');
-          let dateStr = eventToDelete.start ? toLocalISO(new Date(eventToDelete.start)).slice(0, 10) : '';
-          const fromId = idStr.split('-').slice(-3).join('-');
-          if (!dateStr && /^\d{4}-\d{2}-\d{2}$/.test(fromId)) dateStr = fromId;
-          if (dateStr) {
-            next = list.map(e => {
-              const matchSeries = String(e.seriesId) === seriesId || e.seriesId == seriesId || String(e.id) === seriesId || e.id == seriesId;
-              if (matchSeries) {
-                const ex = [...(e.recur?.exceptions || []), dateStr];
-                return { ...e, recur: { ...(e.recur || {}), exceptions: ex } };
-              }
-              return e;
-            });
-          } else {
-            next = list;
-          }
-        } else {
-          next = list.filter(e => !matchId(e, idStr));
-          if (next.length === list.length) {
-            const idx = list.findIndex(e => matchId(e, idStr));
-            if (idx >= 0) next = list.slice(0, idx).concat(list.slice(idx + 1));
-          }
-        }
+        const next = mainProRecurringTransformListForDelete(prev, {
+          idStr,
+          seriesScope,
+          occurrenceStart,
+          toLocalISO,
+        });
         const cleaned = stripInstances(next);
         try {
           mainProStorageSaveEventsCalendarOnly(currentCalendarId, cleaned);
@@ -4958,7 +4919,7 @@ import {
       
       const toAdd = stripInstances(newEvents);
       if (window.mainproRecurDebug && newEvents.length !== toAdd.length) console.warn('Workflow apply: dropped', newEvents.length - toAdd.length, 'instance(s)');
-      setEvents(prev => [...prev, ...toAdd]);
+      setEvents(prev => mainProAppendEvents(prev, toAdd));
       showToast(`✅ Applied ${workflow.tasks.length} tasks to calendar!`);
       setWorkflowShow(false);
       setGeneratedWorkflow(null);
@@ -6294,7 +6255,7 @@ import {
                                         ? eventsRef.current.findIndex(e => String(e.id)===String(ev.id))
                                         : -1;
                                       try { if(typeof window.mainproQueueUndoDeleteOne === 'function') window.mainproQueueUndoDeleteOne(ev, idx); } catch {}
-                                      setEvents(prev => (Array.isArray(prev)? prev : []).filter(e => String(e.id)!==String(ev.id)));
+                                      setEvents(prev => mainProRemoveEventByIdString(prev, ev.id));
                                       showToast('🗑️ Deleted — Undo (10s)');
                                     }catch{}
                                   },
