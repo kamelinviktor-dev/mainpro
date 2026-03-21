@@ -2,7 +2,23 @@
 // Safe Guard will be added at the end of the file
 
 import { DEFAULT_CATS_SETTINGS, DEFAULT_CATS, DEFAULT_TEMPLATES } from './src/modules/constants.js';
-import { todayISO, statusColor, formatAmPm, addDays, addMonths, toLocalISO, safeParse, showToast } from './src/modules/utils.js';
+import { todayISO, statusColor, formatAmPm, addDays, addMonths, toLocalISO, showToast } from './src/modules/utils.js';
+import {
+  MP_STORAGE_KEYS,
+  mainProStorageParse,
+  mainProStorageSetJson,
+  mainProStorageLoadCalendars,
+  mainProStorageSaveCalendars,
+  mainProStorageLoadCurrentCalendarId,
+  mainProStorageSaveCurrentCalendarId,
+  mainProStorageLoadEventsForCalendar,
+  mainProStorageSaveEventsBundle,
+  mainProStorageSaveEventsCalendarOnly,
+  mainProStorageRemoveCalendarEvents,
+  mainProStorageReadCalendarEventsRaw,
+  mainProStorageLoadSettingsBase,
+  mainProStorageSaveSettingsFields,
+} from './mainpro-storage-engine.js';
 import { stripInstances, generateOccurrences, normalizeRecur, createRefreshCalendar, createEventClick, createEventDrop, createEventResize, createGetCalendarViewRange, generateSeries } from './src/modules/CalendarLogic.js';
 import { useDocumentManager } from './src/modules/DocumentManager.js';
 import { initMainProModalController } from './mainpro-modal-controller.js';
@@ -56,23 +72,23 @@ import {
     }, []);
 
     // theme
-    const [ui, setUI] = useState(() => safeParse('mainpro_ui_v60', {primary:'#EAB308'}));
+    const [ui, setUI] = useState(() => mainProStorageParse(MP_STORAGE_KEYS.ui, {primary:'#EAB308'}));
 
     // settings (+ smart status toggle)
     const [settings, setSettings] = useState(() => {
-      const base = safeParse('mainpro_settings_v60', {
+      const base = mainProStorageLoadSettingsBase({
         hotelName:'', preparedBy:'Chief Engineer', approvedBy:'Maintenance Manager',
         logoUrl:'https://i.imgur.com/SW6T4ZL.png'
       });
-      const smart = safeParse('mainpro_autostatus_v1', {enabled: true});
+      const smart = mainProStorageParse(MP_STORAGE_KEYS.autostatus, {enabled: true});
       return {...base, autoStatusEnabled: smart.enabled !== false};
     });
 
     // categories
-    const [categories, setCategories] = useState(() => safeParse('mainpro_categories_v60', DEFAULT_CATS_SETTINGS));
+    const [categories, setCategories] = useState(() => mainProStorageParse(MP_STORAGE_KEYS.categories, DEFAULT_CATS_SETTINGS));
 
     // task types
-    const [taskTypes, setTaskTypes] = useState(() => safeParse('mainpro_tasktypes_v60', [
+    const [taskTypes, setTaskTypes] = useState(() => mainProStorageParse(MP_STORAGE_KEYS.taskTypes, [
       "Maintenance","Compliance","Contractor Visit","Inspection","Other"
     ]));
 
@@ -80,34 +96,27 @@ import {
     const DEFAULT_CALENDAR = { id: 'main', name: 'Main Calendar', type: 'maintenance', icon: '📅', color: '#3B82F6', created: new Date().toISOString() };
     
     const [calendars, setCalendars] = useState(() => {
-      const saved = safeParse('mainpro_calendars_v1', []);
+      const saved = mainProStorageLoadCalendars([]);
       if (saved.length === 0) {
         // Create default calendar if none exist
-        localStorage.setItem('mainpro_calendars_v1', JSON.stringify([DEFAULT_CALENDAR]));
+        mainProStorageSaveCalendars([DEFAULT_CALENDAR]);
         return [DEFAULT_CALENDAR];
       }
       return saved;
     });
 
-    const [currentCalendarId, setCurrentCalendarId] = useState(() => {
-      try {
-        return localStorage.getItem('mainpro_current_calendar_v1') || 'main';
-      } catch {
-        return 'main';
-      }
-    });
+    const [currentCalendarId, setCurrentCalendarId] = useState(() => mainProStorageLoadCurrentCalendarId());
 
     // events - now loads from current calendar
     const [events, setEvents] = useState(() => {
-      const calendarKey = `mainpro_calendar_${currentCalendarId}`;
-      const current = safeParse(calendarKey, []);
+      const current = mainProStorageLoadEventsForCalendar(currentCalendarId, []);
       // Migration: if calendar is empty but legacy key has tasks, import once.
       try {
         if ((!current || !current.length)) {
-          const legacy = safeParse('mainpro_events_v60', []);
+          const legacy = mainProStorageParse(MP_STORAGE_KEYS.eventsLegacyV60, []);
           if (Array.isArray(legacy) && legacy.length) {
             const cleaned = stripInstances(legacy);
-            try { localStorage.setItem(calendarKey, JSON.stringify(cleaned)); } catch {}
+            try { mainProStorageSaveEventsCalendarOnly(currentCalendarId, cleaned); } catch {}
             return cleaned;
           }
         }
@@ -118,7 +127,7 @@ import {
     const [docs, setDocs] = useState([]);
 
     // 📁 Document Manager PRO – state and logic from module
-    const dm = useDocumentManager(safeParse, showToast);
+    const dm = useDocumentManager(mainProStorageParse, showToast);
     const {
       dmShow, setDmShow, dmSearchQuery, setDmSearchQuery, dmFilterType, setDmFilterType,
       dmSortBy, setDmSortBy, dmViewMode, setDmViewMode, dmShowAnalytics, setDmShowAnalytics,
@@ -268,21 +277,21 @@ import {
     
     // Cloud Sync (v65.6)
     const [cloudSync,setCloudSync] = useState(() => {
-      return safeParse('mainpro_cloudsync_v1', {enabled:false,serverUrl:"",apiKey:"",lastSync:null});
+      return mainProStorageParse('mainpro_cloudsync_v1', {enabled:false,serverUrl:"",apiKey:"",lastSync:null});
     });
     const [syncStatus,setSyncStatus] = useState('disconnected');
     const [isOnline,setIsOnline] = useState(navigator.onLine);
     
     // Multi-User Collaboration (v65.7)
     const [teamMode,setTeamMode] = useState(() => {
-      return safeParse('mainpro_team_v1', {enabled:false,teamId:"",userRole:"admin",teamMembers:[],currentUser:null});
+      return mainProStorageParse('mainpro_team_v1', {enabled:false,teamId:"",userRole:"admin",teamMembers:[],currentUser:null});
     });
     const [activeUsers,setActiveUsers] = useState([]);
     const [userPresence,setUserPresence] = useState(new Map());
     
     // AI Analytics & Auto-Suggestions (v65.8)
     const [aiAnalytics,setAiAnalytics] = useState(() => {
-      return safeParse('mainpro_ai_v1', {enabled:false,predictiveMaintenance:true,complianceAlerts:true,autoSuggestions:true,analyticsLevel:"basic"});
+      return mainProStorageParse('mainpro_ai_v1', {enabled:false,predictiveMaintenance:true,complianceAlerts:true,autoSuggestions:true,analyticsLevel:"basic"});
     });
     const [aiInsights,setAiInsights] = useState([]);
     const [predictiveTasks,setPredictiveTasks] = useState([]);
@@ -291,7 +300,7 @@ import {
     
     // Audit & Reporting Dashboards (v65.9)
     const [auditLogs,setAuditLogs] = useState(() => {
-      return safeParse('mainpro_audit_v1', []);
+      return mainProStorageParse('mainpro_audit_v1', []);
     });
     const [showAuditDashboard,setShowAuditDashboard] = useState(false);
     const [showReports,setShowReports] = useState(false);
@@ -924,31 +933,24 @@ import {
       try { window.MainProEvents = Array.isArray(events) ? events : []; } catch {}
       
       // Debounce localStorage writes to avoid blocking (300ms delay)
-      const calendarKey = `mainpro_calendar_${currentCalendarId}`;
       const saveTimeout = setTimeout(() => {
-        try {
-          localStorage.setItem(calendarKey, JSON.stringify(stripInstances(events)));
-          try { localStorage.setItem('mainpro_events_v60', JSON.stringify(stripInstances(events))); } catch {}
-          try { localStorage.setItem('mainpro_events_v70', JSON.stringify(stripInstances(events))); } catch {}
-        } catch (e) {
-          console.warn('localStorage write failed:', e);
-        }
+        mainProStorageSaveEventsBundle(stripInstances(events), currentCalendarId);
       }, 300);
       
       return () => clearTimeout(saveTimeout);
     },[events,filter,search,currentCalendarId,sortBy,groupBy]);
 
-    useEffect(()=>{ localStorage.setItem('mainpro_categories_v60', JSON.stringify(categories)); },[categories]);
+    useEffect(()=>{ mainProStorageSetJson(MP_STORAGE_KEYS.categories, categories); },[categories]);
 
-    useEffect(()=>{ localStorage.setItem('mainpro_settings_v60', JSON.stringify({
+    useEffect(()=>{ mainProStorageSaveSettingsFields({
 
       hotelName:settings.hotelName, preparedBy:settings.preparedBy, approvedBy:settings.approvedBy, logoUrl:settings.logoUrl
 
-    })); },[settings.hotelName,settings.preparedBy,settings.approvedBy,settings.logoUrl]);
+    }); },[settings.hotelName,settings.preparedBy,settings.approvedBy,settings.logoUrl]);
 
-    useEffect(()=>{ localStorage.setItem('mainpro_ui_v60', JSON.stringify(ui)); },[ui]);
+    useEffect(()=>{ mainProStorageSetJson(MP_STORAGE_KEYS.ui, ui); },[ui]);
 
-    useEffect(()=>{ localStorage.setItem('mainpro_tasktypes_v60', JSON.stringify(taskTypes)); },[taskTypes]);
+    useEffect(()=>{ mainProStorageSetJson(MP_STORAGE_KEYS.taskTypes, taskTypes); },[taskTypes]);
 
     // Expose auth setter for simple Login fallback modal
     useEffect(() => {
@@ -983,7 +985,7 @@ import {
       });
     }, []);
 
-    useEffect(()=>{ localStorage.setItem('mainpro_autostatus_v1', JSON.stringify({enabled: !!settings.autoStatusEnabled})); },[settings.autoStatusEnabled]);
+    useEffect(()=>{ mainProStorageSetJson(MP_STORAGE_KEYS.autostatus, {enabled: !!settings.autoStatusEnabled}); },[settings.autoStatusEnabled]);
     
     // Dark mode effect
     useEffect(() => {
@@ -1427,7 +1429,7 @@ import {
       };
       
       setCalendars(prev => [...prev, newCalendar]);
-      localStorage.setItem('mainpro_calendars_v1', JSON.stringify([...calendars, newCalendar]));
+      mainProStorageSaveCalendars([...calendars, newCalendar]);
       showToast(`📅 Calendar "${newCalendar.name}" created`);
       
       return newCalendar;
@@ -1436,10 +1438,10 @@ import {
     function switchCalendar(calendarId) {
       if (calendars.find(cal => cal.id === calendarId)) {
         setCurrentCalendarId(calendarId);
-        localStorage.setItem('mainpro_current_calendar_v1', calendarId);
+        mainProStorageSaveCurrentCalendarId(calendarId);
         
         // Load events for the new calendar (bases only)
-        const calendarEvents = safeParse(`mainpro_calendar_${calendarId}`, []);
+        const calendarEvents = mainProStorageLoadEventsForCalendar(calendarId, []);
         const cleaned = stripInstances(calendarEvents);
         setEvents(cleaned);
         refreshCalendar(cleaned);
@@ -1460,10 +1462,10 @@ import {
       // Remove calendar from list
       const updatedCalendars = calendars.filter(cal => cal.id !== calendarId);
       setCalendars(updatedCalendars);
-      localStorage.setItem('mainpro_calendars_v1', JSON.stringify(updatedCalendars));
+      mainProStorageSaveCalendars(updatedCalendars);
       
       // Remove events for this calendar from localStorage
-      localStorage.removeItem(`mainpro_calendar_${calendarId}`);
+      mainProStorageRemoveCalendarEvents(calendarId);
       
       // If we're currently viewing the deleted calendar, switch to main
       if (currentCalendarId === calendarId) {
@@ -1482,9 +1484,9 @@ import {
       setCalendars(prev => prev.map(cal => 
         cal.id === calendarId ? { ...cal, name: newName.trim() } : cal
       ));
-      localStorage.setItem('mainpro_calendars_v1', JSON.stringify(calendars.map(cal => 
+      mainProStorageSaveCalendars(calendars.map(cal => 
         cal.id === calendarId ? { ...cal, name: newName.trim() } : cal
-      )));
+      ));
       showToast(`✏️ Calendar renamed to "${newName.trim()}"`);
     }
 
@@ -2109,7 +2111,7 @@ import {
       console.log(`Invite code: ${inviteCode}`);
       
       // Store invitation locally for demo
-      const invitations = safeParse('mainpro_invitations_v1', []);
+      const invitations = mainProStorageParse('mainpro_invitations_v1', []);
       invitations.push({
         email: email,
         role: role,
@@ -2615,7 +2617,7 @@ import {
       };
       
       setCalendars(prev => [...prev, newCalendar]);
-      localStorage.setItem('mainpro_calendars_v1', JSON.stringify([...calendars, newCalendar]));
+      mainProStorageSaveCalendars([...calendars, newCalendar]);
       showToast(`📅 Calendar "${newCalendar.name}" created`);
       
       // Add audit log
@@ -2638,7 +2640,7 @@ import {
       const updatedCalendars = calendars.map(cal => 
         cal.id === calendarId ? { ...cal, name: newName.trim() } : cal
       );
-      localStorage.setItem('mainpro_calendars_v1', JSON.stringify(updatedCalendars));
+      mainProStorageSaveCalendars(updatedCalendars);
       
       showToast(`📅 Calendar renamed to "${newName.trim()}"`);
       
@@ -2665,11 +2667,11 @@ import {
       setCalendars(prev => prev.filter(cal => cal.id !== calendarId));
       
       // Remove events for this calendar
-      localStorage.removeItem(`mainpro_calendar_${calendarId}`);
+      mainProStorageRemoveCalendarEvents(calendarId);
       
       // Update localStorage
       const updatedCalendars = calendars.filter(cal => cal.id !== calendarId);
-      localStorage.setItem('mainpro_calendars_v1', JSON.stringify(updatedCalendars));
+      mainProStorageSaveCalendars(updatedCalendars);
       
       // Switch to main calendar if current calendar was deleted
       if (currentCalendarId === calendarId) {
@@ -2688,16 +2690,14 @@ import {
     function switchCalendar(calendarId) {
       if (calendarId === currentCalendarId) return;
       
-      const calendarKey = `mainpro_calendar_${currentCalendarId}`;
-      localStorage.setItem(calendarKey, JSON.stringify(stripInstances(events)));
+      mainProStorageSaveEventsCalendarOnly(currentCalendarId, stripInstances(events));
       
       // Switch to new calendar
       setCurrentCalendarId(calendarId);
-      localStorage.setItem('mainpro_current_calendar_v1', calendarId);
+      mainProStorageSaveCurrentCalendarId(calendarId);
       
       // Load new calendar's events (bases only)
-      const newCalendarKey = `mainpro_calendar_${calendarId}`;
-      const newEvents = safeParse(newCalendarKey, []);
+      const newEvents = mainProStorageLoadEventsForCalendar(calendarId, []);
       setEvents(stripInstances(newEvents));
       
       const calendarName = calendars.find(c => c.id === calendarId)?.name || 'Unknown';
@@ -2714,8 +2714,7 @@ import {
     // Auto-save current calendar when switching
     useEffect(() => {
       if (currentCalendarId) {
-        const calendarKey = `mainpro_calendar_${currentCalendarId}`;
-        localStorage.setItem(calendarKey, JSON.stringify(stripInstances(events)));
+        mainProStorageSaveEventsCalendarOnly(currentCalendarId, stripInstances(events));
       }
     }, [currentCalendarId, events]);
 
@@ -4605,7 +4604,7 @@ import {
         }
         const cleaned = stripInstances(next);
         try {
-          localStorage.setItem(`mainpro_calendar_${currentCalendarId}`, JSON.stringify(cleaned));
+          mainProStorageSaveEventsCalendarOnly(currentCalendarId, cleaned);
         } catch (_) {}
         eventsRef.current = cleaned;
         return cleaned;
@@ -5631,8 +5630,7 @@ import {
               setEvents([]);
               calRef.current?.removeAllEvents();
               try {
-                const calendarKey = `mainpro_calendar_${currentCalendarId}`;
-                localStorage.setItem(calendarKey, JSON.stringify([]));
+                mainProStorageSaveEventsCalendarOnly(currentCalendarId, []);
               } catch {}
               showToast('🧹 All tasks cleared — Undo (10s)');
               
@@ -7761,8 +7759,7 @@ import {
                   React.createElement('button',{
                     onClick:()=>{
                       try{
-                        const key = `mainpro_calendar_${currentCalendarId}`;
-                        const raw = localStorage.getItem(key) || '[]';
+                        const raw = mainProStorageReadCalendarEventsRaw(currentCalendarId);
                         const payload = {
                           version: 1,
                           exportedAt: new Date().toISOString(),
@@ -7803,8 +7800,7 @@ import {
                         const eventsByCalendar = {};
                         cals.forEach(c=>{
                           try{
-                            const key = `mainpro_calendar_${c.id}`;
-                            const raw = localStorage.getItem(key) || '[]';
+                            const raw = mainProStorageReadCalendarEventsRaw(c.id);
                             eventsByCalendar[c.id] = JSON.parse(raw);
                           }catch{ eventsByCalendar[c.id] = []; }
                         });
@@ -7872,13 +7868,13 @@ import {
                             const cals = Array.isArray(data.calendars) ? data.calendars : [];
                             const eventsByCalendar = data.eventsByCalendar || {};
                             try { setCalendars(cals); } catch {}
-                            try { localStorage.setItem('mainpro_calendars_v1', JSON.stringify(cals)); } catch {}
+                            try { mainProStorageSaveCalendars(cals); } catch {}
                             cals.forEach(c=>{
                               const evs = Array.isArray(eventsByCalendar[c.id]) ? eventsByCalendar[c.id] : [];
-                              try { localStorage.setItem(`mainpro_calendar_${c.id}`, JSON.stringify(stripInstances(evs))); } catch {}
+                              try { mainProStorageSaveEventsCalendarOnly(c.id, stripInstances(evs)); } catch {}
                             });
                             const targetId = data.currentCalendarId || (cals[0] && cals[0].id) || currentCalendarId || 'main';
-                            try { localStorage.setItem('mainpro_current_calendar_v1', String(targetId)); } catch {}
+                            try { mainProStorageSaveCurrentCalendarId(String(targetId)); } catch {}
                             try { setCurrentCalendarId(String(targetId)); } catch {}
                             try {
                               const evs = Array.isArray(eventsByCalendar[targetId]) ? eventsByCalendar[targetId] : [];
@@ -7890,8 +7886,7 @@ import {
                             const imported = Array.isArray(data.events) ? data.events : [];
                             const cleaned = stripInstances(imported);
                             if (window.mainproRecurDebug && imported.length !== cleaned.length) console.warn('Import: dropped', imported.length - cleaned.length, 'instance(s)');
-                            const key = `mainpro_calendar_${currentCalendarId}`;
-                            try { localStorage.setItem(key, JSON.stringify(cleaned)); } catch {}
+                            try { mainProStorageSaveEventsCalendarOnly(currentCalendarId, cleaned); } catch {}
                             try { setEvents(cleaned); } catch {}
                           }
 
@@ -8636,19 +8631,19 @@ import {
 
             React.createElement('button',{onClick:()=>{
 
-                localStorage.setItem('mainpro_settings_v60', JSON.stringify({
+                mainProStorageSaveSettingsFields({
 
                   hotelName:settings.hotelName, preparedBy:settings.preparedBy, approvedBy:settings.approvedBy, logoUrl:settings.logoUrl
 
-                }));
+                });
 
-                localStorage.setItem('mainpro_ui_v60', JSON.stringify(ui));
+                mainProStorageSetJson(MP_STORAGE_KEYS.ui, ui);
 
-                localStorage.setItem('mainpro_categories_v60', JSON.stringify(categories));
+                mainProStorageSetJson(MP_STORAGE_KEYS.categories, categories);
 
-                localStorage.setItem('mainpro_tasktypes_v60', JSON.stringify(taskTypes));
+                mainProStorageSetJson(MP_STORAGE_KEYS.taskTypes, taskTypes);
 
-                localStorage.setItem('mainpro_autostatus_v1', JSON.stringify({enabled: !!settings.autoStatusEnabled}));
+                mainProStorageSetJson(MP_STORAGE_KEYS.autostatus, {enabled: !!settings.autoStatusEnabled});
 
                 mainProSettingsClose();
 
