@@ -5,6 +5,12 @@ import { DEFAULT_CATS_SETTINGS, DEFAULT_CATS, DEFAULT_TEMPLATES } from './src/mo
 import { todayISO, statusColor, formatAmPm, addDays, addMonths, toLocalISO, safeParse, showToast } from './src/modules/utils.js';
 import { stripInstances, generateOccurrences, normalizeRecur, createRefreshCalendar, createEventClick, createEventDrop, createEventResize, createGetCalendarViewRange, generateSeries } from './src/modules/CalendarLogic.js';
 import { useDocumentManager } from './src/modules/DocumentManager.js';
+import {
+  initMainProModalController,
+  MAINPRO_MODAL_ID,
+  mainProModalOpen,
+  mainProModalNotifyExclusiveDomAddTask,
+} from './mainpro-modal-controller.js';
 
 (() => {
   const { useState, useEffect, useRef, useMemo } = React;
@@ -98,6 +104,8 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
       dmGetDocumentAnalytics, dmCreateBackup, dmLinkDocumentToTask, dmAddFilesTo,
       dmOnUploadInput, dmOnDrop, dmOnDragOver, dmOnDragLeave
     } = dm;
+
+    const modalReactApiRef = useRef({});
 
     // === AI Analytics Dashboard State ===
     const [showAnalytics, setShowAnalytics] = useState(false);
@@ -427,8 +435,11 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
             window.openTaskModal(info.dateStr);
           } else {
             // Fallback to old behavior if v70.6 form not available
+            try {
+              mainProModalNotifyExclusiveDomAddTask();
+            } catch (_) {}
             setForm(f=>({...f,date:info.dateStr}));
-            setShowAdd(true);
+            mainProModalOpen(MAINPRO_MODAL_ID.ADD_TASK);
           }
 
         },
@@ -928,403 +939,12 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
       } catch {}
     }, [openSettings, showAuthModal, showAIChat, authMode]);
 
-    // === Expose modals globally (header buttons depend on this) ===
+    // === Shared modal controller: window.open*Modal, header capture router, exclusive open/close ===
     useEffect(() => {
-      try {
-        // Bind (and refresh) modal API. Do not early-return: if MainPro re-mounts,
-        // stale closures would make window.open*Modal exist but do nothing.
-        window.__mainproModalApiBound = true;
-
-        let suppressUntil = 0;
-        const now = () => (performance && performance.now) ? performance.now() : Date.now();
-        // Dedupe rapid repeated calls (e.g., duplicate React event delegates / ghost clicks)
-        const lastCallAt = { login: 0, chat: 0, settings: 0 };
-        const shouldDedupe = (key, ms = 250) => {
-          const t = now();
-          if (t - (lastCallAt[key] || 0) < ms) return true;
-          lastCallAt[key] = t;
-          return false;
-        };
-
-        const closeAllMainModals = () => {
-          try { setShowAIChat(false); } catch {}
-          try { setShowAuthModal(false); } catch {}
-          try { setOpenSettings(false); } catch {}
-          // Also close any external/simple fallback modals if they exist
-          try { if (typeof window.closeSimpleAuthModal === 'function') window.closeSimpleAuthModal(); } catch {}
-          try { if (typeof window.closeSimpleAIChatModal === 'function') window.closeSimpleAIChatModal(); } catch {}
-        };
-
-        // --- DOM fallback modals (only used if React modal doesn't appear) ---
-        const ensureFallbackHelpers = () => {
-          if (window.__mainproDomModalHelpers) return;
-          window.__mainproDomModalHelpers = true;
-
-          const mkOverlay = (id) => {
-            const existing = document.getElementById(id);
-            if (existing) return existing;
-            const ov = document.createElement('div');
-            ov.id = id;
-            // Mirror MainPro modal overlay styling
-            ov.className = 'fixed inset-0 bg-black/40 flex items-center justify-center p-4 mp-overlay-anim';
-            ov.setAttribute('data-mp-overlay', '1');
-            // Ensure above everything else
-            ov.style.zIndex = '99999';
-            document.body.appendChild(ov);
-            return ov;
-          };
-
-          const mkPanel = (title) => {
-            const panel = document.createElement('div');
-            // Mirror MainPro modal panel styling/classes
-            panel.className = 'modal-enter modal-ready bg-white w-full max-w-md rounded-2xl p-0 shadow-xl border border-amber-200 overflow-hidden';
-            panel.setAttribute('data-mp-modal', '1');
-            panel.style.borderTop = '4px solid #f59e0b';
-            const head = document.createElement('div');
-            head.className = 'px-6 pt-6 pb-4 border-b border-amber-200 flex items-center justify-between';
-            head.style.background = 'linear-gradient(135deg, #fef3c7, #fde68a)';
-            const h = document.createElement('div');
-            h.textContent = title;
-            h.className = 'text-xl font-semibold flex items-center gap-2';
-            h.style.color = '#92400e';
-            const x = document.createElement('button');
-            x.textContent = '✕';
-            x.className = 'text-gray-600 hover:text-gray-800 px-3 py-1.5 rounded-lg hover:bg-white/50 transition-colors flex-shrink-0 tooltip-bottom';
-            x.setAttribute('data-tooltip', 'Close');
-            x.setAttribute('aria-label', 'Close');
-            head.appendChild(h);
-            head.appendChild(x);
-            panel.appendChild(head);
-            return { panel, closeBtn: x };
-          };
-
-          window.openSimpleAuthModal = window.openSimpleAuthModal || function () {
-            const ov = mkOverlay('mp-dom-auth');
-            ov.innerHTML = '';
-            const { panel, closeBtn } = mkPanel('🔐 Login to MainPro');
-            const body = document.createElement('div');
-            body.className = 'px-6 pb-6';
-            body.style.background = '#fffbeb';
-            body.innerHTML = `
-              <div class="space-y-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                  <input id="mp-dom-auth-email" type="email" placeholder="your@email.com"
-                    class="w-full px-3 py-2 border border-amber-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-amber-300">
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                  <input id="mp-dom-auth-pass" type="password" placeholder="••••••••"
-                    class="w-full px-3 py-2 border border-amber-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-amber-300">
-                </div>
-                <button id="mp-dom-auth-login"
-                  class="w-full px-4 py-2 text-white rounded-lg hover:opacity-90 font-medium"
-                  style="background:#f59e0b">Login</button>
-                <div class="text-center">
-                  <button id="mp-dom-auth-signup" class="text-sm text-amber-800 hover:text-amber-900" type="button">
-                    Don't have an account? Sign Up
-                  </button>
-                </div>
-              </div>
-            `;
-            panel.appendChild(body);
-            ov.appendChild(panel);
-            const close = () => { try { ov.remove(); } catch {} };
-            closeBtn.onclick = close;
-            ov.onclick = (e) => { if (e.target === ov) close(); };
-            const loginBtn = panel.querySelector('#mp-dom-auth-login');
-            if (loginBtn) {
-              loginBtn.onclick = () => {
-                try {
-                  if (typeof window.mainProSetAuth === 'function') {
-                    window.mainProSetAuth({ name: 'Demo User', email: (panel.querySelector('#mp-dom-auth-email')||{}).value || 'demo@mainpro.com' });
-                  }
-                } catch {}
-                close();
-              };
-            }
-            const signupBtn = panel.querySelector('#mp-dom-auth-signup');
-            if (signupBtn) {
-              signupBtn.onclick = () => {
-                try { if (typeof window.showToast === 'function') window.showToast('📝 Sign Up (demo)'); } catch {}
-              };
-            }
-            window.closeSimpleAuthModal = close;
-          };
-
-          window.openSimpleAIChatModal = window.openSimpleAIChatModal || function () {
-            const ov = mkOverlay('mp-dom-chat');
-            ov.innerHTML = '';
-            const { panel, closeBtn } = mkPanel('🤖 MainPro AI Assistant');
-            // Wider chat modal like the React version
-            panel.className = 'modal-enter modal-ready bg-white w-full max-w-2xl rounded-2xl p-0 shadow-xl h-[600px] flex flex-col border border-amber-200 overflow-hidden';
-            panel.style.borderTop = '4px solid #f59e0b';
-            const body = document.createElement('div');
-            body.className = 'flex-1 p-6 overflow-y-auto';
-            body.style.background = '#fffbeb';
-            body.innerHTML = `
-              <div id="mp-dom-chat-log" class="space-y-3">
-                <div class="flex">
-                  <div class="px-3 py-2 rounded-2xl text-sm border border-amber-200 bg-white text-gray-700 max-w-[85%]">
-                    Hello! How can I help?
-                    <div class="text-[11px] text-gray-400 mt-1">AI</div>
-                  </div>
-                </div>
-              </div>
-            `;
-            const footer = document.createElement('div');
-            footer.className = 'px-6 py-4 border-t border-amber-200 flex gap-3';
-            footer.style.background = '#fffbeb';
-            footer.innerHTML = `
-              <input id="mp-dom-chat-in" class="flex-1 px-4 py-2 border border-amber-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-300" placeholder="Type a message...">
-              <button id="mp-dom-chat-send" class="px-6 py-2 text-white rounded-lg hover:opacity-90 font-medium" style="background:#f59e0b">Send</button>
-            `;
-            panel.appendChild(body);
-            panel.appendChild(footer);
-            ov.appendChild(panel);
-            const close = () => { try { ov.remove(); } catch {} };
-            closeBtn.onclick = close;
-            ov.onclick = (e) => { if (e.target === ov) close(); };
-            const logEl = panel.querySelector('#mp-dom-chat-log');
-            const inEl = panel.querySelector('#mp-dom-chat-in');
-            const send = () => {
-              const txt = (inEl && inEl.value) ? String(inEl.value).trim() : '';
-              if (!txt) return;
-              if (inEl) inEl.value = '';
-              if (logEl) {
-                const uWrap = document.createElement('div');
-                uWrap.className = 'flex justify-end';
-                const u = document.createElement('div');
-                u.className = 'px-3 py-2 rounded-2xl text-sm bg-amber-100 text-amber-900 max-w-[85%]';
-                u.textContent = txt;
-                uWrap.appendChild(u);
-                logEl.appendChild(uWrap);
-
-                const aWrap = document.createElement('div');
-                aWrap.className = 'flex';
-                const a = document.createElement('div');
-                a.className = 'px-3 py-2 rounded-2xl text-sm border border-amber-200 bg-white text-gray-700 max-w-[85%]';
-                a.textContent = '(offline demo) Add an API key in Settings to enable AI.';
-                aWrap.appendChild(a);
-                logEl.appendChild(aWrap);
-                logEl.scrollTop = logEl.scrollHeight;
-              }
-            };
-            const sendBtn = panel.querySelector('#mp-dom-chat-send');
-            if (sendBtn) sendBtn.onclick = send;
-            if (inEl) inEl.onkeydown = (e) => { if (e.key === 'Enter') send(); };
-            window.closeSimpleAIChatModal = close;
-          };
-        };
-
-        const hasModalWithText = (needle) => {
-          try {
-            return Array.from(document.querySelectorAll('[data-mp-modal]')).some(m => String(m.textContent||'').includes(needle));
-          } catch { return false; }
-        };
-
-        // One late check only: early timers (0/50ms) ran before React painted and opened a duplicate DOM modal.
-        const ensureReactOrFallback = (type) => {
-          if (type === 'settings') return;
-          const needle = type === 'login' ? 'Login to MainPro' : (type === 'chat' ? 'MainPro AI Assistant' : '');
-          const openFallback = type === 'login'
-            ? () => { ensureFallbackHelpers(); window.openSimpleAuthModal(); }
-            : type === 'chat'
-              ? () => { ensureFallbackHelpers(); window.openSimpleAIChatModal(); }
-              : null;
-          setTimeout(() => {
-            try {
-              if (!needle || !openFallback) return;
-              if (hasModalWithText(needle)) return;
-              openFallback();
-            } catch (_) {}
-          }, 480);
-        };
-
-        window.openLoginModal = () => {
-          // Prevent "ghost click" right after Settings opens
-          if (now() < suppressUntil) {
-            try { if (window.__mainproDebugModals) console.log('[MainPro] openLoginModal blocked (suppressUntil)', { inMs: Math.round(suppressUntil - now()) }); } catch {}
-            return;
-          }
-          if (shouldDedupe('login')) {
-            try { if (window.__mainproDebugModals) console.log('[MainPro] openLoginModal blocked (dedupe)'); } catch {}
-            return;
-          }
-          // Block any immediate follow-up opens triggered by the same click sequence
-          suppressUntil = now() + 400;
-          try {
-            // Always prefer the built-in React modal (most reliable).
-            try {
-              window.__mainproModalOpenedAt = window.__mainproModalOpenedAt || {};
-              window.__mainproModalOpenedAt.login = Date.now();
-            } catch {}
-            // Close other modals, but don't bounce auth modal itself.
-            try { setOpenSettings(false); } catch {}
-            try { setShowAIChat(false); } catch {}
-            setAuthMode('login');
-            setShowAuthModal(true);
-            // Re-assert open state in case something immediately closes it (click-through/retarget)
-            setTimeout(() => { try { setShowAuthModal(true); } catch {} }, 0);
-            setTimeout(() => { try { setShowAuthModal(true); } catch {} }, 80);
-            try { if (typeof window.showToast === 'function') window.showToast('🔐 Login'); } catch {}
-            if (window.__mainproDebugModals) console.log('[MainPro] openLoginModal()');
-            ensureReactOrFallback('login');
-          } catch (e) {
-            console.warn('[MainPro] openLoginModal failed:', e);
-            // Last resort: try external/simple modal if present
-            try { if (typeof window.openSimpleAuthModal === 'function') window.openSimpleAuthModal(); } catch {}
-          }
-        };
-
-        window.openAIChatModal = () => {
-          if (now() < suppressUntil) {
-            try { if (window.__mainproDebugModals) console.log('[MainPro] openAIChatModal blocked (suppressUntil)', { inMs: Math.round(suppressUntil - now()) }); } catch {}
-            return;
-          }
-          if (shouldDedupe('chat')) {
-            try { if (window.__mainproDebugModals) console.log('[MainPro] openAIChatModal blocked (dedupe)'); } catch {}
-            return;
-          }
-          suppressUntil = now() + 400;
-          try {
-            // Always prefer the built-in React modal (most reliable).
-            try {
-              window.__mainproModalOpenedAt = window.__mainproModalOpenedAt || {};
-              window.__mainproModalOpenedAt.chat = Date.now();
-            } catch {}
-            try { setOpenSettings(false); } catch {}
-            try { setShowAuthModal(false); } catch {}
-            setShowAIChat(true);
-            setTimeout(() => { try { setShowAIChat(true); } catch {} }, 0);
-            setTimeout(() => { try { setShowAIChat(true); } catch {} }, 80);
-            try { if (typeof window.showToast === 'function') window.showToast('💬 AI Chat'); } catch {}
-            if (window.__mainproDebugModals) console.log('[MainPro] openAIChatModal()');
-            ensureReactOrFallback('chat');
-          } catch (e) {
-            console.warn('[MainPro] openAIChatModal failed:', e);
-            // Last resort: try external/simple modal if present
-            try { if (typeof window.openSimpleAIChatModal === 'function') window.openSimpleAIChatModal(); } catch {}
-          }
-        };
-
-        window.openSettingsModal = () => {
-          if (shouldDedupe('settings')) {
-            try { if (window.__mainproDebugModals) console.log('[MainPro] openSettingsModal blocked (dedupe)'); } catch {}
-            return;
-          }
-          // Optional diagnostics (enable manually): window.__mainproDebugModals = true
-          try {
-            if (window.__mainproDebugModals) {
-              console.log('[MainPro] openSettingsModal()', { stack: (new Error('settings-click')).stack });
-            }
-          } catch {}
-          // Block any immediate follow-up login/chat opens caused by retargeted clicks
-          suppressUntil = now() + 800;
-          // Close other modals
-          try { setShowAIChat(false); } catch {}
-          try { setShowAuthModal(false); } catch {}
-          try {
-            window.__mainproModalOpenedAt = window.__mainproModalOpenedAt || {};
-            window.__mainproModalOpenedAt.settings = Date.now();
-          } catch {}
-          setOpenSettings(true);
-          setTimeout(() => { try { setOpenSettings(true); } catch {} }, 0);
-          try { if (typeof window.showToast === 'function') window.showToast('⚙️ Settings'); } catch {}
-        };
-
-        // Alias: some UI labels refer to "Network"
-        window.openNetworkModal = window.openSettingsModal;
-
-        // === Header click router (capture) ===
-        // If some layer intercepts clicks, React onClick may not fire.
-        // Use CAPTURED "click" (not pointerdown) to avoid: open-on-pointerdown -> overlay mounts -> same click hits overlay and instantly closes.
-        if (!window.__mainproHeaderRouterBound) {
-          window.__mainproHeaderRouterBound = true;
-          const LABELS = {
-            settings: '⚙️ Settings',
-            chat: '💬 AI Chat',
-            login: '🔐 Login',
-          };
-          const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim();
-          const labelOfBtn = (btn) => norm(btn && (btn.innerText || btn.textContent));
-          const inRect = (x, y, r) => x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
-
-          const headerRect = () => {
-            const h = document.querySelector('.glassbar');
-            return h ? h.getBoundingClientRect() : null;
-          };
-
-          const findHeaderButtonAtPoint = (x, y) => {
-            const hr = headerRect();
-            if (!hr || !inRect(x, y, hr)) return null;
-            const btns = Array.from(document.querySelectorAll('button'));
-            const candidates = btns.filter((b) => {
-              const t = labelOfBtn(b);
-              return t === LABELS.settings || t === LABELS.chat || t === LABELS.login;
-            });
-            // pick smallest area button containing point
-            let best = null;
-            let bestArea = Infinity;
-            for (const b of candidates) {
-              const r = b.getBoundingClientRect();
-              if (!inRect(x, y, r)) continue;
-              const area = Math.max(0, r.width) * Math.max(0, r.height);
-              if (area < bestArea) { best = b; bestArea = area; }
-            }
-            return best;
-          };
-
-          const handler = (e) => {
-            try {
-              // Don't route while any overlay is open (avoids click-through / modal close races)
-              if (document.querySelector('[data-mp-overlay]')) return;
-
-              const directBtn = e.target && e.target.closest ? e.target.closest('button') : null;
-              const directLabel = directBtn ? labelOfBtn(directBtn) : '';
-              const btn = (directBtn && (directLabel === LABELS.settings || directLabel === LABELS.chat || directLabel === LABELS.login))
-                ? directBtn
-                : findHeaderButtonAtPoint(e.clientX, e.clientY);
-              if (!btn) return;
-
-              const lab = labelOfBtn(btn);
-              if (window.__mainproDebugModals) console.log('[MainPro] header router hit', lab);
-
-              // Route immediately and stop the event so we don't double-fire via React
-              e.preventDefault();
-              e.stopPropagation();
-              if (e.stopImmediatePropagation) e.stopImmediatePropagation();
-
-              if (lab === LABELS.settings && typeof window.openSettingsModal === 'function') {
-                window.openSettingsModal();
-              } else if (lab === LABELS.chat && typeof window.openAIChatModal === 'function') {
-                window.openAIChatModal();
-              } else if (lab === LABELS.login && typeof window.openLoginModal === 'function') {
-                window.openLoginModal();
-              }
-            } catch (err) {
-              console.warn('[MainPro] header router failed:', err);
-            }
-          };
-
-          document.addEventListener('click', handler, true);
-          // Store for cleanup (in case React root ever unmounts/remounts)
-          window.__mainproHeaderRouterHandler = handler;
-        }
-      } catch (e) {
-        console.warn('[MainPro] Failed to bind modal API:', e);
-      }
-      // Cleanup is mostly for hot-reload/unmount scenarios; should be a no-op in normal stable runtime.
-      return () => {
-        try {
-          const h = window.__mainproHeaderRouterHandler;
-          if (h) document.removeEventListener('click', h, true);
-        } catch {}
-        try {
-          window.__mainproHeaderRouterHandler = null;
-          window.__mainproHeaderRouterBound = false;
-        } catch {}
-      };
+      return initMainProModalController({
+        getApi: () => modalReactApiRef.current,
+        isDebug: () => !!window.__mainproDebugModals,
+      });
     }, []);
 
     useEffect(()=>{ localStorage.setItem('mainpro_autostatus_v1', JSON.stringify({enabled: !!settings.autoStatusEnabled})); },[settings.autoStatusEnabled]);
@@ -1445,7 +1065,11 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
           if (window.openTaskModal) {
             window.openTaskModal();
           } else {
-            setShowAdd(true);
+            try {
+              mainProModalNotifyExclusiveDomAddTask();
+            } catch (_) {}
+            setForm(f => ({ ...f, date: todayISO() }));
+            mainProModalOpen(MAINPRO_MODAL_ID.ADD_TASK);
           }
         }
 
@@ -1458,7 +1082,11 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
             if (window.openTaskModal) {
               window.openTaskModal();
             } else {
-              setShowAdd(true);
+              try {
+                mainProModalNotifyExclusiveDomAddTask();
+              } catch (_) {}
+              setForm(f => ({ ...f, date: todayISO() }));
+              mainProModalOpen(MAINPRO_MODAL_ID.ADD_TASK);
             }
           }
         }
@@ -5652,13 +5280,16 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
       // a dedicated effect (modal API + header capture router) owns them. Overwriting broke
       // Login/AI after calendar switch (cleanup deleted them) and dropped close-other-modals logic.
       const openTaskModalImpl = (dateOrPref) => {
+        try {
+          mainProModalNotifyExclusiveDomAddTask();
+        } catch (_) {}
         const date = typeof dateOrPref === 'string' ? dateOrPref : (dateOrPref?.date || dateOrPref?.start);
         const pref = date ? { date: String(date).slice(0, 10) } : (dateOrPref && typeof dateOrPref === 'object' ? dateOrPref : {});
         if (typeof window.openAddTaskModal === 'function') {
           window.openAddTaskModal(pref);
         } else {
           setForm(f => ({ ...f, date: (pref && pref.date) || todayISO() }));
-          setShowAdd(true);
+          mainProModalOpen(MAINPRO_MODAL_ID.ADD_TASK);
         }
       };
       window.openTaskModal = openTaskModalImpl;
@@ -5678,6 +5309,16 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
         delete window.openTaskModal;
       };
     }, [currentCalendarId]);
+
+    modalReactApiRef.current = {
+      setOpenSettings,
+      setShowAuthModal,
+      setShowAIChat,
+      setShowTemplates,
+      setShowAdd,
+      setDmShow,
+      setAuthMode,
+    };
 
     return React.createElement('div', {className:`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-[#FDFCF8]'}`, style:{'--acc': ui.primary}},
 
@@ -5936,7 +5577,7 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
           }, className:btn('bg-yellow-500') + " tooltip-bottom", 'data-tooltip':'Add Task (N or +, Enter)'},'Add Task'),
 
           React.createElement('button',{
-            onClick:()=>setShowTemplates(true),
+            onClick:()=>{ try { mainProModalOpen(MAINPRO_MODAL_ID.TEMPLATES); } catch (_) { setShowTemplates(true); } },
             className:"px-3 py-2 rounded-md bg-white border hover:bg-gray-100 shadow-sm tooltip-bottom",
             'data-tooltip':"Task templates"
           },'📋 Templates'),
@@ -5982,7 +5623,11 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
               onClick:(e)=>{
                 try{ e.stopPropagation(); }catch{}
                 if (window.openSimpleDocsModal) {
-                  window.openSimpleDocsModal();
+                  try {
+                    mainProModalOpen(MAINPRO_MODAL_ID.DOCUMENTS_SIMPLE);
+                  } catch (_) {
+                    window.openSimpleDocsModal();
+                  }
                 } else {
                   alert('Documents window script not loaded.');
                 }
@@ -6347,7 +5992,12 @@ import { useDocumentManager } from './src/modules/DocumentManager.js';
                       if (typeof window.openTaskModal === 'function') { window.openTaskModal(pref); return; }
                     } catch {}
                     try { setForm(f => ({...f, title: pref.title || '', date: pref.date || f.date, time: pref.time || f.time, catId: pref.catId || f.catId })); } catch {}
-                    try { setShowAdd(true); } catch {}
+                    try {
+                      mainProModalNotifyExclusiveDomAddTask();
+                    } catch (_) {}
+                    try {
+                      mainProModalOpen(MAINPRO_MODAL_ID.ADD_TASK);
+                    } catch (_) {}
                   },
                   className:"w-full text-left px-4 py-3 hover:bg-amber-50",
                   style:{borderLeft:'4px solid', borderLeftColor: tpl.priority==='high' ? '#ef4444' : '#f59e0b'}
