@@ -5,6 +5,7 @@
 
 import { statusColor } from './utils.js';
 import { generateOccurrences } from '../../mainpro-recurring-engine.js';
+export { createEventDrop, createEventResize } from '../../mainpro-drag-resize-module.js';
 
 /** Bases-only integrity: remove any instance events. */
 export function stripInstances(list) {
@@ -171,92 +172,6 @@ export function createEventClick(deps) {
     } else if (src) {
       setEditEvent({ ...src, _seriesScope: 'one' });
     }
-  };
-}
-
-/**
- * Factory: returns eventDrop handler for FullCalendar.
- */
-export function createEventDrop(deps) {
-  const { eventsRef, setEvents, stripInstances, settings, runSmartStatusOnce } = deps;
-  return function handleEventDrop(info) {
-    const id = info.event.id;
-    const idStr = String(id);
-    const start = info.event.startStr?.slice(0, 16);
-    const end = info.event.endStr?.slice(0, 16) || start;
-    if (idStr.includes('-') && info.oldEvent && info.oldEvent.startStr) {
-      const seriesId = idStr.replace(/-?\d+$/, '');
-      const base = eventsRef.current.find(
-        (e) => !e.isInstance && e.seriesId && String(e.seriesId) === seriesId
-      );
-      if (base) {
-        const oldDate = info.oldEvent.startStr.slice(0, 10);
-        const ex = [...(base.recur?.exceptions || []), oldDate];
-        const oneOff = {
-          ...base,
-          id: Date.now(),
-          seriesId: null,
-          recur:
-            base.recur && base.recur.freq && base.recur.freq !== 'none'
-              ? { freq: 'none', interval: 1, end: { type: 'never' }, exceptions: [] }
-              : base.recur || {},
-          start,
-          end,
-          isInstance: false
-        };
-        setEvents((prev) => {
-          const next = prev.map((e) =>
-            e.id === base.id ? { ...e, recur: { ...(e.recur || {}), exceptions: ex } } : e
-          );
-          return stripInstances([...next, oneOff]);
-        });
-        if (typeof window.hideTooltipGlobal === 'function') window.hideTooltipGlobal();
-        if (settings.autoStatusEnabled && runSmartStatusOnce) runSmartStatusOnce();
-        return;
-      }
-    }
-    setEvents((prev) => prev.map((e) => (String(e.id) === idStr ? { ...e, start, end } : e)));
-    if (typeof window.hideTooltipGlobal === 'function') window.hideTooltipGlobal();
-    if (settings.autoStatusEnabled && runSmartStatusOnce) runSmartStatusOnce();
-  };
-}
-
-/**
- * Factory: returns eventResize handler for FullCalendar.
- */
-export function createEventResize(deps) {
-  const { eventsRef, setEvents, refreshCalendar } = deps;
-  return function handleEventResize(info) {
-    const id = info.event.id;
-    const idStr = String(id);
-    const start = info.event.startStr?.slice(0, 16);
-    const end = info.event.endStr?.slice(0, 16) || start;
-    if (idStr.includes('-')) {
-      const seriesId = idStr.replace(/-?\d+$/, '');
-      const base = eventsRef.current.find(
-        (e) => !e.isInstance && e.seriesId && String(e.seriesId) === seriesId
-      );
-      if (base) {
-        if (info.oldEvent && info.oldEvent.startStr) {
-          const oldDate = info.oldEvent.startStr.slice(0, 10);
-          const ex = [...(base.recur?.exceptions || []), oldDate];
-          setEvents((prev) =>
-            prev.map((e) =>
-              e.id === base.id ? { ...e, recur: { ...(e.recur || {}), exceptions: ex } } : e
-            )
-          );
-          eventsRef.current = eventsRef.current.map((e) =>
-            e.id === base.id ? { ...e, recur: { ...(e.recur || {}), exceptions: ex } } : e
-          );
-        }
-        refreshCalendar(eventsRef.current);
-        if (typeof window.hideTooltipGlobal === 'function') window.hideTooltipGlobal();
-        return;
-      }
-    }
-    setEvents((prev) => prev.map((e) => (String(e.id) === idStr ? { ...e, start, end } : e)));
-    if (typeof window.hideTooltipGlobal === 'function') window.hideTooltipGlobal();
-    if (deps.settings?.autoStatusEnabled && deps.runSmartStatusOnce) deps.runSmartStatusOnce();
   };
 }
 
