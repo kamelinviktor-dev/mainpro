@@ -46,18 +46,191 @@
   .touch-target { min-height: 44px; min-width: 44px; }
   .mobile-button { padding: 12px 16px; font-size: 16px; }
   
-  /* Dark Mode */
-  .dark body { background: #111827; color: #f9fafb; }
-  .dark .glassbar { background: rgba(17, 24, 39, 0.9); border-bottom-color: rgba(255,255,255,0.1); }
-  .dark .fc { color: #f9fafb; }
-  .dark .fc .fc-daygrid-day-number { color: #d1d5db; }
-  .dark .fc .fc-button { background: #374151; color: #f9fafb; }
-  .dark .fc .fc-button:hover { background: #4b5563; }
-  .dark .picker-panel { background: #1f2937; color: #f9fafb; }
-  .dark .mp-pop { background: #1f2937; }
+  /* Dark Mode — readable text on all surfaces (calendar, modals, tooltips) */
+  .dark { color-scheme: dark; }
+  .dark body { background: #111827; color: #e5e7eb; }
+
+  .dark .glassbar { background: rgba(17, 24, 39, 0.92); border-bottom-color: rgba(255,255,255,0.1); }
+
+  /* FullCalendar: dark grid (was white cells + inherited light text issues) */
+  .dark .fc { color: #e5e7eb; }
+  .dark .fc .fc-scrollgrid,
+  .dark .fc .fc-scrollgrid-section > *,
+  .dark .fc td,
+  .dark .fc th {
+    background: #111827 !important;
+    border-color: #374151 !important;
+  }
+  .dark .fc .fc-daygrid-day-frame,
+  .dark .fc .fc-daygrid-day-bg,
+  .dark .fc .fc-daygrid-day {
+    background: #0f172a !important;
+  }
+  .dark .fc .fc-col-header-cell,
+  .dark .fc .fc-daygrid-day.fc-day-today {
+    background: #1e293b !important;
+  }
+  .dark .fc .fc-daygrid-day-number { color: #e5e7eb !important; }
+  .dark .fc .fc-day-other .fc-daygrid-day-number { color: #6b7280 !important; }
+  .dark .fc .fc-list-day-cushion,
+  .dark .fc .fc-list-event:hover td {
+    background: #1f2937 !important;
+  }
+  .dark .fc .fc-button { background: #374151 !important; color: #f9fafb !important; border-color: #4b5563 !important; }
+  .dark .fc .fc-button:hover { background: #4b5563 !important; }
+  .dark .fc .fc-event { border-color: rgba(0,0,0,0.15) !important; }
+
+  .dark .picker-panel { background: #1f2937; color: #e5e7eb; }
+  .dark .picker-btn { background: #374151 !important; border-color: #4b5563 !important; color: #e5e7eb !important; }
+  .dark .picker-btn:hover { background: #4b5563 !important; }
+
+  /* Event hover tooltip: dark chrome + readable body */
+  .dark .mp-pop {
+    background: #1f2937;
+    color: #e5e7eb;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.45), 0 0 0 1px #4b5563;
+  }
+  .dark .mp-pop-head { color: #fef3c7; }
+  .dark .mp-pop-body { color: #e5e7eb; }
+  .dark .mp-pop-row { color: #d1d5db !important; }
+  .dark .mp-pop-ico { background: #374151 !important; color: #e5e7eb !important; }
+  .dark .mp-pop-ico-time { background: #1e3a5f !important; color: #93c5fd !important; }
+  .dark .mp-pop-ico-cat { background: #3b2f5c !important; color: #c4b5fd !important; }
+  .dark .mp-pop-ico-pri { background: #422006 !important; color: #fcd34d !important; }
+  .dark .mp-pop-actions { border-top-color: #4b5563; }
+
+  /* Tailwind surfaces */
   .dark .bg-white { background: #1f2937 !important; }
+  .dark .bg-gray-50 { background: #111827 !important; }
+  .dark .bg-gray-100 { background: #374151 !important; }
+  .dark .hover\:bg-gray-50:hover { background: #374151 !important; }
+  .dark .hover\:bg-gray-100:hover { background: #4b5563 !important; }
+
+  .dark .text-gray-900 { color: #f3f4f6 !important; }
+  .dark .text-gray-800 { color: #e5e7eb !important; }
   .dark .text-gray-700 { color: #d1d5db !important; }
+  .dark .text-gray-600 { color: #9ca3af !important; }
+  .dark .text-gray-500 { color: #9ca3af !important; }
+
   .dark .border { border-color: #374151 !important; }
+  .dark .border-amber-200 { border-color: #92400e !important; }
+  .dark .border-gray-200 { border-color: #374151 !important; }
+
+  /* React modals: default light text on dark panel; cream inline panes get dark text */
+  .dark [data-mp-modal] { color: #e5e7eb; }
+  .dark [data-mp-modal] div[style*="fffbeb"],
+  .dark [data-mp-modal] div[style*="#fffbeb"],
+  .dark [data-mp-modal] div[style*="rgb(255, 251, 235)"] {
+    color: #1f2937 !important;
+  }
+  .dark [data-mp-modal] div[style*="fffbeb"] .text-gray-600,
+  .dark [data-mp-modal] div[style*="fffbeb"] .text-gray-700,
+  .dark [data-mp-modal] div[style*="fffbeb"] label,
+  .dark [data-mp-modal] div[style*="#fffbeb"] .text-gray-600,
+  .dark [data-mp-modal] div[style*="#fffbeb"] .text-gray-700,
+  .dark [data-mp-modal] div[style*="#fffbeb"] label,
+  .dark [data-mp-modal] div[style*="rgb(255, 251, 235)"] label {
+    color: #374151 !important;
+  }
+
+  /*
+   * Поля в модалках: глобальное .dark .bg-white красит фон в #1f2937 — инпуты выглядят «слишком тёмными».
+   * Принудительно светлые поля + заметная рамка.
+   */
+  .dark [data-mp-modal] input:not([type="checkbox"]):not([type="radio"]),
+  .dark [data-mp-modal] select,
+  .dark [data-mp-modal] textarea {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #111827 !important;
+    border: 1px solid #fcd34d !important;
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.06);
+  }
+  .dark [data-mp-modal] input::placeholder,
+  .dark [data-mp-modal] textarea::placeholder {
+    color: #6b7280 !important;
+    opacity: 1;
+  }
+  .dark [data-mp-modal] select option {
+    background: #ffffff;
+    color: #111827;
+  }
+
+  /* Document Manager (.dm) — те же светлые поля */
+  .dark .dm input:not([type="checkbox"]):not([type="radio"]),
+  .dark .dm select,
+  .dark .dm textarea {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #111827 !important;
+    border: 1px solid #fcd34d !important;
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.06);
+  }
+  .dark .dm input::placeholder,
+  .dark .dm textarea::placeholder {
+    color: #6b7280 !important;
+    opacity: 1;
+  }
+
+  /* Simple Documents — поиск и поля */
+  .dark #mp-simple-docs-overlay input:not([type="checkbox"]):not([type="radio"]),
+  .dark #mp-simple-docs-overlay select,
+  .dark #mp-simple-docs-overlay textarea {
+    background: #ffffff !important;
+    color: #111827 !important;
+    border: 1px solid #fcd34d !important;
+  }
+
+  /* Add Task v74 — gold/white UI stays light; stop inheriting app light text */
+  .dark .mp-add-overlay { background: rgba(0,0,0,0.75) !important; }
+  .dark .mp-add-overlay .mp-add {
+    color: #1f2937;
+  }
+  .dark .mp-add-overlay .mp-label,
+  .dark .mp-add-overlay .mp-section-title {
+    color: #374151 !important;
+  }
+  .dark .mp-add-overlay .mp-mini {
+    color: #6b7280 !important;
+  }
+  .dark .mp-add-overlay .mp-input,
+  .dark .mp-add-overlay .mp-select,
+  .dark .mp-add-overlay .mp-textarea,
+  .dark .mp-add-overlay input:not([type="checkbox"]):not([type="radio"]),
+  .dark .mp-add-overlay select,
+  .dark .mp-add-overlay textarea {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #111827 !important;
+    border-color: #f59e0b !important;
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.05);
+  }
+  .dark .mp-add-overlay .mp-input::placeholder,
+  .dark .mp-add-overlay .mp-textarea::placeholder {
+    color: #6b7280 !important;
+    opacity: 1;
+  }
+
+  /* Simple Documents modal (portal) — explicit text on white panels */
+  .dark #mp-simple-docs-overlay {
+    color: #1f2937;
+  }
+  .dark #mp-simple-docs-overlay .mp-docs-main,
+  .dark #mp-simple-docs-overlay .mp-docs-sidebar {
+    color: #1f2937;
+  }
+
+  /* React Documents (.dm) — cards stay light with dark type */
+  .dark .dm { color: #e5e7eb; }
+  .dark .dm .dm-card {
+    background: #fffef8 !important;
+    color: #1f2937 !important;
+    border-color: #f59e0b !important;
+  }
+  .dark .dm-ddrop {
+    background: #fffef8 !important;
+    color: #92400e !important;
+  }
 
   /* Fixed calendar area */
 
