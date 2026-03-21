@@ -23,6 +23,12 @@ import {
   mainProAuthClose,
   mainProAuthCloseWithAnim,
 } from './mainpro-auth-module.js';
+import {
+  useMainProAIChatModal,
+  mainProAIChatOpen,
+  mainProAIChatClose,
+  mainProAIChatCloseWithAnim,
+} from './mainpro-ai-chat-module.js';
 
 (() => {
   const { useState, useEffect, useRef, useMemo } = React;
@@ -328,7 +334,7 @@ import {
     } = useMainProAuthModal(React); // 'login' | 'signup' | 'profile'
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [authUser, setAuthUser] = useState(null);
-    const [showAIChat, setShowAIChat] = useState(false);
+    const { showAIChat, setShowAIChat } = useMainProAIChatModal(React);
     const [chatMessages, setChatMessages] = useState([]);
     const [chatInput, setChatInput] = useState('');
     const [auditFilter,setAuditFilter] = useState('all');
@@ -1138,7 +1144,7 @@ import {
           if (showEmergencyModal) { setShowEmergencyModal(false); didClose = true; }
           if (showBusinessModal) { setShowBusinessModal(false); didClose = true; }
           if (showAuthModal) { mainProAuthClose(); didClose = true; }
-          if (showAIChat) { setShowAIChat(false); didClose = true; }
+          if (showAIChat) { mainProAIChatClose(); didClose = true; }
           if (showTemplates) { setShowTemplates(false); didClose = true; }
           if (showHotkeyHelp) { setShowHotkeyHelp(false); didClose = true; }
           if (showList) { setShowList(false); didClose = true; }
@@ -5467,7 +5473,7 @@ import {
             
             // 💬 AI Chat Button (simple fallback — React modal may not open)
             React.createElement('button',{
-              onClick:(e)=>{ e.stopPropagation(); if (typeof window.openAIChatModal === 'function') window.openAIChatModal(); else if (typeof window.openSimpleAIChatModal === 'function') window.openSimpleAIChatModal(); else setShowAIChat(true); },
+              onClick:(e)=>{ e.stopPropagation(); if (typeof window.openAIChatModal === 'function') window.openAIChatModal(); else if (typeof window.openSimpleAIChatModal === 'function') window.openSimpleAIChatModal(); else mainProAIChatOpen(); },
               className:"px-3 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:opacity-90 shadow-sm"
             },'💬 AI Chat'),
             
@@ -11671,7 +11677,7 @@ import {
             const t = (window.__mainproModalOpenedAt && window.__mainproModalOpenedAt.chat) ? window.__mainproModalOpenedAt.chat : 0;
             if (t && (Date.now() - t) < 350) return;
           } catch {}
-          mpCloseWithAnim(()=>setShowAIChat(false), e); 
+          mainProAIChatCloseWithAnim(mpCloseWithAnim, e); 
         } 
       }},
         React.createElement('div',{className:"modal-enter modal-ready bg-white w-full max-w-2xl rounded-2xl p-0 shadow-xl h-[600px] flex flex-col border border-amber-200 overflow-hidden", style:{borderTop:'4px solid', borderTopColor:'#f59e0b'}, 'data-mp-modal':'1'},
@@ -11685,7 +11691,7 @@ import {
               )
             ),
             React.createElement('button',{
-              onClick:(e)=>mpCloseWithAnim(()=>setShowAIChat(false), e),
+              onClick:(e)=>mainProAIChatCloseWithAnim(mpCloseWithAnim, e),
               className:"text-gray-600 hover:text-gray-800 px-3 py-1.5 rounded-lg hover:bg-white/50 transition-colors flex-shrink-0 tooltip-bottom",
               'data-tooltip':"Close"
             },'✕')
