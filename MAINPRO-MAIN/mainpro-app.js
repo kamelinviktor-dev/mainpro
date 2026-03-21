@@ -5,11 +5,7 @@ import { DEFAULT_CATS_SETTINGS, DEFAULT_CATS, DEFAULT_TEMPLATES } from './src/mo
 import { todayISO, statusColor, formatAmPm, addDays, addMonths, toLocalISO, safeParse, showToast } from './src/modules/utils.js';
 import { stripInstances, generateOccurrences, normalizeRecur, createRefreshCalendar, createEventClick, createEventDrop, createEventResize, createGetCalendarViewRange, generateSeries } from './src/modules/CalendarLogic.js';
 import { useDocumentManager } from './src/modules/DocumentManager.js';
-import {
-  initMainProModalController,
-  MAINPRO_MODAL_ID,
-  mainProModalOpen,
-} from './mainpro-modal-controller.js';
+import { initMainProModalController } from './mainpro-modal-controller.js';
 import {
   useMainProSettingsModal,
   mainProSettingsOpen,
@@ -40,6 +36,11 @@ import {
   mainProAddTaskClose,
   mainProAddTaskPrepareDomOpen,
 } from './mainpro-addtask-modal-module.js';
+import {
+  mainProDocumentsOpenSimple,
+  mainProDocumentsCloseReact,
+  mainProDocumentsCloseReactWithAnim,
+} from './mainpro-documents-module.js';
 
 (() => {
   const { useState, useEffect, useRef, useMemo } = React;
@@ -1128,7 +1129,7 @@ import {
           if (showAnalytics) { setShowAnalytics(false); didClose = true; }
           if (showPicker) { setShowPicker(false); didClose = true; }
           if (editEvent) { setEditEvent(null); didClose = true; }
-          if (dmShow) { setDmShow(false); didClose = true; }
+          if (dmShow) { mainProDocumentsCloseReact(); didClose = true; }
           if (previewDoc) { setPreviewDoc(null); didClose = true; }
           if (showTeamSettings) { setShowTeamSettings(false); didClose = true; }
           if (showInviteModal) { setShowInviteModal(false); didClose = true; }
@@ -5648,13 +5649,7 @@ import {
             {
               onClick:(e)=>{
                 try{ e.stopPropagation(); }catch{}
-                if (window.openSimpleDocsModal) {
-                  try {
-                    mainProModalOpen(MAINPRO_MODAL_ID.DOCUMENTS_SIMPLE);
-                  } catch (_) {
-                    window.openSimpleDocsModal();
-                  }
-                } else {
+                if (!mainProDocumentsOpenSimple()) {
                   alert('Documents window script not loaded.');
                 }
               },
@@ -11816,7 +11811,7 @@ import {
         {className:"fixed inset-0 bg-black/40 flex items-start justify-center z-50 p-3 sm:p-6 mp-overlay-anim",
          'data-mp-overlay':'1',
          style:{zIndex:9999, position:'fixed'},
-         onClick:(e)=>{ if(e.target===e.currentTarget) mpCloseWithAnim(()=>setDmShow(false), e); }},
+         onClick:(e)=>{ if(e.target===e.currentTarget) mainProDocumentsCloseReactWithAnim(mpCloseWithAnim, e); }},
         React.createElement('div',{className:"dm bg-white w-full max-w-4xl lg:max-w-5xl xl:max-w-6xl rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col modal-enter modal-ready",
          'data-mp-modal':'1',
          style:{borderTop:'4px solid', borderTopColor:'#f59e0b', maxHeight:'80vh', zIndex:10000, position:'relative'}},
@@ -12452,7 +12447,7 @@ import {
                 
                 // Close
                 React.createElement('button',{
-                  onClick:(e)=>mpCloseWithAnim(()=>setDmShow(false), e), 
+                  onClick:(e)=>mainProDocumentsCloseReactWithAnim(mpCloseWithAnim, e), 
                   className:"text-gray-600 hover:text-gray-800 px-3 py-1.5 rounded-lg hover:bg-white/50 transition-colors flex-shrink-0 tooltip-bottom",
                   'data-tooltip':"Close"
                 },'✕')
