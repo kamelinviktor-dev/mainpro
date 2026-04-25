@@ -9,6 +9,10 @@ let historyViewFilter = "all";
 /** set when opening Park modal */
 let _parkTargetId = null;
 
+/** in-memory only: job id string → show full log */
+const jobLogExpanded = Object.create(null);
+const JOB_LOG_PREVIEW_COUNT = 1;
+
 const MAINPRO_USER_KEY = "mainpro_user";
 const MAINPRO_ROLES = [
   "Reception",
@@ -103,6 +107,8 @@ function loadJobs() {
         x.comments = legacy.map((text, i) => ({
           text,
           createdAt: new Date(base + i).toISOString(),
+          author: "Engineer",
+          type: "info",
         }));
         changed = true;
       }
@@ -142,6 +148,20 @@ function loadJobs() {
     if (x.pendingReason == null) {
       x.pendingReason = "";
       changed = true;
+    }
+    if (x.overdueLoggedForUntil == null) {
+      x.overdueLoggedForUntil = "";
+      changed = true;
+    }
+    {
+      const u = (x.pendingUntil || "").trim();
+      if (x.status === "Pending" && u) {
+        const t = new Date(u).getTime();
+        if (!isNaN(t) && Date.now() > t && x.overdueLoggedForUntil === "") {
+          x.overdueLoggedForUntil = u;
+          changed = true;
+        }
+      }
     }
     delete x.isOverdue;
     return x;
@@ -292,6 +312,47 @@ function syncOverdueFlags() {
   });
 }
 
+function appendSystemComment(j, text) {
+  const msg = (text == null ? "" : String(text)).trim();
+  if (!msg) return;
+  if (!Array.isArray(j.comments)) j.comments = [];
+  j.comments.push({
+    text: msg,
+    createdAt: new Date().toISOString(),
+    author: "System",
+  });
+}
+
+/**
+ * When pending until passes, log once per pending-until value (overdueLoggedForUntil).
+ */
+function appendOverdueAuditIfNeeded() {
+  let any = false;
+  for (let i = 0; i < jobs.length; i++) {
+    const j = jobs[i];
+    if (j.status !== "Pending" || !(j.pendingUntil || "").trim()) {
+      if (j.overdueLoggedForUntil) {
+        j.overdueLoggedForUntil = "";
+        any = true;
+      }
+      continue;
+    }
+    const u = (j.pendingUntil || "").trim();
+    if (!j.isOverdue) {
+      if (j.overdueLoggedForUntil) {
+        j.overdueLoggedForUntil = "";
+        any = true;
+      }
+      continue;
+    }
+    if (j.overdueLoggedForUntil === u) continue;
+    appendSystemComment(j, "Job became Overdue");
+    j.overdueLoggedForUntil = u;
+    any = true;
+  }
+  if (any) save();
+}
+
 function formatDurationHMFromMs(totalMs) {
   if (totalMs < 0) totalMs = 0;
   const totalMin = Math.floor(totalMs / 60000);
@@ -389,7 +450,13 @@ function getSearchQuery() {
 
 function getJobCommentsTextBlob(j) {
   const arr = Array.isArray(j.comments) ? j.comments : [];
-  return arr.map((c) => (c && c.text) || "").join(" ");
+  return arr
+    .map((c) => {
+      if (!c) return "";
+      const d = getCommentDisplayFields(c);
+      return [d.text, d.author, d.type].filter(Boolean).join(" ");
+    })
+    .join(" ");
 }
 
 function matchesJobSearch(j, q) {
@@ -467,6 +534,7 @@ function updateFilterButtonsActiveState() {
 
 function render() {
   syncOverdueFlags();
+  appendOverdueAuditIfNeeded();
 
   const activeEl = document.getElementById("jobs-active");
   const historyEl = document.getElementById("jobs-history");
@@ -542,6 +610,52 @@ function formatCommentTimestamp(iso) {
   return `${day} ${mon} ${y}, ${h}:${m}`;
 }
 
+/** e.g. 25 Apr 20:15 — for system timeline lines */
+function formatSystemLogTime(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "—";
+  const months = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split(" ");
+  return `${d.getDate()} ${months[d.getMonth()]} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
+const COMMENT_TYPES = ["info", "issue", "action", "done"];
+
+/** Backward compatible: default author and type for legacy or partial objects. */
+function getCommentDisplayFields(c) {
+  if (!c) {
+    return { text: "", createdAt: "", author: "Engineer", type: "info" };
+  }
+  const t = String(c.type || "info")
+    .toLowerCase()
+    .trim();
+  const type = COMMENT_TYPES.indexOf(t) >= 0 ? t : "info";
+  const author =
+    c.author && String(c.author).trim() ? String(c.author).trim() : "Engineer";
+  return { text: c.text, createdAt: c.createdAt, author, type };
+}
+
+function getCommentTypeBadgeLabel(type) {
+  return { issue: "ISSUE", action: "ACTION", done: "DONE" }[type] || "";
+}
+
+function isSystemLogComment(c) {
+  if (!c) return false;
+  if (String(c.author == null ? "" : c.author).trim() === "System")
+    return true;
+  if (String(c.type || "").toLowerCase().trim() === "system") return true;
+  return false;
+}
+
+/**
+ * For engineer / user message cards, tint to match the parent job card.
+ */
+function getCommentLogToneClass(j) {
+  if (j.status === "Pending" && j.isOverdue) return "comment-log--tone-overdue";
+  if (j.status === "Pending") return "comment-log--tone-pending";
+  return "comment-log--tone-default";
+}
+
 function getCommentsSortedNewestFirst(j) {
   const arr = (Array.isArray(j.comments) ? j.comments : [])
     .filter((c) => c && String(c.text || "").trim());
@@ -556,27 +670,62 @@ function getCommentsSortedNewestFirst(j) {
     .map((x) => x.c);
 }
 
-/** Comment log in Active and History (single source of truth). */
+function renderJobLogItemHtml(c) {
+  const d = getCommentDisplayFields(c);
+  if (isSystemLogComment(c)) {
+    const t = formatSystemLogTime(d.createdAt);
+    const msg = String(d.text == null ? "" : d.text).trim();
+    return `<div class="job-log-line job-log-line--system" role="listitem"><span>— ${escapeHtml(
+      msg
+    )} · ${escapeHtml(t)} —</span></div>`;
+  }
+  const label = getCommentTypeBadgeLabel(d.type);
+  const showBadge = Boolean(d.type && d.type !== "info" && label);
+  const badgeBlock =
+    showBadge && label
+      ? `<div class="comment-log-badge-wrap"><span class="comment-type-badge comment-type-badge--${d.type}">${escapeHtml(
+          label
+        )}</span></div>`
+      : "";
+  return `<div class="comment-log-item comment-log-item--engineer" role="listitem">
+      <div class="comment-log-time">${escapeHtml(
+        formatCommentTimestamp(d.createdAt) || "—"
+      )}</div>
+      <div class="comment-log-author">${escapeHtml(d.author)}</div>
+      ${badgeBlock}
+      <div class="comment-log-text">${escapeHtml(
+        String(d.text == null ? "" : d.text).trim()
+      )}</div>
+    </div>`;
+}
+
+/** Job log in Active and History: timeline + collapse (in-memory expand per job). */
 function renderEngineerNotesSavedSection(j) {
   const list = getCommentsSortedNewestFirst(j);
-  let body;
+  const tone = getCommentLogToneClass(j);
+  const idKey = String(j.id);
+  const hasMore = list.length > JOB_LOG_PREVIEW_COUNT;
+  const expanded = !!jobLogExpanded[idKey];
+  const displayList =
+    hasMore && !expanded ? list.slice(0, JOB_LOG_PREVIEW_COUNT) : list;
   if (!list.length) {
-    body = `<div class="comment-log comment-log--empty">No notes yet</div>`;
-  } else {
-    const items = list
-      .map(
-        (c) =>
-          `<div class="comment-log-item">
-            <div class="comment-log-time">${escapeHtml(
-              formatCommentTimestamp(c.createdAt) || "—"
-            )}</div>
-            <div class="comment-log-text">${escapeHtml(String(c.text).trim())}</div>
-          </div>`
-      )
-      .join("");
-    body = `<div class="comment-log" role="list">${items}</div>`;
+    return `<label class="comment-label">Job Log</label><div class="comment-log comment-log--empty job-log--timeline ${tone}">No notes yet</div>`;
   }
-  return `<label class="comment-label">Engineer notes</label>${body}`;
+  const items = displayList.map((c) => renderJobLogItemHtml(c)).join("");
+  const toggleBtn = hasMore
+    ? `<div class="job-log-foot"><button type="button" class="btn-job-log-toggle" data-job-id="${jobIdForDomAttr(
+        j.id
+      )}">${
+        expanded ? "Hide logs" : "Show all logs"
+      }</button></div>`
+    : "";
+  return `<label class="comment-label">Job Log</label><div class="comment-log job-log--timeline ${tone}" role="list">${items}${toggleBtn}</div>`;
+}
+
+function toggleJobLog(id) {
+  const k = String(id);
+  jobLogExpanded[k] = !jobLogExpanded[k];
+  render();
 }
 
 /**
@@ -780,6 +929,7 @@ function addJob() {
 function setStatus(id, status) {
   const j = jobs.find((x) => String(x.id) === String(id));
   if (!j) return;
+  if (String(j.status) === String(status)) return;
   j.status = status;
   if (status === "Done") {
     j.completedAt = new Date().toISOString();
@@ -791,6 +941,11 @@ function setStatus(id, status) {
   if (status !== "Pending") {
     j.pendingUntil = "";
     j.pendingReason = "";
+  }
+  if (status === "In Progress") {
+    appendSystemComment(j, "Moved to In Progress");
+  } else if (status === "Done") {
+    appendSystemComment(j, "Job completed");
   }
   save();
   render();
@@ -852,6 +1007,7 @@ function confirmPark() {
   j.status = "Pending";
   j.pendingUntil = d.toISOString();
   j.pendingReason = reason;
+  appendSystemComment(j, "Moved to Pending");
   save();
   closeParkDialog();
   render();
@@ -897,7 +1053,12 @@ function saveEngineerNote(btn) {
     return;
   }
   if (!Array.isArray(j.comments)) j.comments = [];
-  j.comments.push({ text, createdAt: new Date().toISOString() });
+  j.comments.push({
+    text,
+    createdAt: new Date().toISOString(),
+    author: "Engineer",
+    type: "info",
+  });
   if (ta) ta.value = "";
   save();
   render();
@@ -907,6 +1068,7 @@ function saveEngineerNote(btn) {
 }
 
 window.saveEngineerNote = saveEngineerNote;
+window.toggleJobLog = toggleJobLog;
 
 function openPhotoLightbox(src) {
   if (!src || String(src).indexOf("data:image/") !== 0) return;
@@ -982,6 +1144,14 @@ setInterval(function () {
 
 /* Thumbnail / full-screen photo */
 document.addEventListener("click", function (e) {
+  const logBtn = e.target && e.target.closest && e.target.closest(".btn-job-log-toggle");
+  if (logBtn) {
+    e.preventDefault();
+    const raw = logBtn.getAttribute("data-job-id");
+    const id = jobIdFromDomAttr(raw);
+    if (id != null) toggleJobLog(id);
+    return;
+  }
   const t = e.target;
   if (t && t.classList && t.classList.contains("job-photo-thumb")) {
     e.preventDefault();
