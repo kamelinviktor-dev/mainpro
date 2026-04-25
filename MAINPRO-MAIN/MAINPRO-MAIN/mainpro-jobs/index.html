@@ -242,26 +242,39 @@
 
     .tabs {
       display: flex;
-      gap: 8px;
-      margin: 0 0 12px;
+      gap: 6px;
+      margin: 0 0 10px;
     }
 
     .tab {
+      display: flex;
+      align-items: center;
+      justify-content: center;
       flex: 1;
-      padding: 12px 10px;
-      font-size: 15px;
-      font-weight: 600;
-      border: 1px solid #e5e7eb;
+      height: 36px;
+      padding: 0 10px;
+      font-size: 13px;
+      font-weight: 500;
       border-radius: 10px;
-      background: #fff;
+      background: #f3f4f6;
       color: #374151;
+      border: none;
       cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: background 0.15s ease, color 0.15s ease;
     }
 
     .tab.active {
       background: #059669;
       color: #fff;
-      border-color: #059669;
+    }
+
+    .tab:focus {
+      outline: none;
+    }
+
+    .tab:focus-visible {
+      box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.35);
     }
 
     .panel {
@@ -570,19 +583,25 @@
       scrollbar-width: thin;
     }
 
+    /* Counter tiles: flat, minimal (logic uses .job-dashboard-card + --active) */
     .job-dashboard-card {
+      height: 48px;
       min-height: 48px;
-      max-height: 52px;
+      max-height: 48px;
+      box-sizing: border-box;
+      padding: 6px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      background: #fafbfc;
-      border: 1px solid #e5e7eb;
-      border-radius: 12px;
-      padding: 4px 5px;
       text-align: center;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      box-shadow: none;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
     }
 
     .job-dashboard button.job-dashboard-card--click {
@@ -594,26 +613,6 @@
       -webkit-appearance: none;
     }
 
-    .job-dashboard-card--new {
-      border-top: 2px solid #6b7280;
-    }
-
-    .job-dashboard-card--progress {
-      border-top: 2px solid #ea580c;
-    }
-
-    .job-dashboard-card--pending {
-      border-top: 2px solid #f59e0b;
-    }
-
-    .job-dashboard-card--overdue {
-      border-top: 2px solid #e11d48;
-    }
-
-    .job-dashboard-card--done {
-      border-top: 2px solid #16a34a;
-    }
-
     .job-dashboard-label {
       display: block;
       font-size: 10px;
@@ -621,37 +620,29 @@
       color: #6b7280;
       text-transform: none;
       letter-spacing: 0.01em;
-      line-height: 1.15;
+      line-height: 1.2;
     }
 
     .job-dashboard-value {
       display: block;
-      font-size: 20px;
+      font-size: 18px;
       font-weight: 600;
       color: #111827;
       line-height: 1.1;
-      margin-top: 2px;
-    }
-
-    .job-dashboard-card--click {
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-      transition: transform 0.1s, box-shadow 0.1s, border-color 0.1s;
+      margin-top: 1px;
     }
 
     .job-dashboard-card--click:hover {
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.07);
-      background: #fff;
+      background: #f9fafb;
     }
 
     .job-dashboard-card--click:active {
-      transform: scale(0.99);
+      background: #f3f4f6;
     }
 
-    .job-dashboard-card--active {
-      box-shadow: 0 0 0 1.5px #059669, 0 1px 4px rgba(5, 150, 105, 0.12);
-      border-color: #a7d4c0;
-      background: #fff;
+    .job-dashboard-card.job-dashboard-card--active {
+      border-color: #059669;
+      background: rgba(5, 150, 105, 0.06);
     }
 
     .job-search {
@@ -686,17 +677,17 @@
 
     .filter-btn {
       flex: 0 0 auto;
-      min-height: 32px;
-      height: 32px;
-      padding: 0 10px;
+      min-height: 30px;
+      height: 30px;
+      padding: 0 9px;
       font-size: 12px;
       font-weight: 500;
       border: 1px solid #e5e7eb;
-      border-radius: 10px;
-      background: #f9fafb;
+      border-radius: 8px;
+      background: #fff;
       color: #4b5563;
       cursor: pointer;
-      transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+      transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
     }
 
     .filter-btn:hover:not(.active) {
