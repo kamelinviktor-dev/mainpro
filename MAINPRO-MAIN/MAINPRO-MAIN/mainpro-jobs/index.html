@@ -444,6 +444,74 @@
       margin: 0 0 14px;
     }
 
+    .job-dashboard {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin: 0 0 10px;
+    }
+
+    @media (min-width: 400px) {
+      .job-dashboard {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    @media (min-width: 640px) {
+      .job-dashboard {
+        grid-template-columns: repeat(5, 1fr);
+        gap: 6px;
+      }
+    }
+
+    .job-dashboard-card {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 8px 8px 10px;
+      text-align: center;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    }
+
+    .job-dashboard-card--new {
+      border-top: 3px solid #6b7280;
+    }
+
+    .job-dashboard-card--progress {
+      border-top: 3px solid #ea580c;
+    }
+
+    .job-dashboard-card--pending {
+      border-top: 3px solid #f59e0b;
+    }
+
+    .job-dashboard-card--overdue {
+      border-top: 3px solid #e11d48;
+    }
+
+    .job-dashboard-card--done {
+      border-top: 3px solid #16a34a;
+    }
+
+    .job-dashboard-label {
+      display: block;
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+      line-height: 1.2;
+    }
+
+    .job-dashboard-value {
+      display: block;
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: #111827;
+      line-height: 1.2;
+      margin-top: 4px;
+    }
+
     .job-search {
       width: 100%;
       padding: 12px 14px;
@@ -747,6 +815,28 @@
     </div>
 
     <div class="list-toolbar">
+      <div class="job-dashboard" id="jobDashboard" role="status" aria-label="Workload summary" aria-live="polite">
+        <div class="job-dashboard-card job-dashboard-card--new">
+          <span class="job-dashboard-label">New</span>
+          <span class="job-dashboard-value" id="dashCountNew">0</span>
+        </div>
+        <div class="job-dashboard-card job-dashboard-card--progress">
+          <span class="job-dashboard-label">In progress</span>
+          <span class="job-dashboard-value" id="dashCountInProgress">0</span>
+        </div>
+        <div class="job-dashboard-card job-dashboard-card--pending">
+          <span class="job-dashboard-label">Pending</span>
+          <span class="job-dashboard-value" id="dashCountPending">0</span>
+        </div>
+        <div class="job-dashboard-card job-dashboard-card--overdue">
+          <span class="job-dashboard-label">Overdue</span>
+          <span class="job-dashboard-value" id="dashCountOverdue">0</span>
+        </div>
+        <div class="job-dashboard-card job-dashboard-card--done">
+          <span class="job-dashboard-label">Done today</span>
+          <span class="job-dashboard-value" id="dashCountDoneToday">0</span>
+        </div>
+      </div>
       <input type="search" id="jobSearch" class="job-search" placeholder="Search jobs..." autocomplete="off">
       <div class="status-filters" role="group" aria-label="Filter by status">
         <button type="button" class="filter-btn active" data-status-filter="All" onclick="setStatusFilter('All')">All</button>

@@ -247,6 +247,68 @@ function formatCreatedDisplay(createdAt) {
   }
 }
 
+function isCompletedAtToday(iso) {
+  if (iso == null || iso === "") return false;
+  const t = new Date(iso).getTime();
+  if (isNaN(t)) return false;
+  const d = new Date(t);
+  const now = new Date();
+  return (
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate()
+  );
+}
+
+/** Pending with a due time that has already passed. */
+function isJobPendingOverdue(j) {
+  if (j.status !== "Pending") return false;
+  const u = (j.pendingUntil || "").trim();
+  if (!u) return false;
+  const t = new Date(u).getTime();
+  if (isNaN(t)) return false;
+  return Date.now() > t;
+}
+
+function getDashboardCounts() {
+  let nNew = 0;
+  let nInProgress = 0;
+  let nPending = 0;
+  let nOverdue = 0;
+  let nDoneToday = 0;
+  for (let i = 0; i < jobs.length; i++) {
+    const j = jobs[i];
+    const st = j.status;
+    if (st === "New") nNew++;
+    else if (st === "In Progress") nInProgress++;
+    else if (st === "Pending") {
+      nPending++;
+      if (isJobPendingOverdue(j)) nOverdue++;
+    }
+    if (st === "Done" && isCompletedAtToday(j.completedAt)) nDoneToday++;
+  }
+  return {
+    nNew: nNew,
+    nInProgress: nInProgress,
+    nPending: nPending,
+    nOverdue: nOverdue,
+    nDoneToday: nDoneToday,
+  };
+}
+
+function updateDashboard() {
+  const c = getDashboardCounts();
+  const set = (id, v) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = String(v);
+  };
+  set("dashCountNew", c.nNew);
+  set("dashCountInProgress", c.nInProgress);
+  set("dashCountPending", c.nPending);
+  set("dashCountOverdue", c.nOverdue);
+  set("dashCountDoneToday", c.nDoneToday);
+}
+
 function getSearchQuery() {
   const el = document.getElementById("jobSearch");
   return ((el && el.value) || "").trim().toLowerCase();
@@ -326,6 +388,7 @@ function render() {
       historyEl.innerHTML += renderHistoryCard(j);
     });
   }
+  updateDashboard();
 }
 
 function idAttr(id) {
