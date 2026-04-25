@@ -81,9 +81,39 @@ function loadJobs() {
       changed = true;
     }
     x.id = String(x.id);
-    if (x.engineerComment == null) {
-      x.engineerComment = "";
+    if (!Array.isArray(x.comments)) {
+      x.comments = [];
       changed = true;
+    }
+    {
+      const legacy = [];
+      if (typeof x.notes === "string" && x.notes.trim()) {
+        legacy.push(x.notes.trim());
+      }
+      if (typeof x.engineerComment === "string" && x.engineerComment.trim()) {
+        const t = x.engineerComment.trim();
+        if (legacy[legacy.length - 1] !== t) legacy.push(t);
+      }
+      if (x.comments.length === 0 && legacy.length) {
+        const hasCreated =
+          x.createdAt && String(x.createdAt).trim();
+        const base = hasCreated
+          ? new Date(x.createdAt).getTime()
+          : Date.now();
+        x.comments = legacy.map((text, i) => ({
+          text,
+          createdAt: new Date(base + i).toISOString(),
+        }));
+        changed = true;
+      }
+      if (x.engineerComment != null) {
+        delete x.engineerComment;
+        changed = true;
+      }
+      if (x.notes != null) {
+        delete x.notes;
+        changed = true;
+      }
     }
     if (x.photo == null) {
       x.photo = "";
@@ -130,6 +160,9 @@ function save() {
   const out = jobs.map((j) => {
     const o = { ...j };
     delete o.isOverdue;
+    delete o.engineerComment;
+    delete o.notes;
+    if (!Array.isArray(o.comments)) o.comments = [];
     return o;
   });
   localStorage.setItem("jobs", JSON.stringify(out));
@@ -354,6 +387,11 @@ function getSearchQuery() {
   return ((el && el.value) || "").trim().toLowerCase();
 }
 
+function getJobCommentsTextBlob(j) {
+  const arr = Array.isArray(j.comments) ? j.comments : [];
+  return arr.map((c) => (c && c.text) || "").join(" ");
+}
+
 function matchesJobSearch(j, q) {
   if (!q) return true;
   const parts = [
@@ -362,7 +400,7 @@ function matchesJobSearch(j, q) {
     j.reportedBy,
     j.priority,
     j.status,
-    j.engineerComment,
+    getJobCommentsTextBlob(j),
     j.pendingUntil,
     j.pendingReason,
   ].map((v) => String(v == null ? "" : v).toLowerCase());
@@ -488,13 +526,57 @@ function idAttr(id) {
   return JSON.stringify(String(id));
 }
 
-/** Same label + saved-text block in Active and History (single source of truth). */
+/**
+ * e.g. 25 Apr 2026, 18:45
+ */
+function formatCommentTimestamp(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  const months = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split(" ");
+  const day = d.getDate();
+  const mon = months[d.getMonth()];
+  const y = d.getFullYear();
+  const h = String(d.getHours()).padStart(2, "0");
+  const m = String(d.getMinutes()).padStart(2, "0");
+  return `${day} ${mon} ${y}, ${h}:${m}`;
+}
+
+function getCommentsSortedNewestFirst(j) {
+  const arr = (Array.isArray(j.comments) ? j.comments : [])
+    .filter((c) => c && String(c.text || "").trim());
+  return arr
+    .map((c, i) => ({ c, i }))
+    .sort((a, b) => {
+      const ta = new Date(a.c.createdAt).getTime();
+      const tb = new Date(b.c.createdAt).getTime();
+      if (tb !== ta) return tb - ta;
+      return b.i - a.i;
+    })
+    .map((x) => x.c);
+}
+
+/** Comment log in Active and History (single source of truth). */
 function renderEngineerNotesSavedSection(j) {
-  const savedNotes = (j.engineerComment || "").trim();
-  const body = savedNotes
-    ? `<div class="comment-saved-display">${escapeHtml(savedNotes)}</div>`
-    : `<div class="comment-saved-display comment-saved-empty">No notes yet</div>`;
-  return `<label class="comment-label">Engineer notes (saved)</label>${body}`;
+  const list = getCommentsSortedNewestFirst(j);
+  let body;
+  if (!list.length) {
+    body = `<div class="comment-log comment-log--empty">No notes yet</div>`;
+  } else {
+    const items = list
+      .map(
+        (c) =>
+          `<div class="comment-log-item">
+            <div class="comment-log-time">${escapeHtml(
+              formatCommentTimestamp(c.createdAt) || "—"
+            )}</div>
+            <div class="comment-log-text">${escapeHtml(String(c.text).trim())}</div>
+          </div>`
+      )
+      .join("");
+    body = `<div class="comment-log" role="list">${items}</div>`;
+  }
+  return `<label class="comment-label">Engineer notes</label>${body}`;
 }
 
 /**
@@ -659,7 +741,7 @@ function addJob() {
       priority,
       reportedBy: reportedBy || "",
       status: "New",
-      engineerComment: "",
+      comments: [],
       photo: photo || "",
       completedAt: "",
       createdAt: new Date().toISOString(),
@@ -808,17 +890,15 @@ function saveEngineerNote(btn) {
   if (id == null) return;
   const ta = job.querySelector("textarea.comment-new");
   const text = ta ? String(ta.value).trim() : "";
-  if (!text) {
-    alert("Please type a note first.");
-    return;
-  }
+  if (!text) return;
   const j = jobs.find((x) => String(x.id) === String(id));
   if (!j) {
     alert("Could not find this job. Try refreshing the page.");
     return;
   }
-  const cur = (j.engineerComment || "").trim();
-  j.engineerComment = cur ? cur + "\n\n" + text : text;
+  if (!Array.isArray(j.comments)) j.comments = [];
+  j.comments.push({ text, createdAt: new Date().toISOString() });
+  if (ta) ta.value = "";
   save();
   render();
   setTimeout(function () {

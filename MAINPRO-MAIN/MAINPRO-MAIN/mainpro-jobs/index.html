@@ -678,22 +678,40 @@
       font-weight: 600;
     }
 
-    .comment-saved-display {
+    .comment-log {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin: 0 0 10px;
+    }
+
+    .comment-log--empty {
+      font-size: 0.9rem;
+      color: #94a3b8;
+      font-style: italic;
+      padding: 8px 0;
+    }
+
+    .comment-log-item {
       font-size: 0.9rem;
       line-height: 1.45;
-      white-space: pre-wrap;
       word-break: break-word;
       padding: 10px 12px;
-      margin: 0 0 10px;
       background: #f8fafc;
-      border: 1px solid #e2e8f0;
+      border: 1px solid #e7edf3;
       border-radius: 8px;
       color: #1e293b;
     }
 
-    .comment-saved-display.comment-saved-empty {
-      color: #94a3b8;
-      font-style: italic;
+    .comment-log-time {
+      font-size: 0.75rem;
+      color: #64748b;
+      font-weight: 500;
+      margin-bottom: 6px;
+    }
+
+    .comment-log-text {
+      white-space: pre-wrap;
     }
 
     textarea.comment-new {
