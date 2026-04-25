@@ -276,6 +276,58 @@
       flex: 0 0 auto;
       min-width: 88px;
     }
+
+    .reported-by-line {
+      display: block;
+      margin-top: 6px;
+      font-size: 0.9rem;
+      color: #334155;
+    }
+
+    .list-toolbar {
+      margin: 0 0 14px;
+    }
+
+    .job-search {
+      width: 100%;
+      padding: 12px 14px;
+      font-size: 16px;
+      border: 1px solid #e0e0e0;
+      border-radius: 10px;
+      margin-bottom: 10px;
+      background: #fff;
+    }
+
+    .job-search:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
+
+    .status-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .filter-btn {
+      flex: 1 1 auto;
+      min-width: 0;
+      padding: 8px 6px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      background: #fff;
+      color: #374151;
+      cursor: pointer;
+    }
+
+    .filter-btn.active {
+      background: #0f766e;
+      color: #fff;
+      border-color: #0f766e;
+    }
   </style>
 </head>
 <body>
@@ -299,6 +351,16 @@
         </select>
       </div>
       <div class="form-field">
+        <div class="form-hint">Reported by</div>
+        <select id="reportedBy">
+          <option>Reception</option>
+          <option>Housekeeping</option>
+          <option>Security</option>
+          <option>Maintenance</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="form-field">
         <div class="form-hint">Optional — attach a photo</div>
         <input id="jobPhoto" type="file" accept="image/*" capture="environment">
         <div id="jobPhotoPreview"></div>
@@ -309,6 +371,15 @@
     <div class="tabs" role="tablist">
       <button type="button" class="tab active" data-tab="active" onclick="setTab('active')">Active Jobs</button>
       <button type="button" class="tab" data-tab="history" onclick="setTab('history')">History</button>
+    </div>
+
+    <div class="list-toolbar">
+      <input type="search" id="jobSearch" class="job-search" placeholder="Search jobs..." autocomplete="off">
+      <div class="status-filters" role="group" aria-label="Filter by status">
+        <button type="button" class="filter-btn active" data-status-filter="All" onclick="setStatusFilter('All')">All</button>
+        <button type="button" class="filter-btn" data-status-filter="New" onclick="setStatusFilter('New')">New</button>
+        <button type="button" class="filter-btn" data-status-filter="In Progress" onclick="setStatusFilter('In Progress')">In Progress</button>
+      </div>
     </div>
 
     <div id="panel-active" class="panel">

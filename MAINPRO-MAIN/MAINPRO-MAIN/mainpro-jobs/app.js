@@ -1,4 +1,6 @@
 let jobs = loadJobs();
+/** All | New | In Progress — use History tab for completed jobs */
+let statusFilter = "All";
 
 function loadJobs() {
   let list = JSON.parse(localStorage.getItem("jobs") || "[]");
@@ -29,6 +31,10 @@ function loadJobs() {
     }
     if (x.createdAt == null) {
       x.createdAt = "";
+      changed = true;
+    }
+    if (x.reportedBy == null) {
+      x.reportedBy = "";
       changed = true;
     }
     return x;
@@ -86,14 +92,45 @@ function formatCreatedDisplay(createdAt) {
   }
 }
 
+function getSearchQuery() {
+  const el = document.getElementById("jobSearch");
+  return ((el && el.value) || "").trim().toLowerCase();
+}
+
+function matchesJobSearch(j, q) {
+  if (!q) return true;
+  const parts = [j.location, j.problem, j.reportedBy, j.priority, j.status].map(
+    (v) => String(v == null ? "" : v).toLowerCase()
+  );
+  return parts.some((p) => p.indexOf(q) >= 0);
+}
+
+/**
+ * Active list: New / In Progress only. If a stale filter was "Done" (old UI), show all.
+ */
+function matchesStatusFilterForActive(j) {
+  if (statusFilter === "All" || statusFilter === "Done") return true;
+  return j.status === statusFilter;
+}
+
+function setStatusFilter(s) {
+  statusFilter = s;
+  render();
+}
+
 function render() {
   const activeEl = document.getElementById("jobs-active");
   const historyEl = document.getElementById("jobs-history");
   if (activeEl) activeEl.innerHTML = "";
   if (historyEl) historyEl.innerHTML = "";
 
-  const actives = jobs.filter((j) => isActiveStatus(j.status));
-  const doneList = jobs
+  const q = getSearchQuery();
+
+  let actives = jobs.filter((j) => isActiveStatus(j.status));
+  actives = actives.filter((j) => matchesStatusFilterForActive(j));
+  actives = actives.filter((j) => matchesJobSearch(j, q));
+
+  let doneList = jobs
     .filter((j) => j.status === "Done")
     .slice()
     .sort((a, b) => {
@@ -101,10 +138,17 @@ function render() {
       const tb = b.completedAt || "";
       return tb.localeCompare(ta);
     });
+  /* History: all completed; use the History tab — only search filters this list. */
+  doneList = doneList.filter((j) => matchesJobSearch(j, q));
+
+  document.querySelectorAll("[data-status-filter]").forEach((el) => {
+    const v = el.getAttribute("data-status-filter");
+    el.classList.toggle("active", v === statusFilter);
+  });
 
   if (actives.length === 0 && activeEl) {
     activeEl.innerHTML =
-      '<p class="empty-hint">No active jobs. Report an issue above.</p>';
+      '<p class="empty-hint">No active jobs to show. Try clearing search or set filter to <strong>All</strong>. Submit a new issue above if needed.</p>';
   } else {
     actives.forEach((j) => {
       activeEl.innerHTML += renderActiveCard(j);
@@ -145,6 +189,9 @@ function renderActiveCard(j) {
         <div class="job-body">
           <b>${escapeHtml(j.location)}</b> (${escapeHtml(j.priority)})<br>
           ${escapeHtml(j.problem)}<br>
+          <div class="reported-by-line">Reported by: ${escapeHtml(
+            j.reportedBy || "—"
+          )}</div>
           <div class="created-line">Reported: ${escapeHtml(
             formatCreatedDisplay(j.createdAt)
           )}</div>
@@ -181,6 +228,9 @@ function renderHistoryCard(j) {
         <div class="job-body">
           <b>${escapeHtml(j.location)}</b> (${escapeHtml(j.priority)})<br>
           ${escapeHtml(j.problem)}<br>
+          <div class="reported-by-line">Reported by: ${escapeHtml(
+            j.reportedBy || "—"
+          )}</div>
           <div class="created-line">Reported: ${escapeHtml(
             formatCreatedDisplay(j.createdAt)
           )}</div>
@@ -198,6 +248,9 @@ function addJob() {
   const location = document.getElementById("location").value.trim();
   const problem = document.getElementById("problem").value.trim();
   const priority = document.getElementById("priority").value;
+  const reportedBy = document.getElementById("reportedBy")
+    ? document.getElementById("reportedBy").value
+    : "";
   const fileInput = document.getElementById("jobPhoto");
 
   if (!location || !problem) {
@@ -212,6 +265,7 @@ function addJob() {
       location,
       problem,
       priority,
+      reportedBy: reportedBy || "",
       status: "New",
       engineerComment: "",
       photo: photo || "",
@@ -226,6 +280,8 @@ function addJob() {
     if (locEl) locEl.value = "";
     if (probEl) probEl.value = "";
     if (priEl) priEl.value = "Low";
+    const repEl = document.getElementById("reportedBy");
+    if (repEl) repEl.value = "Reception";
     if (fileInput) fileInput.value = "";
     const prev = document.getElementById("jobPhotoPreview");
     if (prev) prev.innerHTML = "";
@@ -253,6 +309,8 @@ function setStatus(id, status) {
   j.status = status;
   if (status === "Done") {
     j.completedAt = new Date().toISOString();
+    /* Remaining active jobs still show; avoid empty list because filter was e.g. "New". */
+    statusFilter = "All";
   } else {
     j.completedAt = "";
   }
@@ -306,5 +364,9 @@ function bindPhotoPreview() {
 }
 
 bindPhotoPreview();
+(function bindListToolbar() {
+  const s = document.getElementById("jobSearch");
+  if (s) s.addEventListener("input", render);
+})();
 render();
 setTab("active");
