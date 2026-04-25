@@ -865,19 +865,95 @@
       padding: 8px 0;
     }
 
-    .job-log-line--system {
-      text-align: center;
-      font-size: 12px;
-      font-style: italic;
-      line-height: 1.4;
-      color: #6b7280;
-      padding: 2px 4px 10px;
-      margin: 0;
+    .log-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
+      margin: 10px 0 6px;
     }
 
-    .job-log--timeline .comment-log-item--engineer,
-    .job-log--timeline .job-log-line--system {
+    .log-title.system {
+      margin-top: 14px;
+      color: #6b7280;
+    }
+
+    .job-log--timeline .comment-log-item--engineer {
       margin-bottom: 10px;
+    }
+
+    .timeline {
+      position: relative;
+      margin-top: 10px;
+      padding-left: 28px;
+      margin-bottom: 10px;
+    }
+
+    .timeline::before {
+      content: "";
+      position: absolute;
+      left: 10px;
+      top: 6px;
+      bottom: 6px;
+      width: 2px;
+      background: #e5e7eb;
+    }
+
+    .timeline-item {
+      position: relative;
+      display: flex;
+      align-items: flex-start;
+      margin-bottom: 10px;
+    }
+
+    .timeline-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .timeline-dot {
+      position: absolute;
+      left: -18px;
+      top: 6px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #9ca3af;
+    }
+
+    .timeline-text {
+      font-size: 13px;
+      color: #374151;
+      line-height: 1.4;
+    }
+
+    .timeline-text strong {
+      color: #111827;
+      font-weight: 600;
+    }
+
+    .timeline-item.log-deleted .timeline-dot,
+    .timeline-item.log-overdue .timeline-dot {
+      background: #ef4444;
+    }
+
+    .timeline-item.log-restored .timeline-dot {
+      background: #10b981;
+    }
+
+    .timeline-item.log-done .timeline-dot {
+      background: #22c55e;
+    }
+
+    .timeline-item.log-pending .timeline-dot {
+      background: #f59e0b;
+    }
+
+    .timeline-item.log-in-progress .timeline-dot {
+      background: #f97316;
+    }
+
+    .timeline-item.log-new .timeline-dot,
+    .timeline-item.log-default .timeline-dot {
+      background: #9ca3af;
     }
 
     .job-log--timeline .job-log-foot {
