@@ -494,8 +494,32 @@ function renderEngineerNotesSavedSection(j) {
   return `<label class="comment-label">Engineer notes (saved)</label>${body}`;
 }
 
+/**
+ * Unified status class + top-right badge (same visual system as Pending/Overdue).
+ */
+function getJobCardStatusVisual(j) {
+  const st = j.status;
+  if (st === "Done") {
+    return { cardClass: "status-done", badgeMod: "done", badgeText: "DONE" };
+  }
+  if (st === "New") {
+    return { cardClass: "status-new", badgeMod: "new", badgeText: "NEW" };
+  }
+  if (st === "In Progress") {
+    return { cardClass: "status-progress", badgeMod: "progress", badgeText: "IN PROGRESS" };
+  }
+  if (st === "Pending") {
+    if (j.isOverdue) {
+      return { cardClass: "status-overdue", badgeMod: "overdue", badgeText: "OVERDUE" };
+    }
+    return { cardClass: "status-pending", badgeMod: "pending", badgeText: "ON HOLD" };
+  }
+  return { cardClass: "status-new", badgeMod: "new", badgeText: "NEW" };
+}
+
 function renderActiveCard(j) {
   const st = j.status;
+  const vis = getJobCardStatusVisual(j);
   const qid = idAttr(j.id);
   const safePhoto =
     j.photo && String(j.photo).indexOf("data:image/") === 0 ? j.photo : "";
@@ -534,28 +558,13 @@ function renderActiveCard(j) {
       : st === "Pending"
         ? `<div class="pending-until-line">Pending until: —</div>`
         : "";
-  const statusLabel =
-    st === "Pending"
-      ? "Status: Waiting / Pending"
-      : `Status: ${escapeHtml(st)}`;
-  const pendingClass = isOverdue
-    ? " job-overdue"
-    : st === "Pending"
-      ? " job-pending"
-      : "";
-  const topBadge =
-    st === "Pending" && isOverdue
-      ? '<span class="overdue-urgent-badge" title="Past pending-until time">Overdue</span>'
-      : st === "Pending" && !isOverdue
-        ? '<span class="pending-waiting-badge" title="This job is on hold">On hold</span>'
-        : "";
   return `
-      <div class="job${pendingClass}" data-job-id="${idForAttr}" data-status="${escapeHtml(
+      <div class="job ${vis.cardClass}" data-job-id="${idForAttr}" data-status="${escapeHtml(
     st
   )}" data-overdue="${isOverdue ? "1" : "0"}">
+        <span class="job-status-badge job-status-badge--${vis.badgeMod}">${vis.badgeText}</span>
         ${photoBlock}
         <div class="job-body">
-          ${topBadge}
           <b>${escapeHtml(j.location)}</b> (${escapeHtml(j.priority)})<br>
           ${escapeHtml(j.problem)}<br>
           <div class="reported-by-line">Reported by: ${escapeHtml(
@@ -564,7 +573,6 @@ function renderActiveCard(j) {
           <div class="created-line">Reported: ${escapeHtml(
             formatCreatedDisplay(j.createdAt)
           )}</div>
-          <span class="status-line status-line-pending-when">${statusLabel}</span>
           ${reasonLine}
           ${timerLine}
           ${pendingLine}
@@ -588,6 +596,7 @@ function renderActiveCard(j) {
 }
 
 function renderHistoryCard(j) {
+  const vis = getJobCardStatusVisual(j);
   const qid = idAttr(j.id);
   const safePhoto =
     j.photo && String(j.photo).indexOf("data:image/") === 0 ? j.photo : "";
@@ -596,7 +605,8 @@ function renderHistoryCard(j) {
     : "";
   const when = formatWhen(j.completedAt);
   return `
-      <div class="job job-history" data-job-id="${jobIdForDomAttr(j.id)}" data-status="Done">
+      <div class="job job-history ${vis.cardClass}" data-job-id="${jobIdForDomAttr(j.id)}" data-status="Done">
+        <span class="job-status-badge job-status-badge--${vis.badgeMod}">${vis.badgeText}</span>
         ${photoBlock}
         <div class="job-body">
           <b>${escapeHtml(j.location)}</b> (${escapeHtml(j.priority)})<br>

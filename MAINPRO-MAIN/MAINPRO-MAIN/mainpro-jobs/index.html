@@ -265,32 +265,38 @@
       margin: 0;
     }
 
+    /* All job cards: same structure as former Pending/Overdue (gradient, shadow, 12px radius, spacing). */
     .job {
-      background: #fff;
+      position: relative;
       border-radius: 12px;
       padding: 14px 14px 12px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-      border: 1px solid rgba(0,0,0,0.04);
-      border-left: 4px solid #9ca3af;
     }
 
-    .job[data-status="New"] {
-      border-left-color: #6b7280;
+    .job .job-body {
+      padding-right: 5.6rem;
     }
 
-    .job[data-status="In Progress"] {
-      border-left-color: #ea580c;
+    .job-status-badge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 2;
+      max-width: 5.2rem;
+      line-height: 1.2;
+      text-align: center;
+      font-weight: 800;
+      text-transform: uppercase;
+      border-radius: 6px;
     }
 
-    .job[data-status="Pending"],
-    .job.job-pending {
+    .job.status-pending {
       border: 1px solid #fbbf24;
       border-left: 4px solid #f59e0b;
       background: linear-gradient(180deg, #fffbeb 0%, #fff 64px);
       box-shadow: 0 2px 12px rgba(245, 158, 11, 0.18);
     }
 
-    .job.job-overdue,
+    .job.status-overdue,
     .job[data-overdue="1"] {
       border: 1px solid #f87171;
       border-left: 4px solid #e11d48;
@@ -298,18 +304,72 @@
       box-shadow: 0 2px 14px rgba(225, 29, 72, 0.2);
     }
 
-    .overdue-urgent-badge {
-      float: right;
-      margin: 0 0 6px 10px;
-      font-size: 0.64rem;
-      font-weight: 800;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
+    .job.status-new {
+      border: 1px solid #cbd5e1;
+      border-left: 4px solid #64748b;
+      background: linear-gradient(180deg, #f1f5f9 0%, #fff 64px);
+      box-shadow: 0 2px 12px rgba(100, 116, 139, 0.16);
+    }
+
+    .job.status-progress {
+      border: 1px solid #fdba74;
+      border-left: 4px solid #ea580c;
+      background: linear-gradient(180deg, #fff7ed 0%, #fff 64px);
+      box-shadow: 0 2px 12px rgba(234, 88, 12, 0.18);
+    }
+
+    .job.status-done,
+    .job.job-history.status-done {
+      border: 1px solid #86efac;
+      border-left: 4px solid #16a34a;
+      background: linear-gradient(180deg, #f0fdf4 0%, #fff 64px);
+      box-shadow: 0 2px 12px rgba(22, 163, 74, 0.16);
+    }
+
+    /* Badges: ON HOLD + OVERDUE — same as legacy pill styles; other statuses match the same size/shape. */
+    .job-status-badge--pending {
+      font-size: 0.7rem;
+      letter-spacing: 0.04em;
       padding: 4px 8px;
-      border-radius: 6px;
+      background: linear-gradient(180deg, #fde68a, #fbbf24);
+      color: #78350f;
+      border: 1px solid #f59e0b;
+    }
+
+    .job-status-badge--overdue {
+      font-size: 0.64rem;
+      letter-spacing: 0.06em;
+      padding: 4px 8px;
       background: #e11d48;
       color: #fff;
       border: 1px solid #be123c;
+    }
+
+    .job-status-badge--new {
+      font-size: 0.64rem;
+      letter-spacing: 0.04em;
+      padding: 4px 8px;
+      background: linear-gradient(180deg, #e2e8f0, #cbd5e1);
+      color: #1e293b;
+      border: 1px solid #94a3b8;
+    }
+
+    .job-status-badge--progress {
+      font-size: 0.58rem;
+      letter-spacing: 0.03em;
+      padding: 4px 6px;
+      background: linear-gradient(180deg, #ffedd5, #fdba74);
+      color: #7c2d12;
+      border: 1px solid #ea580c;
+    }
+
+    .job-status-badge--done {
+      font-size: 0.64rem;
+      letter-spacing: 0.04em;
+      padding: 4px 8px;
+      background: linear-gradient(180deg, #bbf7d0, #86efac);
+      color: #14532d;
+      border: 1px solid #16a34a;
     }
 
     .pending-timer-line {
@@ -325,10 +385,6 @@
 
     .pending-timer--overdue {
       color: #be123c;
-    }
-
-    .job[data-status="Done"], .job-history {
-      border-left-color: #16a34a;
     }
 
     .job-photo-wrap {
@@ -347,7 +403,9 @@
 
     .job-body { margin-bottom: 8px; }
 
-    .status-line, .completed-line, .created-line {
+    .status-line,
+    .completed-line,
+    .created-line {
       display: block;
       margin-top: 6px;
       font-size: 0.9rem;
@@ -356,33 +414,6 @@
     .created-line { color: #4b5563; }
 
     .completed-line { color: #166534; font-weight: 600; }
-
-    .job-pending .job-body {
-      position: relative;
-      overflow: hidden;
-    }
-
-    .pending-waiting-badge {
-      float: right;
-      margin: 0 0 6px 10px;
-      font-size: 0.7rem;
-      font-weight: 800;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      padding: 4px 8px;
-      border-radius: 6px;
-      background: linear-gradient(180deg, #fde68a, #fbbf24);
-      color: #78350f;
-      border: 1px solid #f59e0b;
-    }
-
-    .status-line-pending-when {
-      font-weight: 600;
-    }
-
-    .job-pending .status-line-pending-when {
-      color: #b45309;
-    }
 
     .pending-reason-line {
       display: block;
