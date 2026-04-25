@@ -921,7 +921,6 @@ function renderHistoryCard(j) {
 }
 
 function renderDeletedCard(j) {
-  const qid = idAttr(j.id);
   const idForAttr = jobIdForDomAttr(j.id);
   const safePhoto =
     j.photo && String(j.photo).indexOf("data:image/") === 0 ? j.photo : "";
@@ -945,8 +944,8 @@ function renderDeletedCard(j) {
         </div>
         ${renderEngineerNotesSavedSection(j)}
         <div class="job-actions job-actions-deleted">
-          <button type="button" class="btn-restore" onclick="restoreJob(${qid})">Restore</button>
-          <button type="button" class="btn-permanent-delete" onclick="permanentDeleteJob(${qid})">Delete permanently</button>
+          <button type="button" class="btn-restore">Restore</button>
+          <button type="button" class="btn-permanent-delete">Delete permanently</button>
         </div>
       </div>
     `;
@@ -1178,8 +1177,6 @@ function saveEngineerNote(btn) {
 
 window.saveEngineerNote = saveEngineerNote;
 window.toggleJobLog = toggleJobLog;
-window.restoreJob = restoreJob;
-window.permanentDeleteJob = permanentDeleteJob;
 
 function openPhotoLightbox(src) {
   if (!src || String(src).indexOf("data:image/") !== 0) return;
@@ -1230,16 +1227,35 @@ function restoreJob(id) {
   if (st !== "Done") {
     j.completedAt = "";
   }
+  appendSystemComment(j, "Job restored");
   save();
+  historyViewFilter = "all";
+  if (st === "Done") {
+    statusFilter = "All";
+    setTab("history");
+  } else if (
+    st === "New" ||
+    st === "In Progress" ||
+    st === "Pending"
+  ) {
+    statusFilter = st;
+    setTab("active");
+  } else {
+    statusFilter = "All";
+    setTab("active");
+  }
   render();
 }
 
-function permanentDeleteJob(id) {
+function deleteJobPermanently(id) {
   if (!confirm("Permanently delete this job?")) return;
   jobs = jobs.filter((x) => String(x.id) !== String(id));
   save();
   render();
 }
+
+window.restoreJob = restoreJob;
+window.deleteJobPermanently = deleteJobPermanently;
 
 function setTab(tab) {
   const a = document.getElementById("panel-active");
@@ -1278,6 +1294,34 @@ bindPhotoPreview();
 (function bindListToolbar() {
   const s = document.getElementById("jobSearch");
   if (s) s.addEventListener("input", render);
+})();
+
+(function bindActiveJobsPanelActions() {
+  const root = document.getElementById("jobs-active");
+  if (!root || root._mainproJobsPanelClickBound) return;
+  root._mainproJobsPanelClickBound = true;
+  root.addEventListener("click", function (e) {
+    let t = e.target;
+    if (!t) return;
+    if (t.nodeType !== 1) {
+      t = t.parentElement;
+    }
+    if (!t || !t.closest) return;
+    const restoreBtn = t.closest(".btn-restore");
+    const permBtn = t.closest(".btn-permanent-delete");
+    if (!restoreBtn && !permBtn) return;
+    const jobEl = t.closest(".job");
+    if (!jobEl) return;
+    const rawId = jobEl.getAttribute("data-job-id");
+    const jid = jobIdFromDomAttr(rawId);
+    if (jid == null) return;
+    e.preventDefault();
+    if (restoreBtn) {
+      restoreJob(jid);
+    } else {
+      deleteJobPermanently(jid);
+    }
+  });
 })();
 
 setInterval(function () {
