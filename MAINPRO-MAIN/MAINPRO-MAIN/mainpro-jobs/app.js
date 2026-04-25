@@ -43,6 +43,10 @@ function loadJobs() {
       x.pendingUntil = "";
       changed = true;
     }
+    if (x.pendingReason == null) {
+      x.pendingReason = "";
+      changed = true;
+    }
     return x;
   });
   if (changed) {
@@ -110,12 +114,14 @@ function processExpiredPending() {
     if (isNaN(t)) {
       j.status = "New";
       j.pendingUntil = "";
+      j.pendingReason = "";
       changed = true;
       return;
     }
     if (t > now) return;
     j.status = "New";
     j.pendingUntil = "";
+    j.pendingReason = "";
     changed = true;
   });
   if (changed) {
@@ -195,6 +201,7 @@ function matchesJobSearch(j, q) {
     j.status,
     j.engineerComment,
     j.pendingUntil,
+    j.pendingReason,
   ].map((v) => String(v == null ? "" : v).toLowerCase());
   return parts.some((p) => p.indexOf(q) >= 0);
 }
@@ -296,6 +303,13 @@ function renderActiveCard(j) {
       ? `<button type="button" class="btn-park" onclick='openParkDialog(${qid})'>Park</button>`
       : "";
   const idForAttr = jobIdForDomAttr(j.id);
+  const pr = (j.pendingReason || "").trim();
+  const reasonLine =
+    st === "Pending"
+      ? `<div class="pending-reason-line">Reason: ${escapeHtml(
+          pr || "—"
+        )}</div>`
+      : "";
   const pendingLine =
     st === "Pending" && (j.pendingUntil || "").trim()
       ? `<div class="pending-until-line">Pending until: ${escapeHtml(
@@ -304,10 +318,22 @@ function renderActiveCard(j) {
       : st === "Pending"
         ? `<div class="pending-until-line">Pending until: —</div>`
         : "";
+  const statusLabel =
+    st === "Pending"
+      ? "Status: Waiting / Pending"
+      : `Status: ${escapeHtml(st)}`;
+  const pendingClass = st === "Pending" ? " job-pending" : "";
   return `
-      <div class="job" data-job-id="${idForAttr}" data-status="${escapeHtml(st)}">
+      <div class="job${pendingClass}" data-job-id="${idForAttr}" data-status="${escapeHtml(
+    st
+  )}">
         ${photoBlock}
         <div class="job-body">
+          ${
+            st === "Pending"
+              ? '<span class="pending-waiting-badge" title="This job is on hold">On hold</span>'
+              : ""
+          }
           <b>${escapeHtml(j.location)}</b> (${escapeHtml(j.priority)})<br>
           ${escapeHtml(j.problem)}<br>
           <div class="reported-by-line">Reported by: ${escapeHtml(
@@ -316,12 +342,13 @@ function renderActiveCard(j) {
           <div class="created-line">Reported: ${escapeHtml(
             formatCreatedDisplay(j.createdAt)
           )}</div>
-          <span class="status-line">Status: ${escapeHtml(st)}</span>
+          <span class="status-line status-line-pending-when">${statusLabel}</span>
+          ${reasonLine}
           ${pendingLine}
         </div>
         ${renderEngineerNotesSavedSection(j)}
         <label class="comment-label">Add a note</label>
-        <textarea class="comment-field comment-new" rows="2" placeholder="Type a note, then tap Save note (e.g. reason for park)"></textarea>
+        <textarea class="comment-field comment-new" rows="2" placeholder="Type a note, then tap Save note"></textarea>
         <div class="comment-save-row">
           <button type="button" class="btn-save-note" onclick="saveEngineerNote(this)">Save note</button>
           <span class="comment-saved-hint" data-saved-hint="1" hidden>Saved</span>
@@ -395,6 +422,7 @@ function addJob() {
       completedAt: "",
       createdAt: new Date().toISOString(),
       pendingUntil: "",
+      pendingReason: "",
     };
     jobs.unshift(job);
     save();
@@ -433,7 +461,6 @@ function setStatus(id, status) {
   j.status = status;
   if (status === "Done") {
     j.completedAt = new Date().toISOString();
-    j.pendingUntil = "";
     /* Remaining active jobs still show; avoid empty list because filter was e.g. "New". */
     statusFilter = "All";
   } else {
@@ -441,6 +468,7 @@ function setStatus(id, status) {
   }
   if (status !== "Pending") {
     j.pendingUntil = "";
+    j.pendingReason = "";
   }
   save();
   render();
@@ -453,6 +481,8 @@ function openParkDialog(id) {
     inp.value = defaultParkDateTimeValue();
     inp.min = minParkDateTimeValue();
   }
+  const reasonEl = document.getElementById("parkReasonInput");
+  if (reasonEl) reasonEl.value = "";
   const m = document.getElementById("parkModal");
   if (m) m.hidden = false;
   document.body.style.overflow = "hidden";
@@ -462,6 +492,8 @@ function closeParkDialog() {
   _parkTargetId = null;
   const m = document.getElementById("parkModal");
   if (m) m.hidden = true;
+  const reasonEl = document.getElementById("parkReasonInput");
+  if (reasonEl) reasonEl.value = "";
   document.body.style.overflow = "";
 }
 
@@ -483,6 +515,12 @@ function confirmPark() {
     alert("Please choose a time in the future.");
     return;
   }
+  const reasonInp = document.getElementById("parkReasonInput");
+  const reason = reasonInp ? String(reasonInp.value).trim() : "";
+  if (!reason) {
+    alert("Enter a reason for pending (e.g. waiting for parts, no access).");
+    return;
+  }
   const j = jobs.find((x) => String(x.id) === String(id));
   if (!j) {
     alert("Could not find this job.");
@@ -491,6 +529,7 @@ function confirmPark() {
   }
   j.status = "Pending";
   j.pendingUntil = d.toISOString();
+  j.pendingReason = reason;
   save();
   closeParkDialog();
   render();

@@ -179,8 +179,12 @@
       border-left-color: #ea580c;
     }
 
-    .job[data-status="Pending"] {
-      border-left-color: #7c3aed;
+    .job[data-status="Pending"],
+    .job.job-pending {
+      border: 1px solid #fbbf24;
+      border-left: 4px solid #f59e0b;
+      background: linear-gradient(180deg, #fffbeb 0%, #fff 64px);
+      box-shadow: 0 2px 12px rgba(245, 158, 11, 0.18);
     }
 
     .job[data-status="Done"], .job-history {
@@ -213,11 +217,47 @@
 
     .completed-line { color: #166534; font-weight: 600; }
 
+    .job-pending .job-body {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .pending-waiting-badge {
+      float: right;
+      margin: 0 0 6px 10px;
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 4px 8px;
+      border-radius: 6px;
+      background: linear-gradient(180deg, #fde68a, #fbbf24);
+      color: #78350f;
+      border: 1px solid #f59e0b;
+    }
+
+    .status-line-pending-when {
+      font-weight: 600;
+    }
+
+    .job-pending .status-line-pending-when {
+      color: #b45309;
+    }
+
+    .pending-reason-line {
+      display: block;
+      margin-top: 6px;
+      font-size: 0.9rem;
+      line-height: 1.4;
+      color: #9a3412;
+      font-weight: 600;
+    }
+
     .pending-until-line {
       display: block;
       margin-top: 6px;
       font-size: 0.9rem;
-      color: #5b21b6;
+      color: #b45309;
       font-weight: 600;
     }
 
@@ -268,9 +308,9 @@
     }
 
     .btn-park {
-      border-color: #c4b5fd !important;
-      background: #f5f3ff !important;
-      color: #5b21b6 !important;
+      border-color: #fcd34d !important;
+      background: #fffbeb !important;
+      color: #b45309 !important;
     }
 
     .btn-done {
@@ -482,7 +522,21 @@
     }
 
     .park-modal-card input[type="datetime-local"] {
-      margin-bottom: 16px;
+      margin-bottom: 8px;
+    }
+
+    .park-reason-label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #4b5563;
+      margin: 10px 0 4px;
+    }
+
+    .park-reason-input {
+      min-height: 56px;
+      font-size: 16px;
+      margin-bottom: 8px;
     }
 
     .park-modal-actions {
@@ -505,9 +559,9 @@
     }
 
     .park-modal-actions .btn-park-confirm {
-      background: #5b21b6;
+      background: #ea580c;
       color: #fff;
-      border-color: #5b21b6;
+      border-color: #ea580c;
     }
   </style>
 </head>
@@ -523,7 +577,9 @@
     <div class="park-modal-backdrop" onclick="closeParkDialog()"></div>
     <div class="park-modal-card">
       <h3 id="parkModalTitle">Park job</h3>
-      <p class="park-modal-hint">Choose when to resume (e.g. parts arrival or access). The job returns to <strong>New</strong> after that time. Add a reason in notes after closing this dialog if you like.</p>
+      <p class="park-modal-hint">Set why the job is on hold, then when to resume. It returns to <strong>New</strong> automatically after that time.</p>
+      <label class="park-reason-label" for="parkReasonInput">Reason for pending</label>
+      <textarea id="parkReasonInput" class="park-reason-input" rows="2" placeholder="e.g. Waiting parts, waiting contractor, no access, guest in room" autocomplete="off"></textarea>
       <label class="form-hint" for="parkUntilInput" style="display:block;">Pending until</label>
       <input type="datetime-local" id="parkUntilInput" autocomplete="off">
       <div class="park-modal-actions">
