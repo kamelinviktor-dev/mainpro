@@ -4,6 +4,67 @@ let statusFilter = "All";
 /** set when opening Park modal */
 let _parkTargetId = null;
 
+const MAINPRO_USER_KEY = "mainpro_user";
+const MAINPRO_ROLES = [
+  "Reception",
+  "Housekeeping",
+  "Maintenance",
+  "Manager",
+];
+
+function getMainproUser() {
+  try {
+    return String(localStorage.getItem(MAINPRO_USER_KEY) || "").trim();
+  } catch {
+    return "";
+  }
+}
+
+function isMainproRole(r) {
+  return MAINPRO_ROLES.indexOf(r) >= 0;
+}
+
+function hasMainproLogin() {
+  return isMainproRole(getMainproUser());
+}
+
+function applyAuthUi() {
+  const ok = hasMainproLogin();
+  const u = getMainproUser();
+  const login = document.getElementById("loginScreen");
+  const app = document.getElementById("appMain");
+  const disp = document.getElementById("reportingAsDisplay");
+  if (login) login.hidden = ok;
+  if (app) app.hidden = !ok;
+  if (disp) disp.textContent = ok && u ? u : "—";
+  if (ok) {
+    render();
+    setTab("active");
+  }
+}
+
+function selectUserRole(role) {
+  if (!isMainproRole(role)) return;
+  try {
+    localStorage.setItem(MAINPRO_USER_KEY, role);
+  } catch (e) {
+    console.warn("Could not save mainpro_user", e);
+  }
+  applyAuthUi();
+}
+
+function showChangeUser() {
+  try {
+    localStorage.removeItem(MAINPRO_USER_KEY);
+  } catch (e) {
+    console.warn("Could not clear mainpro_user", e);
+  }
+  applyAuthUi();
+}
+
+window.selectUserRole = selectUserRole;
+window.showChangeUser = showChangeUser;
+
 function loadJobs() {
   let list = JSON.parse(localStorage.getItem("jobs") || "[]");
   if (!Array.isArray(list)) list = [];
@@ -398,10 +459,12 @@ function addJob() {
   const location = document.getElementById("location").value.trim();
   const problem = document.getElementById("problem").value.trim();
   const priority = document.getElementById("priority").value;
-  const reportedBy = document.getElementById("reportedBy")
-    ? document.getElementById("reportedBy").value
-    : "";
   const fileInput = document.getElementById("jobPhoto");
+  const reportedBy = getMainproUser();
+  if (!hasMainproLogin()) {
+    alert("Select your role first.");
+    return;
+  }
 
   if (!location || !problem) {
     alert("Please fill required fields");
@@ -432,8 +495,6 @@ function addJob() {
     if (locEl) locEl.value = "";
     if (probEl) probEl.value = "";
     if (priEl) priEl.value = "Low";
-    const repEl = document.getElementById("reportedBy");
-    if (repEl) repEl.value = "Reception";
     if (fileInput) fileInput.value = "";
     const prev = document.getElementById("jobPhotoPreview");
     if (prev) prev.innerHTML = "";
@@ -677,5 +738,4 @@ document.addEventListener("keydown", function (e) {
   }
 });
 
-render();
-setTab("active");
+applyAuthUi();

@@ -22,13 +22,116 @@
       padding: 16px 16px 32px;
     }
 
+    .app-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px 0 8px;
+    }
+
     .app-header {
+      flex: 1;
+      min-width: 0;
       text-align: center;
-      padding: 16px 12px 8px;
       font-size: 1.35rem;
       font-weight: 700;
       letter-spacing: -0.02em;
       color: #111;
+    }
+
+    .btn-change-user {
+      flex: 0 0 auto;
+      padding: 8px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      background: #fff;
+      color: #374151;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .btn-change-user:active {
+      transform: scale(0.98);
+    }
+
+    .reporting-as-line {
+      margin: 0 0 4px;
+    }
+
+    .login-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 30000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px 16px;
+      background: linear-gradient(165deg, #ecfdf5 0%, #f5f5f5 45%, #fff 100%);
+    }
+
+    .login-screen[hidden] {
+      display: none !important;
+    }
+
+    .login-card {
+      width: 100%;
+      max-width: 400px;
+      background: #fff;
+      border-radius: 16px;
+      padding: 28px 22px 26px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+      border: 1px solid #e5e7eb;
+    }
+
+    .login-card h1 {
+      margin: 0 0 8px;
+      font-size: 1.35rem;
+      font-weight: 700;
+      text-align: center;
+      color: #111;
+    }
+
+    .login-card .login-sub {
+      margin: 0 0 22px;
+      font-size: 0.9rem;
+      color: #6b7280;
+      text-align: center;
+    }
+
+    .login-roles {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .login-roles button {
+      width: 100%;
+      padding: 16px 18px;
+      font-size: 16px;
+      font-weight: 600;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      background: #f9fafb;
+      color: #1f2937;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .login-roles button:active {
+      transform: scale(0.99);
+    }
+
+    .login-roles button:hover {
+      background: #ecfdf5;
+      border-color: #0f766e;
+      color: #0f5249;
+    }
+
+    #appMain[hidden] {
+      display: none !important;
     }
 
     .card {
@@ -567,6 +670,19 @@
 </head>
 <body>
 
+  <div id="loginScreen" class="login-screen" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+    <div class="login-card">
+      <h1 id="loginTitle">Select your role</h1>
+      <p class="login-sub">Who is using this device right now?</p>
+      <div class="login-roles">
+        <button type="button" onclick="selectUserRole('Reception')">Reception</button>
+        <button type="button" onclick="selectUserRole('Housekeeping')">Housekeeping</button>
+        <button type="button" onclick="selectUserRole('Maintenance')">Maintenance</button>
+        <button type="button" onclick="selectUserRole('Manager')">Manager</button>
+      </div>
+    </div>
+  </div>
+
   <div id="photoLightbox" class="photo-lightbox" hidden role="dialog" aria-modal="true" aria-label="Photo">
     <div class="photo-lightbox-backdrop" onclick="closePhotoLightbox()"></div>
     <img id="photoLightboxImg" class="photo-lightbox-img" alt="">
@@ -589,8 +705,11 @@
     </div>
   </div>
 
-  <div class="app-wrap">
-    <div class="app-header">MainPro Jobs</div>
+  <div id="appMain" class="app-wrap" hidden>
+    <div class="app-header-row">
+      <div class="app-header">MainPro Jobs</div>
+      <button type="button" class="btn-change-user" onclick="showChangeUser()">Change user</button>
+    </div>
 
     <div class="card">
       <h2>Report issue</h2>
@@ -608,14 +727,7 @@
         </select>
       </div>
       <div class="form-field">
-        <div class="form-hint">Reported by</div>
-        <select id="reportedBy">
-          <option>Reception</option>
-          <option>Housekeeping</option>
-          <option>Security</option>
-          <option>Maintenance</option>
-          <option>Other</option>
-        </select>
+        <div class="form-hint reporting-as-line">Reporting as: <strong id="reportingAsDisplay">—</strong></div>
       </div>
       <div class="form-field">
         <div class="form-hint">Photo (optional)</div>
