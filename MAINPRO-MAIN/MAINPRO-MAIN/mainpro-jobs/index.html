@@ -416,6 +416,101 @@
       border: 1px solid #16a34a;
     }
 
+    .job-status-badge--deleted {
+      background: #6b7280;
+      color: #fff;
+      border: 1px solid #4b5563;
+    }
+
+    .job-card.deleted,
+    .job.job-deleted.job-card-shell {
+      background: #f3f4f6 !important;
+      border: 1px dashed #d1d5db !important;
+      border-left: 1px dashed #d1d5db !important;
+      opacity: 0.9;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .job-card.deleted:hover,
+    .job.job-deleted.job-card-shell:hover {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .job-card.deleted .job-status-badge--deleted,
+    .job.job-deleted .job-status-badge--deleted {
+      background: #6b7280;
+      color: #fff;
+    }
+
+    .deleted-meta-line {
+      font-size: 0.82rem;
+      color: #6b7280;
+      margin-top: 4px;
+    }
+
+    .job-actions-deleted {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .btn-restore {
+      flex: 1;
+      min-width: 120px;
+      min-height: 36px;
+      padding: 8px 12px;
+      font-size: 13px;
+      border-radius: 8px;
+      cursor: pointer;
+      background: #10b981;
+      color: #fff;
+      border: 1px solid #059669;
+      font-weight: 600;
+    }
+
+    .btn-restore:hover {
+      background: #059669;
+    }
+
+    .btn-permanent-delete {
+      flex: 1;
+      min-width: 120px;
+      min-height: 36px;
+      padding: 8px 12px;
+      font-size: 13px;
+      border-radius: 8px;
+      cursor: pointer;
+      background: #ef4444;
+      color: #fff;
+      border: 1px solid #dc2626;
+      font-weight: 600;
+    }
+
+    .btn-permanent-delete:hover {
+      background: #dc2626;
+    }
+
+    #jobsToast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 20000;
+      max-width: min(420px, calc(100vw - 32px));
+      padding: 12px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      background: #1f2937;
+      border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    }
+
+    #jobsToast[hidden] {
+      display: none !important;
+    }
+
     .pending-timer-line {
       display: block;
       margin-top: 6px;
@@ -663,23 +758,32 @@
       box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.1);
     }
 
-    .status-filters {
+    .status-filters.filter-row {
       display: flex;
-      flex-wrap: nowrap;
-      gap: 5px;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: space-between;
       margin: 0;
-      white-space: nowrap;
       padding: 0 0 1px 0;
       width: 100%;
     }
 
+    @media (max-width: 420px) {
+      .status-filters.filter-row {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        justify-content: flex-start;
+        padding-bottom: 4px;
+      }
+    }
+
     .filter-btn {
-      flex: 0 0 auto;
+      flex: 1;
+      min-width: 70px;
       min-height: 30px;
       height: 30px;
-      padding: 0 9px;
+      padding: 0 8px;
       font-size: 12px;
       font-weight: 500;
       border: 1px solid #e5e7eb;
@@ -687,7 +791,16 @@
       background: #fff;
       color: #4b5563;
       cursor: pointer;
+      text-align: center;
+      white-space: nowrap;
       transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    }
+
+    @media (max-width: 420px) {
+      .filter-btn {
+        flex: 0 0 auto;
+        min-width: 72px;
+      }
     }
 
     .filter-btn:hover:not(.active) {
@@ -698,6 +811,11 @@
       background: #059669;
       color: #fff;
       border-color: #059669;
+    }
+
+    .filter-deleted-count {
+      font-weight: 600;
+      opacity: 0.95;
     }
 
     .comment-save-row {
@@ -1119,6 +1237,7 @@
         <button type="button" class="filter-btn" data-status-filter="In Progress" onclick="setStatusFilter('In Progress')">In Progress</button>
         <button type="button" class="filter-btn" data-status-filter="Pending" onclick="setStatusFilter('Pending')">Pending</button>
         <button type="button" class="filter-btn" data-status-filter="Overdue" onclick="setStatusFilter('Overdue')">Overdue</button>
+        <button type="button" class="filter-btn" data-status-filter="Deleted" onclick="setStatusFilter('Deleted')">Deleted<span id="deletedFilterCount" class="filter-deleted-count" aria-label="Number of deleted jobs"></span></button>
       </div>
     </div>
 
@@ -1131,6 +1250,8 @@
     </div>
     </div>
   </div>
+
+  <div id="jobsToast" class="jobs-toast" role="status" aria-live="polite" hidden></div>
 
   <script src="app.js"></script>
 

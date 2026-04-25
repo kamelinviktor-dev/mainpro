@@ -163,9 +163,37 @@ function loadJobs() {
         }
       }
     }
+    if (x.deleted == null) {
+      x.deleted = false;
+      changed = true;
+    }
+    if (x.deletedAt == null) {
+      x.deletedAt = "";
+      changed = true;
+    }
+    if (x.previousStatus == null) {
+      x.previousStatus = "";
+      changed = true;
+    }
     delete x.isOverdue;
     return x;
   });
+  {
+    const nowMs = Date.now();
+    const maxAge = 7 * 24 * 60 * 60 * 1000;
+    const n0 = list.length;
+    list = list.filter((j) => {
+      if (!j.deleted) return true;
+      const raw = (j.deletedAt && String(j.deletedAt).trim()) || "";
+      if (!raw) return true;
+      const t = new Date(raw).getTime();
+      if (isNaN(t)) return true;
+      return nowMs - t < maxAge;
+    });
+    if (list.length !== n0) {
+      changed = true;
+    }
+  }
   if (changed) {
     try {
       localStorage.setItem("jobs", JSON.stringify(list));
@@ -308,6 +336,10 @@ function isJobOverdueState(j) {
  */
 function syncOverdueFlags() {
   jobs.forEach((j) => {
+    if (j.deleted) {
+      j.isOverdue = false;
+      return;
+    }
     j.isOverdue = isJobOverdueState(j);
   });
 }
@@ -330,6 +362,13 @@ function appendOverdueAuditIfNeeded() {
   let any = false;
   for (let i = 0; i < jobs.length; i++) {
     const j = jobs[i];
+    if (j.deleted) {
+      if (j.overdueLoggedForUntil) {
+        j.overdueLoggedForUntil = "";
+        any = true;
+      }
+      continue;
+    }
     if (j.status !== "Pending" || !(j.pendingUntil || "").trim()) {
       if (j.overdueLoggedForUntil) {
         j.overdueLoggedForUntil = "";
@@ -383,6 +422,7 @@ function getDashboardCounts() {
   let nDoneToday = 0;
   for (let i = 0; i < jobs.length; i++) {
     const j = jobs[i];
+    if (j.deleted) continue;
     const st = j.status;
     if (st === "New") nNew++;
     else if (st === "In Progress") nInProgress++;
@@ -543,10 +583,18 @@ function render() {
 
   const q = getSearchQuery();
 
-  let actives = jobs.filter((j) => isActiveStatus(j.status));
-  actives = actives.filter((j) => matchesStatusFilterForActive(j));
+  let actives;
+  if (statusFilter === "Deleted") {
+    actives = jobs.filter((j) => j.deleted === true);
+  } else {
+    actives = jobs.filter((j) => isActiveStatus(j.status) && !j.deleted);
+    actives = actives.filter((j) => matchesStatusFilterForActive(j));
+  }
   actives = actives.filter((j) => matchesJobSearch(j, q));
   actives.sort((a, b) => {
+    if (statusFilter === "Deleted") {
+      return String(b.deletedAt || "").localeCompare(String(a.deletedAt || ""));
+    }
     const ka = sortKeyActiveList(a);
     const kb = sortKeyActiveList(b);
     if (ka !== kb) return ka - kb;
@@ -554,7 +602,7 @@ function render() {
   });
 
   let doneList = jobs
-    .filter((j) => j.status === "Done")
+    .filter((j) => j.status === "Done" && !j.deleted)
     .slice()
     .sort((a, b) => {
       const ta = a.completedAt || "";
@@ -567,13 +615,19 @@ function render() {
   doneList = doneList.filter((j) => matchesJobSearch(j, q));
 
   updateFilterButtonsActiveState();
+  updateDeletedFilterCount();
 
   if (actives.length === 0 && activeEl) {
-    activeEl.innerHTML =
-      '<p class="empty-hint">No active jobs to show. Try clearing search or set filter to <strong>All</strong>. Submit a new issue above if needed.</p>';
+    const emptyMsg =
+      statusFilter === "Deleted"
+        ? '<p class="empty-hint">No deleted jobs. Items stay here for 7 days, then are removed automatically.</p>'
+        : '<p class="empty-hint">No active jobs to show. Try clearing search or set filter to <strong>All</strong>. Submit a new issue above if needed.</p>';
+    activeEl.innerHTML = emptyMsg;
   } else {
     actives.forEach((j) => {
-      activeEl.innerHTML += renderActiveCard(j);
+      activeEl.innerHTML += j.deleted
+        ? renderDeletedCard(j)
+        : renderActiveCard(j);
     });
   }
 
@@ -651,6 +705,7 @@ function isSystemLogComment(c) {
  * For engineer / user message cards, tint to match the parent job card.
  */
 function getCommentLogToneClass(j) {
+  if (j.deleted) return "comment-log--tone-default";
   if (j.status === "Pending" && j.isOverdue) return "comment-log--tone-overdue";
   if (j.status === "Pending") return "comment-log--tone-pending";
   return "comment-log--tone-default";
@@ -865,6 +920,57 @@ function renderHistoryCard(j) {
     `;
 }
 
+function renderDeletedCard(j) {
+  const qid = idAttr(j.id);
+  const idForAttr = jobIdForDomAttr(j.id);
+  const safePhoto =
+    j.photo && String(j.photo).indexOf("data:image/") === 0 ? j.photo : "";
+  const photoBlock = safePhoto
+    ? `<div class="job-photo-wrap"><img class="job-photo-thumb" src="${safePhoto}" alt="Fault photo" tabindex="0" role="button"></div>`
+    : "";
+  const delWhen = formatWhen(j.deletedAt) || "—";
+  const prev = (j.previousStatus && String(j.previousStatus).trim()) || "—";
+  return `
+      <div class="job job-card deleted job--deleted job-card-shell job-deleted" data-job-id="${idForAttr}" data-status="Deleted">
+        <span class="job-status-badge job-status-badge--deleted">DELETED</span>
+        ${photoBlock}
+        <div class="job-body">
+          <b>${escapeHtml(j.location)}</b> (${escapeHtml(j.priority)})<br>
+          ${escapeHtml(j.problem)}<br>
+          <div class="reported-by-line">Reported by: ${escapeHtml(
+            j.reportedBy || "—"
+          )}</div>
+          <div class="deleted-meta-line">Deleted: ${escapeHtml(delWhen)}</div>
+          <div class="deleted-meta-line">Previous status: ${escapeHtml(prev)}</div>
+        </div>
+        ${renderEngineerNotesSavedSection(j)}
+        <div class="job-actions job-actions-deleted">
+          <button type="button" class="btn-restore" onclick="restoreJob(${qid})">Restore</button>
+          <button type="button" class="btn-permanent-delete" onclick="permanentDeleteJob(${qid})">Delete permanently</button>
+        </div>
+      </div>
+    `;
+}
+
+function updateDeletedFilterCount() {
+  const n = jobs.filter((j) => j.deleted).length;
+  const el = document.getElementById("deletedFilterCount");
+  if (el) {
+    el.textContent = n > 0 ? " (" + n + ")" : "";
+  }
+}
+
+function showJobsToast(msg) {
+  const el = document.getElementById("jobsToast");
+  if (!el) return;
+  el.textContent = String(msg || "");
+  el.hidden = false;
+  clearTimeout(showJobsToast._t);
+  showJobsToast._t = setTimeout(function () {
+    el.hidden = true;
+  }, 2500);
+}
+
 function addJob() {
   const location = document.getElementById("location").value.trim();
   const problem = document.getElementById("problem").value.trim();
@@ -896,6 +1002,9 @@ function addJob() {
       createdAt: new Date().toISOString(),
       pendingUntil: "",
       pendingReason: "",
+      deleted: false,
+      deletedAt: "",
+      previousStatus: "",
     };
     jobs.unshift(job);
     save();
@@ -1069,6 +1178,8 @@ function saveEngineerNote(btn) {
 
 window.saveEngineerNote = saveEngineerNote;
 window.toggleJobLog = toggleJobLog;
+window.restoreJob = restoreJob;
+window.permanentDeleteJob = permanentDeleteJob;
 
 function openPhotoLightbox(src) {
   if (!src || String(src).indexOf("data:image/") !== 0) return;
@@ -1090,7 +1201,41 @@ function closePhotoLightbox() {
 }
 
 function deleteJob(id) {
-  if (!confirm("Delete this job?")) return;
+  if (
+    !confirm(
+      "Move this job to Deleted? You can restore it from the Deleted filter."
+    )
+  ) {
+    return;
+  }
+  const j = jobs.find((x) => String(x.id) === String(id));
+  if (!j) return;
+  j.previousStatus = j.status;
+  j.deleted = true;
+  j.deletedAt = new Date().toISOString();
+  appendSystemComment(j, "Job moved to Deleted");
+  save();
+  showJobsToast("Job moved to Deleted");
+  setStatusFilter("Deleted");
+}
+
+function restoreJob(id) {
+  const j = jobs.find((x) => String(x.id) === String(id));
+  if (!j || !j.deleted) return;
+  const st = (j.previousStatus && String(j.previousStatus).trim()) || "New";
+  j.deleted = false;
+  j.deletedAt = "";
+  j.previousStatus = "";
+  j.status = st;
+  if (st !== "Done") {
+    j.completedAt = "";
+  }
+  save();
+  render();
+}
+
+function permanentDeleteJob(id) {
+  if (!confirm("Permanently delete this job?")) return;
   jobs = jobs.filter((x) => String(x.id) !== String(id));
   save();
   render();
