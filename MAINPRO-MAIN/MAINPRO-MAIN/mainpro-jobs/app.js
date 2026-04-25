@@ -293,8 +293,8 @@ function getDashboardCounts() {
     if (st === "New") nNew++;
     else if (st === "In Progress") nInProgress++;
     else if (st === "Pending") {
-      nPending++;
       if (j.isOverdue) nOverdue++;
+      else nPending++;
     }
     if (st === "Done" && isCompletedAtToday(j.completedAt)) nDoneToday++;
   }
@@ -370,11 +370,14 @@ function matchesJobSearch(j, q) {
 }
 
 /**
- * Active list filters. Stale "Done" filter (old UI) → show all actives.
+ * Active list filters. Pending = on-time only; Overdue = separate. Stale "Done" → all actives.
  */
 function matchesStatusFilterForActive(j) {
   if (statusFilter === "All" || statusFilter === "Done") return true;
   if (statusFilter === "Overdue") return j.isOverdue === true;
+  if (statusFilter === "Pending") {
+    return j.status === "Pending" && !j.isOverdue;
+  }
   return j.status === statusFilter;
 }
 
@@ -495,26 +498,30 @@ function renderEngineerNotesSavedSection(j) {
 }
 
 /**
- * Unified status class + top-right badge (same visual system as Pending/Overdue).
+ * All cards share base class "job-card-shell" (Pending/Overdue premium shell); tone = color only.
  */
 function getJobCardStatusVisual(j) {
   const st = j.status;
   if (st === "Done") {
-    return { cardClass: "status-done", badgeMod: "done", badgeText: "DONE" };
+    return { cardClass: "job-card-shell job-card--done", badgeMod: "done", badgeText: "DONE" };
   }
   if (st === "New") {
-    return { cardClass: "status-new", badgeMod: "new", badgeText: "NEW" };
+    return { cardClass: "job-card-shell job-card--new", badgeMod: "new", badgeText: "NEW" };
   }
   if (st === "In Progress") {
-    return { cardClass: "status-progress", badgeMod: "progress", badgeText: "IN PROGRESS" };
+    return {
+      cardClass: "job-card-shell job-card--progress",
+      badgeMod: "progress",
+      badgeText: "IN PROGRESS",
+    };
   }
   if (st === "Pending") {
     if (j.isOverdue) {
-      return { cardClass: "status-overdue", badgeMod: "overdue", badgeText: "OVERDUE" };
+      return { cardClass: "job-card-shell job-card--overdue", badgeMod: "overdue", badgeText: "OVERDUE" };
     }
-    return { cardClass: "status-pending", badgeMod: "pending", badgeText: "ON HOLD" };
+    return { cardClass: "job-card-shell job-card--pending", badgeMod: "pending", badgeText: "ON HOLD" };
   }
-  return { cardClass: "status-new", badgeMod: "new", badgeText: "NEW" };
+  return { cardClass: "job-card-shell job-card--new", badgeMod: "new", badgeText: "NEW" };
 }
 
 function renderActiveCard(j) {
