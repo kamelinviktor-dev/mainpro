@@ -27,6 +27,10 @@ function loadJobs() {
       x.completedAt = new Date().toISOString();
       changed = true;
     }
+    if (x.createdAt == null) {
+      x.createdAt = "";
+      changed = true;
+    }
     return x;
   });
   if (changed) {
@@ -67,6 +71,18 @@ function formatWhen(iso) {
     });
   } catch {
     return "";
+  }
+}
+
+/** Job reported time (createdAt) — local string or em dash. */
+function formatCreatedDisplay(createdAt) {
+  if (createdAt == null || createdAt === "") return "—";
+  try {
+    const d = new Date(createdAt);
+    if (isNaN(d.getTime())) return "—";
+    return d.toLocaleString();
+  } catch {
+    return "—";
   }
 }
 
@@ -129,6 +145,9 @@ function renderActiveCard(j) {
         <div class="job-body">
           <b>${escapeHtml(j.location)}</b> (${escapeHtml(j.priority)})<br>
           ${escapeHtml(j.problem)}<br>
+          <div class="created-line">Reported: ${escapeHtml(
+            formatCreatedDisplay(j.createdAt)
+          )}</div>
           <span class="status-line">Status: ${escapeHtml(st)}</span>
         </div>
         <label class="comment-label">Engineer comment / work done</label>
@@ -162,6 +181,9 @@ function renderHistoryCard(j) {
         <div class="job-body">
           <b>${escapeHtml(j.location)}</b> (${escapeHtml(j.priority)})<br>
           ${escapeHtml(j.problem)}<br>
+          <div class="created-line">Reported: ${escapeHtml(
+            formatCreatedDisplay(j.createdAt)
+          )}</div>
           <div class="completed-line">Completed: ${escapeHtml(when || "—")}</div>
         </div>
         ${commentBlock}
@@ -179,7 +201,7 @@ function addJob() {
   const fileInput = document.getElementById("jobPhoto");
 
   if (!location || !problem) {
-    alert("Please enter room/area and describe the problem.");
+    alert("Please fill required fields");
     return;
   }
 
@@ -194,11 +216,16 @@ function addJob() {
       engineerComment: "",
       photo: photo || "",
       completedAt: "",
+      createdAt: new Date().toISOString(),
     };
     jobs.push(job);
     save();
-    document.getElementById("location").value = "";
-    document.getElementById("problem").value = "";
+    const locEl = document.getElementById("location");
+    const probEl = document.getElementById("problem");
+    const priEl = document.getElementById("priority");
+    if (locEl) locEl.value = "";
+    if (probEl) probEl.value = "";
+    if (priEl) priEl.value = "Low";
     if (fileInput) fileInput.value = "";
     const prev = document.getElementById("jobPhotoPreview");
     if (prev) prev.innerHTML = "";
