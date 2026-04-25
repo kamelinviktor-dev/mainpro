@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MainPro Jobs</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      margin: 0;
+      min-height: 100vh;
+      background: #f5f5f5;
+      color: #1a1a1a;
+      line-height: 1.45;
+    }
+
+    .app-wrap {
+      max-width: 500px;
+      margin: 0 auto;
+      padding: 16px 16px 32px;
+    }
+
+    .app-header {
+      text-align: center;
+      padding: 16px 12px 8px;
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: #111;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 20px 18px 22px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+
+    .card h2 {
+      margin: 0 0 16px;
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .form-field {
+      margin-bottom: 14px;
+    }
+
+    .form-hint {
+      font-size: 0.8rem;
+      color: #6b7280;
+      margin: -6px 0 8px;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      margin: 0;
+      padding: 14px 14px;
+      font-size: 16px;
+      border: 1px solid #e0e0e0;
+      border-radius: 10px;
+      background: #fff;
+    }
+
+    input[type="file"] {
+      padding: 10px;
+      font-size: 14px;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
+
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    .form-photo-preview {
+      max-width: 100%;
+      max-height: 160px;
+      border-radius: 10px;
+      margin-top: 8px;
+      display: block;
+    }
+
+    #jobPhotoPreview:empty { margin: 0; }
+
+    .btn-submit {
+      width: 100%;
+      margin-top: 6px;
+      padding: 14px 16px;
+      font-size: 16px;
+      font-weight: 600;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      background: #0f766e;
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(15, 118, 110, 0.35);
+    }
+
+    .btn-submit:active {
+      transform: scale(0.98);
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin: 6px 0 14px;
+    }
+
+    .tab {
+      flex: 1;
+      padding: 12px 10px;
+      font-size: 15px;
+      font-weight: 600;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      background: #fff;
+      color: #374151;
+      cursor: pointer;
+    }
+
+    .tab.active {
+      background: #0f766e;
+      color: #fff;
+      border-color: #0f766e;
+    }
+
+    .panel {
+      min-height: 40px;
+    }
+
+    .panel[hidden] {
+      display: none !important;
+    }
+
+    #jobs-active, #jobs-history {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .empty-hint {
+      text-align: center;
+      color: #6b7280;
+      font-size: 0.95rem;
+      padding: 20px 12px;
+      margin: 0;
+    }
+
+    .job {
+      background: #fff;
+      border-radius: 12px;
+      padding: 14px 14px 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      border: 1px solid rgba(0,0,0,0.04);
+      border-left: 4px solid #9ca3af;
+    }
+
+    .job[data-status="New"] {
+      border-left-color: #6b7280;
+    }
+
+    .job[data-status="In Progress"] {
+      border-left-color: #ea580c;
+    }
+
+    .job[data-status="Done"], .job-history {
+      border-left-color: #16a34a;
+    }
+
+    .job-photo-wrap {
+      margin: 0 0 10px;
+    }
+
+    .job-photo-thumb {
+      width: 100%;
+      max-height: 140px;
+      object-fit: cover;
+      border-radius: 8px;
+      display: block;
+    }
+
+    .job-body { margin-bottom: 8px; }
+
+    .status-line, .completed-line {
+      display: block;
+      margin-top: 6px;
+      font-size: 0.9rem;
+    }
+
+    .completed-line { color: #166534; font-weight: 600; }
+
+    .comment-label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #4b5563;
+      margin: 8px 0 4px;
+    }
+
+    .comment-field {
+      min-height: 64px;
+      font-size: 15px;
+      margin-bottom: 4px;
+    }
+
+    .history-comment {
+      font-size: 0.9rem;
+      margin: 8px 0 4px;
+      padding: 8px 10px;
+      background: #f9fafb;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+    }
+
+    .history-comment.muted {
+      color: #9ca3af;
+      font-style: italic;
+    }
+
+    .job .job-actions {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+      padding-top: 4px;
+    }
+
+    .job-actions-single {
+      justify-content: flex-end;
+    }
+
+    .job .job-actions button, .job .job-actions .btn-sec {
+      flex: 1 1 auto;
+      min-width: 0;
+      margin: 0;
+      padding: 8px 6px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+      background: #f9fafb;
+      color: #374151;
+      cursor: pointer;
+    }
+
+    .btn-sec {
+      border: 1px solid #e5e7eb;
+      background: #f9fafb;
+    }
+
+    .btn-done {
+      background: #dcfce7 !important;
+      border-color: #86efac !important;
+      color: #166534 !important;
+    }
+
+    .btn-del {
+      color: #b91c1c !important;
+      border-color: #fecaca !important;
+      background: #fff !important;
+    }
+
+    .job-actions-single .btn-del {
+      flex: 0 0 auto;
+      min-width: 88px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-wrap">
+    <div class="app-header">MainPro Jobs</div>
+
+    <div class="card">
+      <h2>Report issue</h2>
+      <div class="form-field">
+        <input id="location" placeholder="Room / area">
+      </div>
+      <div class="form-field">
+        <textarea id="problem" placeholder="Describe the problem"></textarea>
+      </div>
+      <div class="form-field">
+        <select id="priority">
+          <option>Low</option>
+          <option>Medium</option>
+          <option>Urgent</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <div class="form-hint">Optional — attach a photo</div>
+        <input id="jobPhoto" type="file" accept="image/*" capture="environment">
+        <div id="jobPhotoPreview"></div>
+      </div>
+      <button type="button" class="btn-submit" onclick="addJob()">Submit</button>
+    </div>
+
+    <div class="tabs" role="tablist">
+      <button type="button" class="tab active" data-tab="active" onclick="setTab('active')">Active Jobs</button>
+      <button type="button" class="tab" data-tab="history" onclick="setTab('history')">History</button>
+    </div>
+
+    <div id="panel-active" class="panel">
+      <div id="jobs-active"></div>
+    </div>
+
+    <div id="panel-history" class="panel" hidden>
+      <div id="jobs-history"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+
+</body>
+</html>
