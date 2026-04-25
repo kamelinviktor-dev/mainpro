@@ -179,6 +179,10 @@
       border-left-color: #ea580c;
     }
 
+    .job[data-status="Pending"] {
+      border-left-color: #7c3aed;
+    }
+
     .job[data-status="Done"], .job-history {
       border-left-color: #16a34a;
     }
@@ -208,6 +212,14 @@
     .created-line { color: #4b5563; }
 
     .completed-line { color: #166534; font-weight: 600; }
+
+    .pending-until-line {
+      display: block;
+      margin-top: 6px;
+      font-size: 0.9rem;
+      color: #5b21b6;
+      font-weight: 600;
+    }
 
     .comment-label {
       display: block;
@@ -253,6 +265,12 @@
     .btn-sec {
       border: 1px solid #e5e7eb;
       background: #f9fafb;
+    }
+
+    .btn-park {
+      border-color: #c4b5fd !important;
+      background: #f5f3ff !important;
+      color: #5b21b6 !important;
     }
 
     .btn-done {
@@ -418,6 +436,79 @@
       cursor: pointer;
       box-shadow: 0 2px 10px rgba(0,0,0,0.3);
     }
+
+    .park-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 19000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .park-modal[hidden] {
+      display: none !important;
+    }
+
+    .park-modal-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+    }
+
+    .park-modal-card {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 400px;
+      background: #fff;
+      border-radius: 14px;
+      padding: 20px 18px 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    }
+
+    .park-modal-card h3 {
+      margin: 0 0 6px;
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .park-modal-hint {
+      font-size: 0.86rem;
+      color: #64748b;
+      margin: 0 0 14px;
+      line-height: 1.4;
+    }
+
+    .park-modal-card input[type="datetime-local"] {
+      margin-bottom: 16px;
+    }
+
+    .park-modal-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .park-modal-actions button {
+      flex: 1 1 auto;
+      min-width: 0;
+      padding: 12px 14px;
+      font-size: 15px;
+      font-weight: 600;
+      border-radius: 10px;
+      cursor: pointer;
+      border: 1px solid #e5e7eb;
+      background: #f9fafb;
+      color: #374151;
+    }
+
+    .park-modal-actions .btn-park-confirm {
+      background: #5b21b6;
+      color: #fff;
+      border-color: #5b21b6;
+    }
   </style>
 </head>
 <body>
@@ -426,6 +517,20 @@
     <div class="photo-lightbox-backdrop" onclick="closePhotoLightbox()"></div>
     <img id="photoLightboxImg" class="photo-lightbox-img" alt="">
     <button type="button" class="photo-lightbox-x" onclick="closePhotoLightbox()" aria-label="Close">×</button>
+  </div>
+
+  <div id="parkModal" class="park-modal" hidden role="dialog" aria-modal="true" aria-labelledby="parkModalTitle">
+    <div class="park-modal-backdrop" onclick="closeParkDialog()"></div>
+    <div class="park-modal-card">
+      <h3 id="parkModalTitle">Park job</h3>
+      <p class="park-modal-hint">Choose when to resume (e.g. parts arrival or access). The job returns to <strong>New</strong> after that time. Add a reason in notes after closing this dialog if you like.</p>
+      <label class="form-hint" for="parkUntilInput" style="display:block;">Pending until</label>
+      <input type="datetime-local" id="parkUntilInput" autocomplete="off">
+      <div class="park-modal-actions">
+        <button type="button" onclick="closeParkDialog()">Cancel</button>
+        <button type="button" class="btn-park-confirm" onclick="confirmPark()">Save</button>
+      </div>
+    </div>
   </div>
 
   <div class="app-wrap">
@@ -479,6 +584,7 @@
         <button type="button" class="filter-btn active" data-status-filter="All" onclick="setStatusFilter('All')">All</button>
         <button type="button" class="filter-btn" data-status-filter="New" onclick="setStatusFilter('New')">New</button>
         <button type="button" class="filter-btn" data-status-filter="In Progress" onclick="setStatusFilter('In Progress')">In Progress</button>
+        <button type="button" class="filter-btn" data-status-filter="Pending" onclick="setStatusFilter('Pending')">Pending</button>
       </div>
     </div>
 
