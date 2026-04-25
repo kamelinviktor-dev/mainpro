@@ -55,6 +55,13 @@
       margin: -6px 0 8px;
     }
 
+    .form-photo-help {
+      font-size: 0.86rem;
+      line-height: 1.4;
+      color: #475569;
+      margin: 0 0 10px;
+    }
+
     input, textarea, select {
       width: 100%;
       margin: 0;
@@ -186,6 +193,8 @@
       object-fit: cover;
       border-radius: 8px;
       display: block;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
     }
 
     .job-body { margin-bottom: 8px; }
@@ -221,6 +230,8 @@
       background: #f9fafb;
       border-radius: 8px;
       border: 1px solid #e5e7eb;
+      white-space: pre-wrap;
+      word-break: break-word;
     }
 
     .history-comment.muted {
@@ -328,9 +339,110 @@
       color: #fff;
       border-color: #0f766e;
     }
+
+    .comment-save-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 6px 0 2px;
+      flex-wrap: wrap;
+    }
+
+    .btn-save-note {
+      padding: 8px 14px;
+      font-size: 14px;
+      font-weight: 600;
+      border: 1px solid #0f766e;
+      border-radius: 8px;
+      background: #ecfdf5;
+      color: #0f5249;
+      cursor: pointer;
+    }
+
+    .comment-saved-hint {
+      font-size: 0.8rem;
+      color: #0f766e;
+      font-weight: 600;
+    }
+
+    .comment-saved-display {
+      font-size: 0.9rem;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      word-break: break-word;
+      padding: 10px 12px;
+      margin: 0 0 10px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      color: #1e293b;
+    }
+
+    .comment-saved-display.comment-saved-empty {
+      color: #94a3b8;
+      font-style: italic;
+    }
+
+    textarea.comment-new {
+      margin-bottom: 6px;
+    }
+
+    .photo-lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 20000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+    }
+
+    .photo-lightbox[hidden] {
+      display: none !important;
+    }
+
+    .photo-lightbox-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.88);
+    }
+
+    .photo-lightbox-img {
+      position: relative;
+      z-index: 1;
+      max-width: 100%;
+      max-height: min(92vh, 100%);
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      border-radius: 4px;
+    }
+
+    .photo-lightbox-x {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 2;
+      width: 44px;
+      height: 44px;
+      border: none;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.95);
+      color: #111;
+      font-size: 26px;
+      line-height: 1;
+      cursor: pointer;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    }
   </style>
 </head>
 <body>
+
+  <div id="photoLightbox" class="photo-lightbox" hidden role="dialog" aria-modal="true" aria-label="Photo">
+    <div class="photo-lightbox-backdrop" onclick="closePhotoLightbox()"></div>
+    <img id="photoLightboxImg" class="photo-lightbox-img" alt="">
+    <button type="button" class="photo-lightbox-x" onclick="closePhotoLightbox()" aria-label="Close">×</button>
+  </div>
 
   <div class="app-wrap">
     <div class="app-header">MainPro Jobs</div>
@@ -361,7 +473,11 @@
         </select>
       </div>
       <div class="form-field">
-        <div class="form-hint">Optional — attach a photo</div>
+        <div class="form-hint">Photo (optional)</div>
+        <p class="form-photo-help">
+          <strong>Phone or tablet:</strong> tap “Choose file” — your device will offer the <strong>camera</strong> or your <strong>photo library</strong>.
+          <strong>Computer:</strong> pick an image from your files. The picture is stored with the job in this device’s browser.
+        </p>
         <input id="jobPhoto" type="file" accept="image/*" capture="environment">
         <div id="jobPhotoPreview"></div>
       </div>

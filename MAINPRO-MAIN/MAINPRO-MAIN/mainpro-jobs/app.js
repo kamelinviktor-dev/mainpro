@@ -62,6 +62,30 @@ function escapeHtml(s) {
     .replace(/"/g, "&quot;");
 }
 
+/** For double-quoted HTML attributes (e.g. data-jid). */
+function escapeAttr(s) {
+  if (s == null) return "";
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/'/g, "&#39;");
+}
+
+/** Safe id in data-job-id (any characters in job id). */
+function jobIdForDomAttr(id) {
+  return encodeURIComponent(String(id));
+}
+
+function jobIdFromDomAttr(raw) {
+  if (raw == null || raw === "") return null;
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
+}
+
 function isActiveStatus(status) {
   return status === "New" || status === "In Progress";
 }
@@ -99,9 +123,14 @@ function getSearchQuery() {
 
 function matchesJobSearch(j, q) {
   if (!q) return true;
-  const parts = [j.location, j.problem, j.reportedBy, j.priority, j.status].map(
-    (v) => String(v == null ? "" : v).toLowerCase()
-  );
+  const parts = [
+    j.location,
+    j.problem,
+    j.reportedBy,
+    j.priority,
+    j.status,
+    j.engineerComment,
+  ].map((v) => String(v == null ? "" : v).toLowerCase());
   return parts.some((p) => p.indexOf(q) >= 0);
 }
 
@@ -174,17 +203,21 @@ function renderActiveCard(j) {
   const safePhoto =
     j.photo && String(j.photo).indexOf("data:image/") === 0 ? j.photo : "";
   const photoBlock = safePhoto
-    ? `<div class="job-photo-wrap"><img class="job-photo-thumb" src="${safePhoto}" alt=""></div>`
+    ? `<div class="job-photo-wrap"><img class="job-photo-thumb" src="${safePhoto}" alt="Fault photo" tabindex="0" role="button"></div>`
     : "";
-  const commentVal = escapeHtml(j.engineerComment || "");
+  const savedNotes = (j.engineerComment || "").trim();
+  const savedNotesHtml = savedNotes
+    ? `<div class="comment-saved-display">${escapeHtml(savedNotes)}</div>`
+    : `<div class="comment-saved-display comment-saved-empty">No notes yet</div>`;
   const sInProgress = JSON.stringify("In Progress");
   const sDone = JSON.stringify("Done");
   const progressBtn =
     st === "New"
       ? `<button type="button" class="btn-sec" onclick='setStatus(${qid}, ${sInProgress})'>In Progress</button>`
       : "";
+  const idForAttr = jobIdForDomAttr(j.id);
   return `
-      <div class="job" data-status="${escapeHtml(st)}">
+      <div class="job" data-job-id="${idForAttr}" data-status="${escapeHtml(st)}">
         ${photoBlock}
         <div class="job-body">
           <b>${escapeHtml(j.location)}</b> (${escapeHtml(j.priority)})<br>
@@ -197,8 +230,14 @@ function renderActiveCard(j) {
           )}</div>
           <span class="status-line">Status: ${escapeHtml(st)}</span>
         </div>
-        <label class="comment-label">Engineer comment / work done</label>
-        <textarea class="comment-field" rows="2" placeholder="Notes…" onchange='saveComment(${qid}, this.value)'>${commentVal}</textarea>
+        <label class="comment-label">Engineer notes (saved)</label>
+        ${savedNotesHtml}
+        <label class="comment-label">Add a note</label>
+        <textarea class="comment-field comment-new" rows="2" placeholder="Type a note, then tap Save note"></textarea>
+        <div class="comment-save-row">
+          <button type="button" class="btn-save-note" onclick="saveEngineerNote(this)">Save note</button>
+          <span class="comment-saved-hint" data-saved-hint="1" hidden>Saved</span>
+        </div>
         <div class="job-actions">
           ${progressBtn}
           <button type="button" class="btn-done" onclick='setStatus(${qid}, ${sDone})'>Done</button>
@@ -213,17 +252,17 @@ function renderHistoryCard(j) {
   const safePhoto =
     j.photo && String(j.photo).indexOf("data:image/") === 0 ? j.photo : "";
   const photoBlock = safePhoto
-    ? `<div class="job-photo-wrap"><img class="job-photo-thumb" src="${safePhoto}" alt=""></div>`
+    ? `<div class="job-photo-wrap"><img class="job-photo-thumb" src="${safePhoto}" alt="Fault photo" tabindex="0" role="button"></div>`
     : "";
   const when = formatWhen(j.completedAt);
   const comment = (j.engineerComment || "").trim();
   const commentBlock = comment
-    ? `<div class="history-comment"><strong>Work / notes:</strong><br>${escapeHtml(
+    ? `<div class="history-comment"><strong>Engineer comment / work done:</strong><br>${escapeHtml(
         comment
       )}</div>`
-    : '<div class="history-comment muted">No engineer notes</div>';
+    : '<div class="history-comment muted">No engineer notes yet</div>';
   return `
-      <div class="job job-history" data-status="Done">
+      <div class="job job-history" data-job-id="${jobIdForDomAttr(j.id)}" data-status="Done">
         ${photoBlock}
         <div class="job-body">
           <b>${escapeHtml(j.location)}</b> (${escapeHtml(j.priority)})<br>
@@ -272,7 +311,7 @@ function addJob() {
       completedAt: "",
       createdAt: new Date().toISOString(),
     };
-    jobs.push(job);
+    jobs.unshift(job);
     save();
     const locEl = document.getElementById("location");
     const probEl = document.getElementById("problem");
@@ -318,11 +357,72 @@ function setStatus(id, status) {
   render();
 }
 
-function saveComment(id, value) {
+function flashCommentSaved(id) {
+  const want = String(id);
+  document.querySelectorAll(".job[data-job-id]").forEach((job) => {
+    const got = jobIdFromDomAttr(job.getAttribute("data-job-id"));
+    if (got !== want) return;
+    const hint = job.querySelector(".comment-saved-hint");
+    if (hint) hint.hidden = false;
+  });
+  clearTimeout(flashCommentSaved._t);
+  flashCommentSaved._t = setTimeout(function () {
+    document.querySelectorAll(".job[data-job-id]").forEach((job) => {
+      const got = jobIdFromDomAttr(job.getAttribute("data-job-id"));
+      if (got !== want) return;
+      const hint = job.querySelector(".comment-saved-hint");
+      if (hint) hint.hidden = true;
+    });
+  }, 1800);
+}
+
+/**
+ * Append note to job, save, re-render (field clears), show "Saved".
+ */
+function saveEngineerNote(btn) {
+  const job = btn && btn.closest && btn.closest(".job");
+  if (!job) return;
+  const id = jobIdFromDomAttr(job.getAttribute("data-job-id"));
+  if (id == null) return;
+  const ta = job.querySelector("textarea.comment-new");
+  const text = ta ? String(ta.value).trim() : "";
+  if (!text) {
+    alert("Please type a note first.");
+    return;
+  }
   const j = jobs.find((x) => String(x.id) === String(id));
-  if (!j) return;
-  j.engineerComment = value;
+  if (!j) {
+    alert("Could not find this job. Try refreshing the page.");
+    return;
+  }
+  const cur = (j.engineerComment || "").trim();
+  j.engineerComment = cur ? cur + "\n\n" + text : text;
   save();
+  render();
+  setTimeout(function () {
+    flashCommentSaved(String(id));
+  }, 0);
+}
+
+window.saveEngineerNote = saveEngineerNote;
+
+function openPhotoLightbox(src) {
+  if (!src || String(src).indexOf("data:image/") !== 0) return;
+  const box = document.getElementById("photoLightbox");
+  const im = document.getElementById("photoLightboxImg");
+  if (!box || !im) return;
+  im.src = src;
+  im.alt = "Fault photo (full size)";
+  box.hidden = false;
+  document.body.style.overflow = "hidden";
+}
+
+function closePhotoLightbox() {
+  const box = document.getElementById("photoLightbox");
+  const im = document.getElementById("photoLightboxImg");
+  if (im) im.removeAttribute("src");
+  if (box) box.hidden = true;
+  document.body.style.overflow = "";
 }
 
 function deleteJob(id) {
@@ -368,5 +468,27 @@ bindPhotoPreview();
   const s = document.getElementById("jobSearch");
   if (s) s.addEventListener("input", render);
 })();
+
+/* Thumbnail / full-screen photo */
+document.addEventListener("click", function (e) {
+  const t = e.target;
+  if (t && t.classList && t.classList.contains("job-photo-thumb")) {
+    e.preventDefault();
+    const src = t.getAttribute("src");
+    openPhotoLightbox(src);
+  }
+});
+document.addEventListener("keydown", function (e) {
+  if (e.key === "Escape" || e.key === "Esc") {
+    const box = document.getElementById("photoLightbox");
+    if (box && !box.hidden) closePhotoLightbox();
+  }
+  const t = e.target;
+  if (t && t.classList && t.classList.contains("job-photo-thumb") && (e.key === "Enter" || e.key === " ")) {
+    e.preventDefault();
+    openPhotoLightbox(t.getAttribute("src"));
+  }
+});
+
 render();
 setTab("active");
