@@ -1213,7 +1213,7 @@ function deleteJob(id) {
   appendSystemComment(j, "Job moved to Deleted");
   save();
   showJobsToast("Job moved to Deleted");
-  setStatusFilter("Deleted");
+  render();
 }
 
 function restoreJob(id) {
