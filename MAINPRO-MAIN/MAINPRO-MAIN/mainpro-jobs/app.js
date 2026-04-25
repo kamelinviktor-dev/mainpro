@@ -197,6 +197,15 @@ function idAttr(id) {
   return JSON.stringify(String(id));
 }
 
+/** Same label + saved-text block in Active and History (single source of truth). */
+function renderEngineerNotesSavedSection(j) {
+  const savedNotes = (j.engineerComment || "").trim();
+  const body = savedNotes
+    ? `<div class="comment-saved-display">${escapeHtml(savedNotes)}</div>`
+    : `<div class="comment-saved-display comment-saved-empty">No notes yet</div>`;
+  return `<label class="comment-label">Engineer notes (saved)</label>${body}`;
+}
+
 function renderActiveCard(j) {
   const st = j.status;
   const qid = idAttr(j.id);
@@ -205,10 +214,6 @@ function renderActiveCard(j) {
   const photoBlock = safePhoto
     ? `<div class="job-photo-wrap"><img class="job-photo-thumb" src="${safePhoto}" alt="Fault photo" tabindex="0" role="button"></div>`
     : "";
-  const savedNotes = (j.engineerComment || "").trim();
-  const savedNotesHtml = savedNotes
-    ? `<div class="comment-saved-display">${escapeHtml(savedNotes)}</div>`
-    : `<div class="comment-saved-display comment-saved-empty">No notes yet</div>`;
   const sInProgress = JSON.stringify("In Progress");
   const sDone = JSON.stringify("Done");
   const progressBtn =
@@ -230,8 +235,7 @@ function renderActiveCard(j) {
           )}</div>
           <span class="status-line">Status: ${escapeHtml(st)}</span>
         </div>
-        <label class="comment-label">Engineer notes (saved)</label>
-        ${savedNotesHtml}
+        ${renderEngineerNotesSavedSection(j)}
         <label class="comment-label">Add a note</label>
         <textarea class="comment-field comment-new" rows="2" placeholder="Type a note, then tap Save note"></textarea>
         <div class="comment-save-row">
@@ -255,12 +259,6 @@ function renderHistoryCard(j) {
     ? `<div class="job-photo-wrap"><img class="job-photo-thumb" src="${safePhoto}" alt="Fault photo" tabindex="0" role="button"></div>`
     : "";
   const when = formatWhen(j.completedAt);
-  const comment = (j.engineerComment || "").trim();
-  const commentBlock = comment
-    ? `<div class="history-comment"><strong>Engineer comment / work done:</strong><br>${escapeHtml(
-        comment
-      )}</div>`
-    : '<div class="history-comment muted">No engineer notes yet</div>';
   return `
       <div class="job job-history" data-job-id="${jobIdForDomAttr(j.id)}" data-status="Done">
         ${photoBlock}
@@ -275,7 +273,7 @@ function renderHistoryCard(j) {
           )}</div>
           <div class="completed-line">Completed: ${escapeHtml(when || "—")}</div>
         </div>
-        ${commentBlock}
+        ${renderEngineerNotesSavedSection(j)}
         <div class="job-actions job-actions-single">
           <button type="button" class="btn-del" onclick='deleteJob(${qid})'>Delete</button>
         </div>
