@@ -1,6 +1,11 @@
 let jobs = loadJobs();
-/** All | New | In Progress | Pending — History tab for completed */
+/**
+ * All | New | In Progress | Pending | Overdue (active list).
+ * "Done" kept for old localStorage.
+ */
 let statusFilter = "All";
+/** "all" | "completedToday" — History tab */
+let historyViewFilter = "all";
 /** set when opening Park modal */
 let _parkTargetId = null;
 
@@ -108,6 +113,7 @@ function loadJobs() {
       x.pendingReason = "";
       changed = true;
     }
+    delete x.isOverdue;
     return x;
   });
   if (changed) {
@@ -121,7 +127,12 @@ function loadJobs() {
 }
 
 function save() {
-  localStorage.setItem("jobs", JSON.stringify(jobs));
+  const out = jobs.map((j) => {
+    const o = { ...j };
+    delete o.isOverdue;
+    return o;
+  });
+  localStorage.setItem("jobs", JSON.stringify(out));
 }
 
 function escapeHtml(s) {
@@ -161,37 +172,6 @@ function isActiveStatus(status) {
   return (
     status === "New" || status === "In Progress" || status === "Pending"
   );
-}
-
-/**
- * If Pending until time has passed, return job to New and clear pendingUntil.
- */
-function processExpiredPending() {
-  const now = Date.now();
-  let changed = false;
-  jobs.forEach((j) => {
-    if (j.status !== "Pending" || !j.pendingUntil) return;
-    const t = new Date(j.pendingUntil).getTime();
-    if (isNaN(t)) {
-      j.status = "New";
-      j.pendingUntil = "";
-      j.pendingReason = "";
-      changed = true;
-      return;
-    }
-    if (t > now) return;
-    j.status = "New";
-    j.pendingUntil = "";
-    j.pendingReason = "";
-    changed = true;
-  });
-  if (changed) {
-    try {
-      localStorage.setItem("jobs", JSON.stringify(jobs));
-    } catch (e) {
-      console.warn("Could not save after pending expiry", e);
-    }
-  }
 }
 
 function pad2(n) {
@@ -260,14 +240,45 @@ function isCompletedAtToday(iso) {
   );
 }
 
-/** Pending with a due time that has already passed. */
-function isJobPendingOverdue(j) {
+/** Rule: Pending + pendingUntil + now > until (also sets j.isOverdue via sync). */
+function isJobOverdueState(j) {
   if (j.status !== "Pending") return false;
   const u = (j.pendingUntil || "").trim();
   if (!u) return false;
   const t = new Date(u).getTime();
   if (isNaN(t)) return false;
   return Date.now() > t;
+}
+
+/**
+ * isOverdue is in-memory only; stripped in save().
+ */
+function syncOverdueFlags() {
+  jobs.forEach((j) => {
+    j.isOverdue = isJobOverdueState(j);
+  });
+}
+
+function formatDurationHMFromMs(totalMs) {
+  if (totalMs < 0) totalMs = 0;
+  const totalMin = Math.floor(totalMs / 60000);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  return { h: h, m: m };
+}
+
+function getPendingTimerBlock(j) {
+  if (j.status !== "Pending" || !(j.pendingUntil || "").trim()) return "";
+  const t = new Date(j.pendingUntil).getTime();
+  if (isNaN(t)) return "";
+  const now = Date.now();
+  if (j.isOverdue) {
+    const { h, m } = formatDurationHMFromMs(now - t);
+    return `<div class="pending-timer-line pending-timer--overdue" aria-live="polite">⚠️ Overdue by ${h}h ${m}m</div>`;
+  }
+  if (t <= now) return "";
+  const { h, m } = formatDurationHMFromMs(t - now);
+  return `<div class="pending-timer-line pending-timer--left" aria-live="polite">⏱️ ${h}h ${m}m left</div>`;
 }
 
 function getDashboardCounts() {
@@ -283,7 +294,7 @@ function getDashboardCounts() {
     else if (st === "In Progress") nInProgress++;
     else if (st === "Pending") {
       nPending++;
-      if (isJobPendingOverdue(j)) nOverdue++;
+      if (j.isOverdue) nOverdue++;
     }
     if (st === "Done" && isCompletedAtToday(j.completedAt)) nDoneToday++;
   }
@@ -307,6 +318,35 @@ function updateDashboard() {
   set("dashCountPending", c.nPending);
   set("dashCountOverdue", c.nOverdue);
   set("dashCountDoneToday", c.nDoneToday);
+  updateDashboardCardHighlight();
+}
+
+function getCurrentPanelKind() {
+  const a = document.getElementById("panel-active");
+  if (a && !a.hidden) return "active";
+  return "history";
+}
+
+function updateDashboardCardHighlight() {
+  const kind = getCurrentPanelKind();
+  document.querySelectorAll(".job-dashboard-card").forEach((el) => {
+    el.classList.remove("job-dashboard-card--active");
+  });
+  if (kind === "active" && statusFilter && statusFilter !== "All") {
+    const h = {
+      New: "new",
+      "In Progress": "inProgress",
+      Pending: "pending",
+      Overdue: "overdue",
+    }[statusFilter];
+    if (h) {
+      const t = document.querySelector('.job-dashboard-card[data-dash="' + h + '"]');
+      if (t) t.classList.add("job-dashboard-card--active");
+    }
+  } else if (kind === "history" && historyViewFilter === "completedToday") {
+    const t = document.querySelector('.job-dashboard-card[data-dash="doneToday"]');
+    if (t) t.classList.add("job-dashboard-card--active");
+  }
 }
 
 function getSearchQuery() {
@@ -334,16 +374,58 @@ function matchesJobSearch(j, q) {
  */
 function matchesStatusFilterForActive(j) {
   if (statusFilter === "All" || statusFilter === "Done") return true;
+  if (statusFilter === "Overdue") return j.isOverdue === true;
   return j.status === statusFilter;
 }
 
 function setStatusFilter(s) {
   statusFilter = s;
+  historyViewFilter = "all";
+  setTab("active");
   render();
 }
 
+function onDashboardFilter(dash) {
+  if (dash === "doneToday") {
+    historyViewFilter = "completedToday";
+    setTab("history");
+    render();
+    return;
+  }
+  historyViewFilter = "all";
+  const map = {
+    new: "New",
+    inProgress: "In Progress",
+    pending: "Pending",
+    overdue: "Overdue",
+  };
+  if (map[dash]) {
+    statusFilter = map[dash];
+  }
+  setTab("active");
+  render();
+}
+
+window.onDashboardFilter = onDashboardFilter;
+
+function sortKeyActiveList(j) {
+  if (j.isOverdue) return 0;
+  if (j.status === "In Progress") return 1;
+  if (j.status === "Pending") return 2;
+  if (j.status === "New") return 3;
+  return 4;
+}
+
+function updateFilterButtonsActiveState() {
+  const onActive = getCurrentPanelKind() === "active";
+  document.querySelectorAll("[data-status-filter]").forEach((el) => {
+    const v = el.getAttribute("data-status-filter");
+    el.classList.toggle("active", onActive && v === statusFilter);
+  });
+}
+
 function render() {
-  processExpiredPending();
+  syncOverdueFlags();
 
   const activeEl = document.getElementById("jobs-active");
   const historyEl = document.getElementById("jobs-history");
@@ -355,6 +437,12 @@ function render() {
   let actives = jobs.filter((j) => isActiveStatus(j.status));
   actives = actives.filter((j) => matchesStatusFilterForActive(j));
   actives = actives.filter((j) => matchesJobSearch(j, q));
+  actives.sort((a, b) => {
+    const ka = sortKeyActiveList(a);
+    const kb = sortKeyActiveList(b);
+    if (ka !== kb) return ka - kb;
+    return String(b.createdAt || "").localeCompare(String(a.createdAt || ""));
+  });
 
   let doneList = jobs
     .filter((j) => j.status === "Done")
@@ -364,13 +452,12 @@ function render() {
       const tb = b.completedAt || "";
       return tb.localeCompare(ta);
     });
-  /* History: all completed; use the History tab — only search filters this list. */
+  if (historyViewFilter === "completedToday") {
+    doneList = doneList.filter((j) => isCompletedAtToday(j.completedAt));
+  }
   doneList = doneList.filter((j) => matchesJobSearch(j, q));
 
-  document.querySelectorAll("[data-status-filter]").forEach((el) => {
-    const v = el.getAttribute("data-status-filter");
-    el.classList.toggle("active", v === statusFilter);
-  });
+  updateFilterButtonsActiveState();
 
   if (actives.length === 0 && activeEl) {
     activeEl.innerHTML =
@@ -382,7 +469,10 @@ function render() {
   }
 
   if (doneList.length === 0 && historyEl) {
-    historyEl.innerHTML = '<p class="empty-hint">No completed jobs yet.</p>';
+    historyEl.innerHTML =
+      historyViewFilter === "completedToday"
+        ? '<p class="empty-hint">No jobs completed today yet.</p>'
+        : '<p class="empty-hint">No completed jobs yet.</p>';
   } else {
     doneList.forEach((j) => {
       historyEl.innerHTML += renderHistoryCard(j);
@@ -428,12 +518,14 @@ function renderActiveCard(j) {
       : "";
   const idForAttr = jobIdForDomAttr(j.id);
   const pr = (j.pendingReason || "").trim();
+  const isOverdue = st === "Pending" && j.isOverdue;
   const reasonLine =
     st === "Pending"
       ? `<div class="pending-reason-line">Reason: ${escapeHtml(
           pr || "—"
         )}</div>`
       : "";
+  const timerLine = st === "Pending" ? getPendingTimerBlock(j) : "";
   const pendingLine =
     st === "Pending" && (j.pendingUntil || "").trim()
       ? `<div class="pending-until-line">Pending until: ${escapeHtml(
@@ -446,18 +538,24 @@ function renderActiveCard(j) {
     st === "Pending"
       ? "Status: Waiting / Pending"
       : `Status: ${escapeHtml(st)}`;
-  const pendingClass = st === "Pending" ? " job-pending" : "";
+  const pendingClass = isOverdue
+    ? " job-overdue"
+    : st === "Pending"
+      ? " job-pending"
+      : "";
+  const topBadge =
+    st === "Pending" && isOverdue
+      ? '<span class="overdue-urgent-badge" title="Past pending-until time">Overdue</span>'
+      : st === "Pending" && !isOverdue
+        ? '<span class="pending-waiting-badge" title="This job is on hold">On hold</span>'
+        : "";
   return `
       <div class="job${pendingClass}" data-job-id="${idForAttr}" data-status="${escapeHtml(
     st
-  )}">
+  )}" data-overdue="${isOverdue ? "1" : "0"}">
         ${photoBlock}
         <div class="job-body">
-          ${
-            st === "Pending"
-              ? '<span class="pending-waiting-badge" title="This job is on hold">On hold</span>'
-              : ""
-          }
+          ${topBadge}
           <b>${escapeHtml(j.location)}</b> (${escapeHtml(j.priority)})<br>
           ${escapeHtml(j.problem)}<br>
           <div class="reported-by-line">Reported by: ${escapeHtml(
@@ -468,6 +566,7 @@ function renderActiveCard(j) {
           )}</div>
           <span class="status-line status-line-pending-when">${statusLabel}</span>
           ${reasonLine}
+          ${timerLine}
           ${pendingLine}
         </div>
         ${renderEngineerNotesSavedSection(j)}
@@ -747,6 +846,8 @@ function setTab(tab) {
     const on = el.getAttribute("data-tab") === tab;
     el.classList.toggle("active", on);
   });
+  updateFilterButtonsActiveState();
+  updateDashboardCardHighlight();
 }
 
 function bindPhotoPreview() {
@@ -774,6 +875,13 @@ bindPhotoPreview();
   const s = document.getElementById("jobSearch");
   if (s) s.addEventListener("input", render);
 })();
+
+setInterval(function () {
+  if (!hasMainproLogin()) return;
+  const am = document.getElementById("appMain");
+  if (!am || am.hidden) return;
+  render();
+}, 30000);
 
 /* Thumbnail / full-screen photo */
 document.addEventListener("click", function (e) {
