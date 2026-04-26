@@ -13,7 +13,7 @@ let _parkTargetId = null;
 const jobLogExpanded = Object.create(null);
 const JOB_LOG_PREVIEW_COUNT = 1;
 /** Collapsed Activity: show this many newest system events; expanded shows all. */
-const ACTIVITY_LOG_VISIBLE_COUNT = 1;
+const ACTIVITY_LOG_VISIBLE_COUNT = 2;
 
 const MAINPRO_USER_KEY = "mainpro_user";
 const MAINPRO_ROLES = [
@@ -298,6 +298,35 @@ function formatDateTime(value) {
   });
 }
 
+/** Card header / meta: "25 Apr, 23:53" (no year). */
+function formatDateClean(dateStr) {
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "";
+  return (
+    d.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+    }) +
+    ", " +
+    d.toLocaleTimeString("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    })
+  );
+}
+
+/** Activity timeline: time only. */
+function formatTimeOnly(dateStr) {
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "";
+  return d.toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
 function isCompletedAtToday(iso) {
   if (iso == null || iso === "") return false;
   const t = new Date(iso).getTime();
@@ -397,11 +426,11 @@ function getPendingTimerBlock(j) {
   const now = Date.now();
   if (j.isOverdue) {
     const { h, m } = formatDurationHMFromMs(now - t);
-    return `<div class="pending-timer-line pending-timer--overdue" aria-live="polite">⚠️ Overdue by ${h}h ${m}m</div>`;
+    return `<div class="pending-timer-line pending-timer--overdue meta-line" aria-live="polite">⚠️ Overdue by ${h}h ${m}m</div>`;
   }
   if (t <= now) return "";
   const { h, m } = formatDurationHMFromMs(t - now);
-  return `<div class="pending-timer-line pending-timer--left" aria-live="polite">⏱️ ${h}h ${m}m left</div>`;
+  return `<div class="pending-timer-line pending-timer--left meta-line" aria-live="polite">⏱️ ${h}h ${m}m left</div>`;
 }
 
 function getDashboardCounts() {
@@ -643,7 +672,14 @@ const COMMENT_TYPES = ["info", "issue", "action", "done"];
 /** Backward compatible: default author and type for legacy or partial objects. */
 function getCommentDisplayFields(c) {
   if (!c) {
-    return { text: "", createdAt: "", author: "Engineer", type: "info" };
+    return {
+      text: "",
+      createdAt: "",
+      time: "",
+      date: "",
+      author: "Engineer",
+      type: "info",
+    };
   }
   const t = String(c.type || "info")
     .toLowerCase()
@@ -676,53 +712,78 @@ function getCommentLogToneClass(j) {
   return "comment-log--tone-default";
 }
 
+function getCommentSortTimeMs(c) {
+  if (!c) return NaN;
+  const raw = c.time || c.date || c.createdAt;
+  const t = new Date(raw).getTime();
+  return t;
+}
+
 function getCommentsSortedNewestFirst(j) {
   const arr = (Array.isArray(j.comments) ? j.comments : [])
     .filter((c) => c && String(c.text || "").trim());
   return arr
     .map((c, i) => ({ c, i }))
     .sort((a, b) => {
-      const ta = new Date(a.c.createdAt).getTime();
-      const tb = new Date(b.c.createdAt).getTime();
+      const ta = getCommentSortTimeMs(a.c);
+      const tb = getCommentSortTimeMs(b.c);
       if (tb !== ta) return tb - ta;
       return b.i - a.i;
     })
     .map((x) => x.c);
 }
 
+function sortCommentsNewestFirst(arr) {
+  return (Array.isArray(arr) ? arr : [])
+    .slice()
+    .sort(
+      (a, b) =>
+        new Date(b.time || b.date || b.createdAt).getTime() -
+        new Date(a.time || a.date || a.createdAt).getTime()
+    );
+}
+
 /**
- * Short label for Activity timeline (matches known system messages).
+ * Activity line copy (clear SaaS-style wording from stored system text).
  */
-function getActivityCleanLabel(rawMsg) {
+function getActivityDisplayLabel(rawMsg) {
   const m = String(rawMsg == null ? "" : rawMsg)
     .trim()
     .replace(/\|\|/g, " ")
     .replace(/\s+/g, " ");
-  if (/^job moved to deleted$/i.test(m)) return "Deleted";
+  if (/^job moved to deleted$/i.test(m)) return "Moved to Deleted";
   if (/^job restored$/i.test(m)) return "Restored";
-  if (/^moved to in progress$/i.test(m)) return "In Progress";
-  if (/^moved to pending$/i.test(m)) return "Pending";
-  if (/^job became overdue$/i.test(m)) return "Overdue";
-  if (/^job completed$/i.test(m)) return "Completed";
+  if (/^moved to in progress$/i.test(m)) return "Moved to In Progress";
+  if (/^moved to pending$/i.test(m)) return "Moved to Pending";
+  if (/^job became overdue$/i.test(m)) return "Became Overdue";
+  if (/^job completed$/i.test(m)) return "Marked Done";
   let x = m.match(/^Moved to (.+)$/i);
-  if (x) return x[1].trim();
+  if (x) {
+    const cap = x[1].trim();
+    if (/^pending$/i.test(cap)) return "Moved to Pending";
+    if (/^in progress$/i.test(cap)) return "Moved to In Progress";
+    return "Moved to " + cap;
+  }
   x = m.match(/^Job moved to (.+)$/i);
-  if (x) return x[1].trim();
+  if (x) {
+    const cap = x[1].trim();
+    if (/^deleted$/i.test(cap)) return "Moved to Deleted";
+    return "Moved to " + cap;
+  }
   x = m.match(/^Job became (.+)$/i);
-  if (x) return x[1].trim();
+  if (x) return "Became " + x[1].trim();
   return m;
 }
 
-function getActivityDotClass(label) {
-  const L = String(label || "").trim().toLowerCase();
-  if (L === "deleted") return "log-deleted";
-  if (L === "restored") return "log-restored";
-  if (L === "completed" || L === "done") return "log-done";
-  if (L === "overdue") return "log-overdue";
-  if (L === "pending") return "log-pending";
-  if (L === "in progress") return "log-in-progress";
-  if (L === "new" || L === "created") return "log-new";
-  return "log-default";
+function getActivityItemVariant(displayLabel) {
+  const L = String(displayLabel || "").toLowerCase();
+  if (L.indexOf("deleted") >= 0) return "deleted";
+  if (L.indexOf("restored") >= 0) return "restored";
+  if (L.indexOf("marked done") >= 0 || L === "marked done") return "done";
+  if (L.indexOf("overdue") >= 0) return "deleted";
+  if (L.indexOf("pending") >= 0) return "pending";
+  if (L.indexOf("in progress") >= 0) return "progress";
+  return "default";
 }
 
 function renderEngineerLogItemHtml(c) {
@@ -737,7 +798,7 @@ function renderEngineerLogItemHtml(c) {
       : "";
   return `<div class="comment-log-item comment-log-item--engineer" role="listitem">
       <div class="comment-log-time">${escapeHtml(
-        formatDateTime(d.createdAt) || "—"
+        formatDateClean(d.time || d.date || d.createdAt) || "—"
       )}</div>
       <div class="comment-log-author">${escapeHtml(d.author)}</div>
       ${badgeBlock}
@@ -750,12 +811,12 @@ function renderEngineerLogItemHtml(c) {
 function renderSystemLogItemHtml(c) {
   const d = getCommentDisplayFields(c);
   const msg = String(d.text == null ? "" : d.text).trim();
-  const label = getActivityCleanLabel(msg);
-  const dotClass = getActivityDotClass(label);
-  const timePart = formatDateTime(d.createdAt);
+  const label = getActivityDisplayLabel(msg);
+  const variant = getActivityItemVariant(label);
   const labelEsc = escapeHtml(label);
-  const timeEsc = escapeHtml(timePart || "—");
-  return `<div class="timeline-item ${dotClass}" role="listitem"><div class="timeline-dot"></div><div class="timeline-text"><strong>${labelEsc}</strong> · ${timeEsc}</div></div>`;
+  const timeRaw = d.time || d.date || d.createdAt;
+  const timeEsc = escapeHtml(formatTimeOnly(timeRaw) || "—");
+  return `<div class="activity-item ${variant}" role="listitem"><span class="activity-line-text"><strong>${labelEsc}</strong> · ${timeEsc}</span></div>`;
 }
 
 /** Job log in Active and History: engineer cards + Activity (system) + collapse for notes. */
@@ -765,11 +826,15 @@ function renderEngineerNotesSavedSection(j) {
   const idKey = String(j.id);
 
   if (!list.length) {
-    return `<h4 class="log-title">Engineer notes</h4><div class="comment-log comment-log--empty job-log--timeline ${tone}">No notes yet</div>`;
+    return `<div class="job-log-stack"><h4 class="log-title section-title">Engineer notes</h4><div class="notes-container"><div class="comment-log comment-log--empty job-log--timeline ${tone}">No notes yet</div></div></div>`;
   }
 
-  const engineerList = list.filter((c) => !isSystemLogComment(c));
-  const systemList = list.filter((c) => isSystemLogComment(c));
+  const engineerList = sortCommentsNewestFirst(
+    list.filter((c) => !isSystemLogComment(c))
+  );
+  const systemList = sortCommentsNewestFirst(
+    list.filter((c) => isSystemLogComment(c))
+  );
 
   const hasMoreEngineer = engineerList.length > JOB_LOG_PREVIEW_COUNT;
   const hasMoreSystem = systemList.length > ACTIVITY_LOG_VISIBLE_COUNT;
@@ -786,10 +851,17 @@ function renderEngineerNotesSavedSection(j) {
 
   let engineerBlock = "";
   if (!engineerList.length) {
-    engineerBlock = `<h4 class="log-title">Engineer notes</h4><div class="comment-log comment-log--empty job-log--timeline ${tone}">No notes yet</div>`;
+    engineerBlock = `<h4 class="log-title section-title">Engineer notes</h4><div class="notes-container"><div class="comment-log comment-log--empty job-log--timeline ${tone}">No notes yet</div></div>`;
   } else {
-    engineerBlock = `<h4 class="log-title">Engineer notes</h4><div class="comment-log job-log--timeline job-log--engineer-notes ${tone}" role="list">${displayEngineer
+    engineerBlock = `<h4 class="log-title section-title">Engineer notes</h4><div class="notes-container"><div class="comment-log job-log--timeline job-log--engineer-notes ${tone}" role="list">${displayEngineer
       .map((c) => renderEngineerLogItemHtml(c))
+      .join("")}</div></div>`;
+  }
+
+  let activityBlock = "";
+  if (systemList.length) {
+    activityBlock = `<h4 class="log-title section-title system">Activity</h4><div class="activity" role="list">${displaySystem
+      .map((c) => renderSystemLogItemHtml(c))
       .join("")}</div>`;
   }
 
@@ -801,20 +873,18 @@ function renderEngineerNotesSavedSection(j) {
       }</button></div>`
     : "";
 
-  let activityBlock = "";
-  if (systemList.length) {
-    activityBlock = `<h4 class="log-title system">Activity</h4><div class="timeline" role="list">${displaySystem
-      .map((c) => renderSystemLogItemHtml(c))
-      .join("")}</div>`;
-  }
-
-  return engineerBlock + toggleBtn + activityBlock;
+  return `<div class="job-log-stack">${engineerBlock}${activityBlock}${toggleBtn}</div>`;
 }
 
 function toggleJobLog(id) {
   const k = String(id);
   jobLogExpanded[k] = !jobLogExpanded[k];
   render();
+}
+
+/** CSS: `.job-card.logs-expanded .notes-container` drops inner scroll (full log height). */
+function jobCardLogsExpandedClass(j) {
+  return jobLogExpanded[String(j.id)] ? " logs-expanded" : "";
 }
 
 /**
@@ -872,33 +942,39 @@ function renderActiveCard(j) {
   const isOverdue = st === "Pending" && j.isOverdue;
   const reasonLine =
     st === "Pending"
-      ? `<div class="pending-reason-line">Reason: ${escapeHtml(
+      ? `<div class="pending-reason-line meta-line">Reason: ${escapeHtml(
           pr || "—"
         )}</div>`
       : "";
   const timerLine = st === "Pending" ? getPendingTimerBlock(j) : "";
   const pendingLine =
     st === "Pending" && (j.pendingUntil || "").trim()
-      ? `<div class="pending-until-line">Pending until: ${escapeHtml(
-          formatDateTime(j.pendingUntil) || "—"
+      ? `<div class="pending-until-line meta-line">Pending until: ${escapeHtml(
+          formatDateClean(j.pendingUntil) || "—"
         )}</div>`
       : st === "Pending"
-        ? `<div class="pending-until-line">Pending until: —</div>`
+        ? `<div class="pending-until-line meta-line">Pending until: —</div>`
         : "";
   return `
-      <div class="job ${vis.cardClass}" data-job-id="${idForAttr}" data-status="${escapeHtml(
+      <div class="job job-card ${vis.cardClass}${jobCardLogsExpandedClass(
+    j
+  )}" data-job-id="${idForAttr}" data-status="${escapeHtml(
     st
   )}" data-overdue="${isOverdue ? "1" : "0"}">
         <span class="job-status-badge job-status-badge--${vis.badgeMod}">${vis.badgeText}</span>
         ${photoBlock}
-        <div class="job-body">
-          <b>${escapeHtml(j.location)}</b> (${escapeHtml(j.priority)})<br>
-          ${escapeHtml(j.problem)}<br>
-          <div class="reported-by-line">Reported by: ${escapeHtml(
+        <div class="job-body job-meta">
+          <div class="job-title"><strong>${escapeHtml(
+            j.location
+          )}</strong> <span class="job-priority-paren">(${escapeHtml(
+    j.priority
+  )})</span></div>
+          <div class="job-problem">${escapeHtml(j.problem)}</div>
+          <div class="reported-by-line meta-line">Reported by: ${escapeHtml(
             j.reportedBy || "—"
           )}</div>
-          <div class="created-line">Reported: ${escapeHtml(
-            formatDateTime(j.createdAt) || "—"
+          <div class="created-line meta-line">Reported: ${escapeHtml(
+            formatDateClean(j.createdAt) || "—"
           )}</div>
           ${reasonLine}
           ${timerLine}
@@ -930,21 +1006,27 @@ function renderHistoryCard(j) {
   const photoBlock = safePhoto
     ? `<div class="job-photo-wrap"><img class="job-photo-thumb" src="${safePhoto}" alt="Fault photo" tabindex="0" role="button"></div>`
     : "";
-  const when = formatDateTime(j.completedAt);
+  const when = formatDateClean(j.completedAt);
   return `
-      <div class="job job-history ${vis.cardClass}" data-job-id="${jobIdForDomAttr(j.id)}" data-status="Done">
+      <div class="job job-card done job-history ${vis.cardClass}${jobCardLogsExpandedClass(
+    j
+  )}" data-job-id="${jobIdForDomAttr(j.id)}" data-status="Done">
         <span class="job-status-badge job-status-badge--${vis.badgeMod}">${vis.badgeText}</span>
         ${photoBlock}
-        <div class="job-body">
-          <b>${escapeHtml(j.location)}</b> (${escapeHtml(j.priority)})<br>
-          ${escapeHtml(j.problem)}<br>
-          <div class="reported-by-line">Reported by: ${escapeHtml(
+        <div class="job-body job-meta">
+          <div class="job-title"><strong>${escapeHtml(
+            j.location
+          )}</strong> <span class="job-priority-paren">(${escapeHtml(
+    j.priority
+  )})</span></div>
+          <div class="job-problem">${escapeHtml(j.problem)}</div>
+          <div class="reported-by-line meta-line">Reported by: ${escapeHtml(
             j.reportedBy || "—"
           )}</div>
-          <div class="created-line">Reported: ${escapeHtml(
-            formatDateTime(j.createdAt) || "—"
+          <div class="created-line meta-line">Reported: ${escapeHtml(
+            formatDateClean(j.createdAt) || "—"
           )}</div>
-          <div class="completed-line">Completed: ${escapeHtml(when || "—")}</div>
+          <div class="completed-line meta-line">Completed: ${escapeHtml(when || "—")}</div>
         </div>
         ${renderEngineerNotesSavedSection(j)}
         <div class="job-actions job-actions-single">
@@ -961,20 +1043,29 @@ function renderDeletedCard(j) {
   const photoBlock = safePhoto
     ? `<div class="job-photo-wrap"><img class="job-photo-thumb" src="${safePhoto}" alt="Fault photo" tabindex="0" role="button"></div>`
     : "";
-  const delWhen = formatDateTime(j.deletedAt) || "—";
+  const delWhen = formatDateClean(j.deletedAt) || "—";
   const prev = (j.previousStatus && String(j.previousStatus).trim()) || "—";
   return `
-      <div class="job job-card deleted job--deleted job-card-shell job-deleted" data-job-id="${idForAttr}" data-status="Deleted">
+      <div class="job job-card deleted job--deleted job-card-shell job-deleted${jobCardLogsExpandedClass(
+    j
+  )}" data-job-id="${idForAttr}" data-status="Deleted">
         <span class="job-status-badge job-status-badge--deleted">DELETED</span>
         ${photoBlock}
-        <div class="job-body">
-          <b>${escapeHtml(j.location)}</b> (${escapeHtml(j.priority)})<br>
-          ${escapeHtml(j.problem)}<br>
-          <div class="reported-by-line">Reported by: ${escapeHtml(
+        <div class="job-body job-meta">
+          <div class="job-title"><strong>${escapeHtml(
+            j.location
+          )}</strong> <span class="job-priority-paren">(${escapeHtml(
+    j.priority
+  )})</span></div>
+          <div class="job-problem">${escapeHtml(j.problem)}</div>
+          <div class="reported-by-line meta-line">Reported by: ${escapeHtml(
             j.reportedBy || "—"
           )}</div>
-          <div class="deleted-meta-line">Deleted: ${escapeHtml(delWhen)}</div>
-          <div class="deleted-meta-line">Previous status: ${escapeHtml(prev)}</div>
+          <div class="deleted-meta-line meta-line">Reported: ${escapeHtml(
+            formatDateClean(j.createdAt) || "—"
+          )}</div>
+          <div class="deleted-meta-line meta-line">Deleted: ${escapeHtml(delWhen)}</div>
+          <div class="deleted-meta-line meta-line">Previous status: ${escapeHtml(prev)}</div>
         </div>
         ${renderEngineerNotesSavedSection(j)}
         <div class="job-actions job-actions-deleted">

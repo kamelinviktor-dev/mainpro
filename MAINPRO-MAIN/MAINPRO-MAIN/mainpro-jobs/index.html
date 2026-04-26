@@ -306,7 +306,7 @@
     .job.job-card-shell {
       position: relative;
       border-radius: 12px;
-      padding: 14px 14px 12px;
+      padding: 16px 16px 12px;
       border: 1px solid var(--jc-outer, #e5e7eb);
       border-left: 4px solid var(--jc-left, #94a3b8);
       background: linear-gradient(180deg, var(--jc-t1, #f8fafc) 0%, var(--jc-t2, #f8fafc) 50%, #fff 64px);
@@ -443,16 +443,15 @@
     }
 
     .deleted-meta-line {
-      font-size: 0.82rem;
+      font-size: inherit;
       color: #6b7280;
-      margin-top: 4px;
     }
 
     .job-actions-deleted {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
-      margin-top: 4px;
+      margin-top: 8px;
     }
 
     .btn-restore {
@@ -513,7 +512,6 @@
 
     .pending-timer-line {
       display: block;
-      margin-top: 6px;
       font-size: 0.88rem;
       font-weight: 600;
     }
@@ -527,7 +525,7 @@
     }
 
     .job-photo-wrap {
-      margin: 0 0 10px;
+      margin: 0 0 8px;
     }
 
     .job-photo-thumb {
@@ -540,33 +538,74 @@
       -webkit-tap-highlight-color: transparent;
     }
 
-    .job-body { margin-bottom: 8px; }
+    .job-body {
+      margin-bottom: 6px;
+    }
+
+    .job-meta {
+      font-size: 13px;
+      line-height: 1.35;
+      color: #4b5563;
+    }
+
+    .job-meta strong {
+      color: #374151;
+    }
+
+    .job-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 2px;
+      color: #111827;
+      line-height: 1.25;
+    }
+
+    .job-title .job-priority-paren {
+      font-weight: 600;
+      font-size: 0.85em;
+      color: #6b7280;
+    }
+
+    .job-problem {
+      font-size: 15px;
+      margin-bottom: 8px;
+      color: #1f2937;
+      line-height: 1.4;
+      font-weight: 500;
+    }
+
+    .job-card .meta-line {
+      display: block;
+      margin: 3px 0;
+    }
 
     .status-line,
     .completed-line,
     .created-line {
       display: block;
-      margin-top: 6px;
-      font-size: 0.9rem;
+      font-size: inherit;
     }
 
-    .created-line { color: #4b5563; }
+    .created-line {
+      color: #4b5563;
+    }
 
-    .completed-line { color: #166534; font-weight: 600; }
+    .completed-line {
+      color: #166534;
+      font-weight: 600;
+    }
 
     .pending-reason-line {
       display: block;
-      margin-top: 6px;
-      font-size: 0.9rem;
-      line-height: 1.4;
+      font-size: inherit;
+      line-height: 1.35;
       color: #9a3412;
       font-weight: 600;
     }
 
     .pending-until-line {
       display: block;
-      margin-top: 6px;
-      font-size: 0.9rem;
+      font-size: inherit;
       color: #b45309;
       font-weight: 600;
     }
@@ -576,7 +615,7 @@
       font-size: 0.8rem;
       font-weight: 600;
       color: #4b5563;
-      margin: 8px 0 4px;
+      margin: 6px 0 4px;
     }
 
     .comment-field {
@@ -590,7 +629,7 @@
       flex-direction: row;
       flex-wrap: wrap;
       gap: 8px;
-      margin-top: 10px;
+      margin-top: 8px;
       padding-top: 0;
     }
 
@@ -648,8 +687,7 @@
 
     .reported-by-line {
       display: block;
-      margin-top: 6px;
-      font-size: 0.9rem;
+      font-size: inherit;
       color: #334155;
     }
 
@@ -851,11 +889,15 @@
       font-weight: 600;
     }
 
+    .job-log-stack {
+      margin-bottom: 4px;
+    }
+
     .comment-log {
       display: flex;
       flex-direction: column;
       gap: 0;
-      margin: 0 0 10px;
+      margin: 0 0 8px;
     }
 
     .comment-log--empty {
@@ -865,15 +907,20 @@
       padding: 8px 0;
     }
 
+    .section-title {
+      margin-top: 12px;
+      margin-bottom: 6px;
+    }
+
     .log-title {
       font-size: 13px;
       font-weight: 600;
       color: #374151;
-      margin: 10px 0 6px;
+      margin: 12px 0 6px;
     }
 
     .log-title.system {
-      margin-top: 14px;
+      margin-top: 10px;
       color: #6b7280;
     }
 
@@ -881,14 +928,32 @@
       margin-bottom: 10px;
     }
 
-    .timeline {
-      position: relative;
-      margin-top: 10px;
-      padding-left: 28px;
-      margin-bottom: 10px;
+    .notes-container {
+      max-height: 120px;
+      overflow-y: auto;
+      padding-right: 4px;
+      margin-bottom: 4px;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
     }
 
-    .timeline::before {
+    .job-card.logs-expanded .notes-container {
+      max-height: none;
+      overflow: visible;
+    }
+
+    .notes-container .comment-log--empty {
+      margin: 0;
+    }
+
+    .activity {
+      position: relative;
+      padding-left: 26px;
+      margin-top: 8px;
+      margin-bottom: 6px;
+    }
+
+    .activity::before {
       content: "";
       position: absolute;
       left: 10px;
@@ -898,66 +963,69 @@
       background: #e5e7eb;
     }
 
-    .timeline-item {
+    .activity-item {
       position: relative;
-      display: flex;
-      align-items: flex-start;
       margin-bottom: 10px;
+      font-size: 13px;
+      color: #374151;
     }
 
-    .timeline-item:last-child {
+    .activity-item:last-child {
       margin-bottom: 0;
     }
 
-    .timeline-dot {
+    .activity-item::before {
+      content: "";
       position: absolute;
-      left: -18px;
-      top: 6px;
+      left: -16px;
+      top: 5px;
       width: 10px;
       height: 10px;
       border-radius: 50%;
+      border: 2px solid #fff;
+      box-sizing: border-box;
       background: #9ca3af;
     }
 
-    .timeline-text {
-      font-size: 13px;
-      color: #374151;
+    .activity-item.pending::before {
+      background: #f59e0b;
+    }
+
+    .activity-item.done::before {
+      background: #22c55e;
+    }
+
+    .activity-item.deleted::before {
+      background: #ef4444;
+    }
+
+    .activity-item.restored::before {
+      background: #10b981;
+    }
+
+    .activity-item.progress::before {
+      background: #fb923c;
+    }
+
+    .activity-item.default::before {
+      background: #9ca3af;
+    }
+
+    .activity-line-text {
       line-height: 1.4;
     }
 
-    .timeline-text strong {
+    .activity-line-text strong {
       color: #111827;
       font-weight: 600;
     }
 
-    .timeline-item.log-deleted .timeline-dot,
-    .timeline-item.log-overdue .timeline-dot {
-      background: #ef4444;
+    .job-card.done {
+      opacity: 0.85;
     }
 
-    .timeline-item.log-restored .timeline-dot {
-      background: #10b981;
-    }
-
-    .timeline-item.log-done .timeline-dot {
-      background: #22c55e;
-    }
-
-    .timeline-item.log-pending .timeline-dot {
-      background: #f59e0b;
-    }
-
-    .timeline-item.log-in-progress .timeline-dot {
-      background: #f97316;
-    }
-
-    .timeline-item.log-new .timeline-dot,
-    .timeline-item.log-default .timeline-dot {
-      background: #9ca3af;
-    }
-
-    .job-log--timeline .job-log-foot {
-      margin: 4px 0 2px 0;
+    .job-log-foot {
+      margin: 2px 0 4px 0;
     }
 
     .btn-job-log-toggle {
