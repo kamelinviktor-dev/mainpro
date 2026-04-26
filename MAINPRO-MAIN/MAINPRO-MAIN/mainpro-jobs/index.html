@@ -766,38 +766,40 @@
       border-radius: 0 0 4px 4px;
     }
 
-    /* Липкая полоса: «стекло» + глубина, в одной системе с KPI */
+    .app-jobs-stack > .panel {
+      margin-top: 16px;
+    }
+
+    /* Узкая полоса контролов: на десктопе в потоке; на телефоне — sticky (см. @media max-width 600px) */
     .jobs-sticky {
-      position: -webkit-sticky;
-      position: sticky;
-      top: 0;
-      z-index: 50;
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(241, 245, 249, 0.88) 100%);
-      -webkit-backdrop-filter: blur(12px) saturate(1.25);
-      backdrop-filter: blur(12px) saturate(1.25);
-      margin: 0 calc(-1 * var(--mp-pad-h)) 10px;
-      padding: 6px var(--mp-pad-h) 8px;
-      border-bottom: 1px solid rgba(148, 163, 184, 0.35);
-      box-shadow: 0 4px 28px rgba(15, 23, 42, 0.07), 0 1px 0 rgba(255, 255, 255, 0.6) inset;
+      position: relative;
+      z-index: 2;
+      margin: 0 0 8px;
+      padding: 0;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
     }
 
     .jobs-sticky .tabs {
-      margin: 0 0 8px;
+      margin: 0 0 6px;
     }
 
     .jobs-sticky .tab {
-      min-height: 40px;
+      min-height: 38px;
     }
 
     .jobs-sticky .jobs-controls-panel {
       margin: 0;
-      padding: 12px 11px 12px;
+      padding: 10px 10px 10px;
       border-radius: 16px;
     }
 
     .jobs-sticky .job-search-bar {
-      margin-top: 4px;
-      padding: 9px 9px 10px;
+      margin-top: 6px;
+      padding: 7px 8px 8px;
     }
 
     .jobs-sticky .job-search {
@@ -809,38 +811,38 @@
       border-radius: 16px;
     }
 
-    .jobs-sticky .engineer-filter-row {
+    .jobs-sticky .engineer-filter-row.engineer-row {
       margin: 0;
       min-width: 0;
       max-width: 100%;
-      gap: 6px 8px;
+      gap: 8px;
       align-items: center;
     }
 
     .jobs-sticky .engineer-filter-label {
       line-height: 1.2;
-      padding: 2px 0;
+      padding: 0;
     }
 
     .jobs-sticky .engineer-filter-select {
-      height: 40px;
-      font-size: 16px;
+      height: 38px;
+      font-size: 15px;
     }
 
     .jobs-sticky .btn-my-jobs {
-      min-height: 40px;
-      height: 40px;
+      min-height: 36px;
+      height: 36px;
       font-size: 12px;
-      padding: 0 12px;
+      padding: 0 10px;
     }
 
     .jobs-sticky .job-dashboard {
-      gap: 9px;
+      gap: 6px;
     }
 
     .jobs-sticky .job-dashboard-card {
       min-height: 50px;
-      padding: 7px 5px 8px;
+      padding: 6px 4px 7px;
     }
 
     .jobs-sticky .job-dashboard-label {
@@ -849,11 +851,7 @@
     }
 
     .jobs-sticky .job-dashboard-value {
-      font-size: 18px;
-    }
-
-    .jobs-sticky .job-dashboard-card--row-span .job-dashboard-value {
-      font-size: 20px;
+      font-size: 17px;
     }
 
     /* Свернутая форма заявки скрыта (и на десктопе, как на телефоне) */
@@ -864,8 +862,8 @@
     .tabs {
       display: flex;
       gap: 5px;
-      margin: 0 0 12px;
-      padding: 5px;
+      margin: 0 0 8px;
+      padding: 4px;
       background: linear-gradient(180deg, #e2e8f0 0%, #f1f5f9 100%);
       border-radius: 15px;
       border: 1px solid rgba(148, 163, 184, 0.45);
@@ -873,7 +871,7 @@
     }
 
     .jobs-controls-panel > .tabs {
-      margin: 0 0 10px;
+      margin: 0 0 6px;
     }
 
     .tab {
@@ -1429,117 +1427,68 @@
 
     .engineer-filter-row {
       display: flex;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
       align-items: center;
-      gap: 8px 10px;
+      gap: 8px;
       margin: 0;
       width: 100%;
       min-width: 0;
     }
 
+    .engineer-filter-row.engineer-row {
+      flex-wrap: nowrap;
+    }
+
     .engineer-filter-label {
       flex: 0 0 auto;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
-      color: #374151;
+      color: #64748b;
       white-space: nowrap;
     }
 
-    .engineer-filter-controls {
-      display: flex;
-      flex: 1 1 160px;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 8px;
-      min-width: 0;
+    .engineer-filter-row.engineer-row .engineer-filter-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #64748b;
     }
 
-    .engineer-filter-controls .engineer-filter-select {
-      flex: 1 1 100px;
-      min-width: 0;
-    }
-
-    .engineer-filter-controls .btn-my-jobs {
-      flex: 0 0 auto;
-    }
-
-    /* Панель: ряд «инженер + my jobs» — отдельная «карточка» как у поиска */
-    .jobs-controls-panel .engineer-filter-row {
-      display: flex;
-      flex-direction: row;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px 12px;
-      margin-top: 10px;
-      padding: 12px 12px 13px;
-      border-top: none;
-      border-radius: 15px;
-      background: linear-gradient(165deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.98) 100%);
-      border: 1px solid rgba(148, 163, 184, 0.28);
-      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset, 0 2px 12px rgba(15, 23, 42, 0.04);
-    }
-
-    .jobs-controls-panel .engineer-filter-label {
-      flex: 0 0 auto;
-      font-size: 10.5px;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: #334155;
-    }
-
-    .jobs-controls-panel .engineer-filter-controls {
-      display: flex;
-      flex: 1 1 220px;
-      flex-wrap: nowrap;
-      align-items: center;
-      gap: 8px;
-      min-width: 0;
-    }
-
-    .jobs-controls-panel .engineer-filter-controls .engineer-filter-select {
+    .engineer-filter-row.engineer-row .engineer-filter-select {
       flex: 1 1 auto;
       min-width: 0;
     }
 
-    .jobs-controls-panel .engineer-filter-controls .btn-my-jobs {
+    .engineer-filter-row.engineer-row .btn-my-jobs {
       flex: 0 0 auto;
       white-space: nowrap;
     }
 
-    @media (max-width: 400px) {
-      .jobs-controls-panel .engineer-filter-row {
-        flex-direction: column;
-        align-items: stretch;
-      }
-
-      .jobs-controls-panel .engineer-filter-label {
-        max-width: none;
-      }
-
-      .jobs-controls-panel .engineer-filter-controls {
-        flex-direction: row;
-        flex-wrap: wrap;
-        flex-basis: auto;
-      }
-
-      .jobs-controls-panel .engineer-filter-controls .engineer-filter-select {
-        flex: 1 1 100%;
-        min-width: 0;
-      }
-
-      .jobs-controls-panel .engineer-filter-controls .btn-my-jobs {
-        flex: 1 1 auto;
-        min-width: min(100%, 140px);
-      }
+    .jobs-controls-panel .engineer-filter-row.engineer-row {
+      margin-top: 6px;
+      padding-top: 6px;
+      border-top: 1px solid rgba(148, 163, 184, 0.15);
+      background: none;
+      border-left: none;
+      border-right: none;
+      border-bottom: none;
+      border-radius: 0;
+      box-shadow: none;
     }
 
-    @media (max-width: 360px) {
-      .engineer-filter-controls .btn-my-jobs {
-        flex: 1 1 auto;
-        min-width: min(100%, 120px);
-      }
+    .jobs-controls-panel .engineer-filter-row.engineer-row .engineer-filter-label {
+      flex: 0 0 auto;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: none;
+      letter-spacing: 0.01em;
+      color: #64748b;
+    }
+
+    .jobs-controls-panel .engineer-filter-row.engineer-row .btn-my-jobs {
+      min-height: 36px;
+      height: 36px;
+      padding: 0 10px;
+      font-size: 12px;
     }
 
     .engineer-filter-select {
@@ -1559,6 +1508,10 @@
     @media (min-width: 601px) {
       .engineer-filter-select {
         max-width: 280px;
+      }
+
+      .engineer-filter-row.engineer-row .engineer-filter-select {
+        max-width: none;
       }
     }
 
@@ -1909,10 +1862,10 @@
       width: 100%;
       background: linear-gradient(165deg, #ffffff 0%, #f8fafc 45%, #f1f5f9 100%);
       border-radius: 20px;
-      padding: 15px 14px 16px;
-      margin: 0 0 16px 0;
-      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.92) inset, 0 1px 2px rgba(15, 23, 42, 0.05), 0 10px 32px rgba(15, 23, 42, 0.08), 0 20px 48px rgba(15, 23, 42, 0.06);
-      border: 1px solid rgba(148, 163, 184, 0.35);
+      padding: 11px 12px 12px;
+      margin: 0 0 10px 0;
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.92) inset, 0 1px 2px rgba(15, 23, 42, 0.05), 0 6px 20px rgba(15, 23, 42, 0.06);
+      border: 1px solid rgba(148, 163, 184, 0.32);
       overflow: hidden;
     }
 
@@ -1922,28 +1875,33 @@
       top: 0;
       left: 0;
       right: 0;
-      height: 4px;
-      background: linear-gradient(90deg, #047857 0%, #10b981 40%, #34d399 100%);
-      opacity: 0.95;
+      height: 2px;
+      background: linear-gradient(90deg, #e2e8f0 0%, #f1f5f9 100%);
+      opacity: 1;
       pointer-events: none;
     }
 
     .jobs-controls-panel .job-dashboard {
-      margin-top: 8px;
-      padding-top: 14px;
-      border-top: 1px solid rgba(148, 163, 184, 0.22);
+      margin-top: 6px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(148, 163, 184, 0.18);
     }
 
     .job-dashboard {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      grid-template-rows: auto auto;
-      gap: 10px;
+      grid-auto-rows: minmax(52px, auto);
+      gap: 8px;
       margin: 0;
       width: 100%;
       min-width: 0;
       overflow: visible;
       padding: 0;
+      align-items: stretch;
+    }
+
+    .job-dashboard.dashboard-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
     /* KPI: читаемые подписи, крупные цифры, тонкий «premium»-акцент сверху */
@@ -2009,30 +1967,6 @@
       background: var(--dash-accent);
       opacity: 0.88;
       pointer-events: none;
-    }
-
-    .job-dashboard-card--row-span {
-      grid-column: 1 / -1;
-    }
-
-    /* «Deleted» — одна строка, крупный счётчик */
-    .job-dashboard-card--row-span.job-dashboard-card {
-      flex-direction: row;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: center;
-      gap: 10px 18px;
-      padding: 11px 14px 12px;
-      min-height: 52px;
-    }
-
-    .job-dashboard-card--row-span .job-dashboard-label {
-      margin: 0;
-    }
-
-    .job-dashboard-card--row-span .job-dashboard-value {
-      margin: 0;
-      font-size: 22px;
     }
 
     .job-dashboard button.job-dashboard-card--click {
@@ -2125,6 +2059,73 @@
       color: #0f172a;
     }
 
+    /* Минималистичный стиль плиток (эталон .kpi-card): белый фон, #eee, активная — #0f9d58 */
+    .job-dashboard-card.kpi-card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 12px;
+      text-align: center;
+      border: 1px solid #eee;
+      min-height: 52px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    }
+
+    .job-dashboard-card.kpi-card::before {
+      display: none;
+    }
+
+    .job-dashboard-card.kpi-card .job-dashboard-value {
+      font-size: 20px;
+      font-weight: 600;
+      color: #222;
+      text-shadow: none;
+      letter-spacing: normal;
+    }
+
+    .job-dashboard-card.kpi-card .job-dashboard-label {
+      color: #555;
+    }
+
+    /* :hover (0,3,1) иначе перебивает --active (0,3,0) — без :not подсветка «пропадает» */
+    .job-dashboard-card.kpi-card.job-dashboard-card--click:hover:not(.job-dashboard-card--active) {
+      background: #fafafa;
+      border-color: #e0e0e0;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    }
+
+    .job-dashboard-card.kpi-card.job-dashboard-card--active {
+      border: 2px solid #0f9d58 !important;
+      background: #ecfdf5 !important;
+      box-shadow: 0 0 0 1px rgba(5, 150, 105, 0.2), 0 2px 8px rgba(5, 150, 105, 0.12) !important;
+    }
+
+    .job-dashboard-card.kpi-card.job-dashboard-card--active:hover {
+      background: #d1fae5 !important;
+      border-color: #047857 !important;
+      box-shadow: 0 0 0 1px rgba(5, 150, 105, 0.28), 0 2px 10px rgba(5, 150, 105, 0.18) !important;
+    }
+
+    .job-dashboard-card.kpi-card.job-dashboard-card--active::before {
+      display: none;
+    }
+
+    .job-dashboard-card.kpi-card.job-dashboard-card--active .job-dashboard-label {
+      color: #166534;
+    }
+
+    .job-dashboard-card.kpi-card.job-dashboard-card--active .job-dashboard-value {
+      color: #222;
+    }
+
+    .jobs-sticky .job-dashboard-card.kpi-card {
+      padding: 10px 8px 10px;
+      min-height: 48px;
+    }
+
+    .jobs-sticky .job-dashboard-card.kpi-card .job-dashboard-value {
+      font-size: 18px;
+    }
+
     .job-search-wrap {
       position: relative;
       width: 100%;
@@ -2149,15 +2150,15 @@
       display: flex;
       flex-wrap: wrap;
       align-items: center;
-      gap: 8px 10px;
+      gap: 6px 8px;
       width: 100%;
       min-width: 0;
-      margin-top: 8px;
-      padding: 11px 11px 12px;
-      border-radius: 15px;
-      background: linear-gradient(180deg, rgba(241, 245, 249, 0.75) 0%, rgba(255, 255, 255, 0.95) 100%);
-      border: 1px solid rgba(148, 163, 184, 0.28);
-      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.85) inset;
+      margin-top: 6px;
+      padding: 7px 8px 8px;
+      border-radius: 12px;
+      background: #fff;
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
     }
 
     .jobs-controls-panel .job-search-wrap {
@@ -2194,17 +2195,16 @@
     }
 
     .job-list-result-count {
-      flex: 1 1 100%;
+      flex: 0 0 auto;
       min-width: 0;
-      font-size: 11.5px;
-      font-weight: 700;
-      letter-spacing: 0.02em;
-      color: #334155;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      color: #64748b;
       text-align: right;
-      padding: 5px 9px 6px;
-      border-radius: 10px;
-      background: rgba(241, 245, 249, 0.85);
-      border: 1px solid rgba(148, 163, 184, 0.2);
+      padding: 0 2px 0 6px;
+      border: none;
+      background: none;
     }
 
     .job-list-result-count:empty,
@@ -2214,8 +2214,7 @@
 
     .jobs-sticky .job-list-result-count {
       flex: 0 0 auto;
-      text-align: left;
-      width: 100%;
+      text-align: right;
     }
 
     .job-search {
@@ -2920,8 +2919,8 @@
       }
 
       .jobs-controls-panel {
-        padding: 16px 18px 20px;
-        border-radius: 20px;
+        padding: 12px 14px 14px;
+        border-radius: 18px;
       }
 
       .report-job-form {
@@ -3058,6 +3057,34 @@
         width: 100%;
         min-width: 0;
         max-width: 100%;
+      }
+
+      .jobs-sticky {
+        position: -webkit-sticky;
+        position: sticky;
+        top: 0;
+        z-index: 120;
+        margin: 0 calc(-1 * var(--mp-pad-h)) 2px;
+        padding: 2px var(--mp-pad-h) 4px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.97) 100%);
+        -webkit-backdrop-filter: blur(10px) saturate(1.12);
+        backdrop-filter: blur(10px) saturate(1.12);
+        border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+        box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
+        max-width: 100%;
+        box-sizing: border-box;
+        overflow-x: hidden;
+      }
+
+      #jobListResultCount,
+      .job-list-result-count {
+        display: none !important;
+      }
+
+      .jobs-sticky .job-search {
+        min-height: 44px;
+        height: 44px;
+        font-size: 16px;
       }
 
       .job.job-card {
@@ -3485,6 +3512,36 @@
         <button type="button" class="tab active" data-tab="active" onclick="setTab('active')">Active Jobs</button>
         <button type="button" class="tab" data-tab="history" onclick="setTab('history')">History</button>
       </div>
+      <div class="job-dashboard dashboard-grid" id="jobDashboard" role="group" aria-label="Job counts — tap to filter" aria-live="polite">
+        <button type="button" class="job-dashboard-card kpi-card job-dashboard-card--all job-dashboard-card--click" data-dash="all" title="All active jobs" onclick="onDashboardFilter('all')">
+          <span class="job-dashboard-label" id="dashLabelAll">All</span>
+          <span class="job-dashboard-value" id="dashCountAll">0</span>
+        </button>
+        <button type="button" class="job-dashboard-card kpi-card job-dashboard-card--new job-dashboard-card--click" data-dash="new" title="Filter: New" onclick="onDashboardFilter('new')">
+          <span class="job-dashboard-label" id="dashLabelNew">New</span>
+          <span class="job-dashboard-value" id="dashCountNew">0</span>
+        </button>
+        <button type="button" class="job-dashboard-card kpi-card job-dashboard-card--progress job-dashboard-card--click" data-dash="inProgress" title="Filter: In progress" onclick="onDashboardFilter('inProgress')">
+          <span class="job-dashboard-label" id="dashLabelInProgress">In progress</span>
+          <span class="job-dashboard-value" id="dashCountInProgress">0</span>
+        </button>
+        <button type="button" class="job-dashboard-card kpi-card job-dashboard-card--pending job-dashboard-card--click" data-dash="pending" title="Filter: Pending" onclick="onDashboardFilter('pending')">
+          <span class="job-dashboard-label" id="dashLabelPending">Pending</span>
+          <span class="job-dashboard-value" id="dashCountPending">0</span>
+        </button>
+        <button type="button" class="job-dashboard-card kpi-card job-dashboard-card--overdue job-dashboard-card--click" data-dash="overdue" title="Filter: Overdue" onclick="onDashboardFilter('overdue')">
+          <span class="job-dashboard-label" id="dashLabelOverdue">Overdue</span>
+          <span class="job-dashboard-value" id="dashCountOverdue">0</span>
+        </button>
+        <button type="button" class="job-dashboard-card kpi-card job-dashboard-card--done job-dashboard-card--click" data-dash="doneToday" title="History: done today" onclick="onDashboardFilter('doneToday')">
+          <span class="job-dashboard-label" id="dashLabelDoneToday">Done today</span>
+          <span class="job-dashboard-value" id="dashCountDoneToday">0</span>
+        </button>
+        <button type="button" class="job-dashboard-card kpi-card job-dashboard-card--deleted-tile job-dashboard-card--click" data-dash="deleted" title="Filter: Deleted" onclick="onDashboardFilter('deleted')">
+          <span class="job-dashboard-label" id="dashLabelDeleted">Deleted</span>
+          <span class="job-dashboard-value" id="dashCountDeleted">0</span>
+        </button>
+      </div>
       <div class="job-search-bar">
         <div class="job-search-wrap" role="search" aria-label="Search jobs list">
           <input type="search" id="jobSearch" class="job-search" placeholder="Search jobs..." autocomplete="off" enterkeyhint="search" title="Press / to focus from anywhere. Escape: clear text or close keyboard when empty." aria-label="Search jobs. Press the slash key to focus this field from outside a text input. Press Escape to clear, or to dismiss the keyboard if the field is empty.">
@@ -3493,39 +3550,8 @@
         <button type="button" class="btn-clear-filters" id="btnClearListFilters" onclick="resetFiltersAndSearch()" hidden title="Reset filters and search">Clear filters</button>
         <span class="job-list-result-count" id="jobListResultCount" hidden aria-live="polite"></span>
       </div>
-      <div class="job-dashboard dashboard-grid" id="jobDashboard" role="group" aria-label="Job counts — tap to filter" aria-live="polite">
-        <button type="button" class="job-dashboard-card job-dashboard-card--all job-dashboard-card--click" data-dash="all" title="All active jobs" onclick="onDashboardFilter('all')">
-          <span class="job-dashboard-label" id="dashLabelAll">All</span>
-          <span class="job-dashboard-value" id="dashCountAll">0</span>
-        </button>
-        <button type="button" class="job-dashboard-card job-dashboard-card--new job-dashboard-card--click" data-dash="new" title="Filter: New" onclick="onDashboardFilter('new')">
-          <span class="job-dashboard-label" id="dashLabelNew">New</span>
-          <span class="job-dashboard-value" id="dashCountNew">0</span>
-        </button>
-        <button type="button" class="job-dashboard-card job-dashboard-card--progress job-dashboard-card--click" data-dash="inProgress" title="Filter: In progress" onclick="onDashboardFilter('inProgress')">
-          <span class="job-dashboard-label" id="dashLabelInProgress">In progress</span>
-          <span class="job-dashboard-value" id="dashCountInProgress">0</span>
-        </button>
-        <button type="button" class="job-dashboard-card job-dashboard-card--pending job-dashboard-card--click" data-dash="pending" title="Filter: Pending" onclick="onDashboardFilter('pending')">
-          <span class="job-dashboard-label" id="dashLabelPending">Pending</span>
-          <span class="job-dashboard-value" id="dashCountPending">0</span>
-        </button>
-        <button type="button" class="job-dashboard-card job-dashboard-card--overdue job-dashboard-card--click" data-dash="overdue" title="Filter: Overdue" onclick="onDashboardFilter('overdue')">
-          <span class="job-dashboard-label" id="dashLabelOverdue">Overdue</span>
-          <span class="job-dashboard-value" id="dashCountOverdue">0</span>
-        </button>
-        <button type="button" class="job-dashboard-card job-dashboard-card--done job-dashboard-card--click" data-dash="doneToday" title="History: done today" onclick="onDashboardFilter('doneToday')">
-          <span class="job-dashboard-label" id="dashLabelDoneToday">Done today</span>
-          <span class="job-dashboard-value" id="dashCountDoneToday">0</span>
-        </button>
-        <button type="button" class="job-dashboard-card job-dashboard-card--deleted-tile job-dashboard-card--click job-dashboard-card--row-span" data-dash="deleted" title="Filter: Deleted" onclick="onDashboardFilter('deleted')">
-          <span class="job-dashboard-label" id="dashLabelDeleted">Deleted</span>
-          <span class="job-dashboard-value" id="dashCountDeleted">0</span>
-        </button>
-      </div>
-      <div class="engineer-filter-row">
+      <div class="engineer-filter-row engineer-row">
         <label for="engineerFilter" class="engineer-filter-label">Engineer</label>
-        <div class="engineer-filter-controls">
         <select id="engineerFilter" class="engineer-filter-select" aria-label="Filter by assigned engineer">
           <option value="All" selected>All</option>
           <option value="Unassigned">Unassigned</option>
@@ -3535,7 +3561,6 @@
           <option value="Manager">Manager</option>
         </select>
         <button type="button" id="btnMyJobs" class="btn-my-jobs" onclick="toggleMyJobsFilter()" aria-pressed="false" title="Show jobs for your role: assigned to you (engineers) or reported by / assigned to you (Manager)">My Jobs</button>
-        </div>
       </div>
     </div>
     </div>
