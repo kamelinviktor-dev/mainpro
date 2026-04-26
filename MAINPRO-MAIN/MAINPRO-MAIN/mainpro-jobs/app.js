@@ -36,6 +36,24 @@ const ASSIGNED_ENGINEER_OPTIONS = [
 /** Quick filter "My Jobs" — same value as dropdown option. */
 const MY_JOBS_ENGINEER_FILTER = "Engineer 1";
 
+/** Set when a job is open in full-screen detail (narrow layout only). */
+let mobileJobDetailId = null;
+/** Preserved list scroll so closing overlay restores it. */
+let mobileJobsListScrollY = 0;
+/** On narrow layout: hide + Job FAB when user has scrolled down the list. */
+let mobileFabHiddenByScroll = false;
+let mobileFabLastScrollY = 0;
+
+const MOBILE_FAB_TOP_ZONE_PX = 88;
+const MOBILE_FAB_SCROLL_DELTA = 10;
+
+function isNarrowLayout() {
+  if (typeof window === "undefined" || !window.matchMedia) {
+    return false;
+  }
+  return window.matchMedia("(max-width: 600px)").matches;
+}
+
 /** Report form + saved on job */
 const JOB_PRIORITIES = ["Low", "Medium", "High", "Critical"];
 const PRIORITY_SLA_HOURS = { Low: 24, Medium: 8, High: 4, Critical: 1 };
@@ -109,8 +127,18 @@ function applyAuthUi() {
   if (app) app.hidden = !ok;
   if (disp) disp.textContent = ok && u ? u : "—";
   if (ok) {
+    if (isNarrowLayout()) {
+      setReportFormCollapsed(true);
+    } else {
+      setReportFormCollapsed(false);
+    }
     render();
     setTab("active");
+    if (isNarrowLayout()) {
+      requestAnimationFrame(function () {
+        onMobileFabScroll();
+      });
+    }
   }
 }
 
@@ -604,9 +632,13 @@ function getDashboardCounts() {
   let nPending = 0;
   let nOverdue = 0;
   let nDoneToday = 0;
+  let nDeleted = 0;
   for (let i = 0; i < jobs.length; i++) {
     const j = jobs[i];
-    if (j.deleted) continue;
+    if (j.deleted) {
+      nDeleted++;
+      continue;
+    }
     const st = j.status;
     if (st === "New") nNew++;
     else if (st === "In Progress") nInProgress++;
@@ -622,6 +654,7 @@ function getDashboardCounts() {
     nPending: nPending,
     nOverdue: nOverdue,
     nDoneToday: nDoneToday,
+    nDeleted: nDeleted,
   };
 }
 
@@ -636,6 +669,7 @@ function updateDashboard() {
   set("dashCountPending", c.nPending);
   set("dashCountOverdue", c.nOverdue);
   set("dashCountDoneToday", c.nDoneToday);
+  set("dashCountDeleted", c.nDeleted);
   updateDashboardCardHighlight();
 }
 
@@ -651,15 +685,20 @@ function updateDashboardCardHighlight() {
     el.classList.remove("job-dashboard-card--active");
   });
   if (kind === "active" && statusFilter && statusFilter !== "All") {
-    const h = {
-      New: "new",
-      "In Progress": "inProgress",
-      Pending: "pending",
-      Overdue: "overdue",
-    }[statusFilter];
-    if (h) {
-      const t = document.querySelector('.job-dashboard-card[data-dash="' + h + '"]');
-      if (t) t.classList.add("job-dashboard-card--active");
+    if (statusFilter === "Deleted") {
+      const d = document.querySelector('.job-dashboard-card[data-dash="deleted"]');
+      if (d) d.classList.add("job-dashboard-card--active");
+    } else {
+      const h = {
+        New: "new",
+        "In Progress": "inProgress",
+        Pending: "pending",
+        Overdue: "overdue",
+      }[statusFilter];
+      if (h) {
+        const t = document.querySelector('.job-dashboard-card[data-dash="' + h + '"]');
+        if (t) t.classList.add("job-dashboard-card--active");
+      }
     }
   } else if (kind === "history" && historyViewFilter === "completedToday") {
     const t = document.querySelector('.job-dashboard-card[data-dash="doneToday"]');
@@ -762,6 +801,12 @@ function onDashboardFilter(dash) {
     return;
   }
   historyViewFilter = "all";
+  if (dash === "deleted") {
+    statusFilter = "Deleted";
+    setTab("active");
+    render();
+    return;
+  }
   const map = {
     new: "New",
     inProgress: "In Progress",
@@ -868,6 +913,8 @@ function render() {
   }
   updateDashboard();
   syncEngineerFilterUi();
+  updateJobDetailModal();
+  updateMobileFormFab();
 }
 
 function idAttr(id) {
@@ -1104,6 +1151,228 @@ function renderEngineerNotesSavedSection(j) {
   return `<div class="job-log-stack">${engineerBlock}${activityBlock}${toggleBtn}</div>`;
 }
 
+/** Full notes + full activity, no “show all” (mobile detail). */
+function renderEngineerNotesForModal(j) {
+  const list = getCommentsSortedNewestFirst(j);
+  const tone = getCommentLogToneClass(j);
+  const engineerList = sortCommentsNewestFirst(
+    list.filter((c) => !isSystemLogComment(c))
+  );
+  const sortedActivity = list.filter((c) => isSystemLogComment(c)).sort(
+    (a, b) =>
+      new Date(b.time || b.date || b.createdAt).getTime() -
+      new Date(a.time || a.date || a.createdAt).getTime()
+  );
+  let engineerBlock = "";
+  if (!engineerList.length) {
+    engineerBlock = `<h4 class="log-title section-title">Engineer notes</h4><div class="notes-container"><div class="comment-log comment-log--empty job-log--timeline ${tone}">No notes yet</div></div>`;
+  } else {
+    engineerBlock = `<h4 class="log-title section-title">Engineer notes</h4><div class="notes-container"><div class="comment-log job-log--timeline job-log--engineer-notes job-log--modal ${tone} expanded" role="list">${engineerList
+      .map((c) => renderEngineerLogItemHtml(c))
+      .join("")}</div></div>`;
+  }
+  let activityBlock = "";
+  if (sortedActivity.length) {
+    activityBlock = `<h4 class="log-title section-title system">Activity</h4><div class="activity-timeline expanded" role="list">${sortedActivity
+      .map((c) => renderSystemLogItemHtml(c))
+      .join("")}</div>`;
+  }
+  if (!list.length) {
+    return `<div class="job-log-stack job-log-stack--modal"><h4 class="log-title section-title">Engineer notes</h4><div class="comment-log--empty">No notes or activity</div></div>`;
+  }
+  return `<div class="job-log-stack job-log-stack--modal">${engineerBlock}${activityBlock}</div>`;
+}
+
+function getLatestSystemCommentObject(j) {
+  const list = getCommentsSortedNewestFirst(j).filter(
+    (c) => c && isSystemLogComment(c)
+  );
+  return list[0] || null;
+}
+
+function renderCompactLineActivity(c) {
+  if (!c) return "";
+  const d = getCommentDisplayFields(c);
+  const msg = String(d.text == null ? "" : d.text).trim();
+  if (!msg) return "";
+  const label = getActivityDisplayLabel(msg);
+  const time = formatTimeOnly(d.time || d.date || d.createdAt) || "—";
+  return `<div class="job-compact-line job-compact-line--activity"><span class="job-compact-k">Activity</span> <span class="job-compact-activity-lbl"><strong>${escapeHtml(
+    label
+  )}</strong></span> <span class="job-compact-time">${escapeHtml(
+    time
+  )}</span></div>`;
+}
+
+function renderActiveCardCompact(j) {
+  const st = j.status;
+  const vis = getJobCardStatusVisual(j);
+  const qid = idAttr(j.id);
+  const safePhoto =
+    j.photo && String(j.photo).indexOf("data:image/") === 0 ? j.photo : "";
+  const photoBlock = safePhoto
+    ? `<div class="job-photo-wrap job-photo-wrap--compact"><img class="job-photo-thumb" src="${safePhoto}" alt="Fault photo" tabindex="0" role="button"></div>`
+    : "";
+  const sInProgress = JSON.stringify("In Progress");
+  const sDone = JSON.stringify("Done");
+  const progressBtnNew =
+    st === "New"
+      ? `<button type="button" class="btn-sec" onclick='setStatus(${qid}, ${sInProgress})'>In Progress</button>`
+      : "";
+  const progressBtnPending =
+    st === "Pending"
+      ? `<button type="button" class="btn-sec" onclick='setStatus(${qid}, ${sInProgress})'>In Progress</button>`
+      : "";
+  const parkBtn =
+    st === "New" || st === "In Progress"
+      ? `<button type="button" class="btn-park" onclick='openParkDialog(${qid})'>Park</button>`
+      : "";
+  const idForAttr = jobIdForDomAttr(j.id);
+  const pr = (j.pendingReason || "").trim();
+  const isParkOverDueAttr = st === "Pending" && j.isOverdue;
+  const slaO = isSlaOverdue(j) ? "1" : "0";
+  let statusInfoBlock = "";
+  if (st === "Pending") {
+    const ptext = (pr && pr.trim()) || "—";
+    const rShort = ptext.length > 80 ? ptext.slice(0, 78) + "…" : ptext;
+    const si = [];
+    si.push(
+      `<div class="pending-reason-line pending-reason-line--compact">On hold: ${escapeHtml(
+        rShort
+      )}</div>`
+    );
+    const timerUntil = getPendingTimerUntilLine(j);
+    if (timerUntil) si.push(timerUntil);
+    statusInfoBlock = `<div class="job-status-info job-status-info--compact">${si.join(
+      ""
+    )}</div>`;
+  }
+  const lastAct = getLatestSystemCommentObject(j);
+  const preAct = renderCompactLineActivity(lastAct);
+  const previews = preAct
+    ? `<div class="job-compact-previews">${preAct}</div>`
+    : "";
+  return `
+      <div class="job job-card job-card--list-compact ${vis.cardClass}" data-job-id="${idForAttr}" data-status="${escapeHtml(
+    st
+  )}" data-sla-overdue="${slaO}" data-park-overdue="${
+    isParkOverDueAttr ? "1" : "0"
+  }">
+        <span class="job-status-badge job-status-badge--${vis.badgeMod}">${vis.badgeText}</span>
+        <div class="job-card-tap" role="button" tabindex="0" aria-label="Open full job">
+        ${photoBlock}
+        <div class="job-body job-meta">
+          <div class="job-title"><strong>${escapeHtml(
+            j.location
+          )}</strong></div>
+          <div class="job-problem job-problem--compact">${escapeHtml(
+            j.problem
+          )}</div>
+          ${renderJobMetaRow(j)}
+          ${renderJobPrioritySlaBlock(j)}
+          ${statusInfoBlock}
+          ${previews}
+        </div>
+        </div>
+        <div class="job-actions job-actions--compact">
+          ${progressBtnNew}
+          ${progressBtnPending}
+          ${parkBtn}
+          <button type="button" class="btn-done" onclick='setStatus(${qid}, ${sDone})'>Done</button>
+          <button type="button" class="btn-del" onclick='deleteJob(${qid})'>Delete</button>
+        </div>
+      </div>
+    `;
+}
+
+function renderHistoryCardCompact(j) {
+  const vis = getJobCardStatusVisual(j);
+  const qid = idAttr(j.id);
+  const safePhoto =
+    j.photo && String(j.photo).indexOf("data:image/") === 0 ? j.photo : "";
+  const photoBlock = safePhoto
+    ? `<div class="job-photo-wrap job-photo-wrap--compact"><img class="job-photo-thumb" src="${safePhoto}" alt="Fault photo" tabindex="0" role="button"></div>`
+    : "";
+  const when = formatDateClean(j.completedAt);
+  const lastAct = getLatestSystemCommentObject(j);
+  const preAct = renderCompactLineActivity(lastAct);
+  const previews = preAct
+    ? `<div class="job-compact-previews">${preAct}</div>`
+    : "";
+  return `
+      <div class="job job-card job-card--list-compact done job-history ${vis.cardClass
+    }" data-job-id="${jobIdForDomAttr(j.id)}" data-status="Done">
+        <span class="job-status-badge job-status-badge--${vis.badgeMod}">${vis.badgeText}</span>
+        <div class="job-card-tap" role="button" tabindex="0" aria-label="Open full job">
+        ${photoBlock}
+        <div class="job-body job-meta">
+          <div class="job-title"><strong>${escapeHtml(
+            j.location
+          )}</strong></div>
+          <div class="job-problem job-problem--compact">${escapeHtml(
+            j.problem
+          )}</div>
+          ${renderJobMetaRow(j)}
+          ${renderJobPrioritySlaBlock(j)}
+          <div class="job-status-info job-status-info--compact"><div class="completed-line">Completed: ${escapeHtml(
+            when || "—"
+          )}</div></div>
+          ${previews}
+        </div>
+        </div>
+        <div class="job-actions job-actions--compact job-actions-single">
+          <button type="button" class="btn-del" onclick='deleteJob(${qid})'>Delete</button>
+        </div>
+      </div>
+    `;
+}
+
+function renderDeletedCardCompact(j) {
+  const idForAttr = jobIdForDomAttr(j.id);
+  const visClass = "job-card-shell";
+  const safePhoto =
+    j.photo && String(j.photo).indexOf("data:image/") === 0 ? j.photo : "";
+  const photoBlock = safePhoto
+    ? `<div class="job-photo-wrap job-photo-wrap--compact"><img class="job-photo-thumb" src="${safePhoto}" alt="Fault photo" tabindex="0" role="button"></div>`
+    : "";
+  const delWhen = formatDateClean(j.deletedAt) || "—";
+  const prev = (j.previousStatus && String(j.previousStatus).trim()) || "—";
+  const lastAct = getLatestSystemCommentObject(j);
+  const preAct = renderCompactLineActivity(lastAct);
+  const previews = preAct
+    ? `<div class="job-compact-previews">${preAct}</div>`
+    : "";
+  return `
+      <div class="job job-card job-card--list-compact deleted ${visClass
+    }" data-job-id="${idForAttr}" data-status="Deleted">
+        <span class="job-status-badge job-status-badge--deleted">DELETED</span>
+        <div class="job-card-tap" role="button" tabindex="0" aria-label="Open full job">
+        ${photoBlock}
+        <div class="job-body job-meta">
+          <div class="job-title"><strong>${escapeHtml(
+            j.location
+          )}</strong></div>
+          <div class="job-problem job-problem--compact">${escapeHtml(
+            j.problem
+          )}</div>
+          ${renderJobMetaRow(j)}
+          ${renderJobPrioritySlaBlock(j)}
+          <div class="job-status-info job-status-info--compact"><div class="deleted-meta-line">Deleted: ${escapeHtml(
+            delWhen
+          )}</div><div class="deleted-meta-line">Prev: ${escapeHtml(
+    prev
+  )}</div></div>
+          ${previews}
+        </div>
+        </div>
+        <div class="job-actions job-actions--compact job-actions-deleted">
+          <button type="button" class="btn-restore">Restore</button>
+          <button type="button" class="btn-permanent-delete">Delete permanently</button>
+        </div>
+      </div>
+    `;
+}
+
 /** Canonical key so expand state matches `jobLogExpanded[String(j.id)]` on re-render. */
 function jobLogExpandedKeyForId(rawId) {
   if (rawId == null || rawId === "") return "";
@@ -1159,7 +1428,7 @@ function getJobCardStatusVisual(j) {
   return { cardClass: "job-card-shell new", badgeMod: "new", badgeText: "NEW" };
 }
 
-function renderActiveCard(j) {
+function renderActiveCardFull(j, forModal) {
   const st = j.status;
   const vis = getJobCardStatusVisual(j);
   const qid = idAttr(j.id);
@@ -1196,10 +1465,12 @@ function renderActiveCard(j) {
     if (timerUntil) si.push(timerUntil);
     statusInfoBlock = `<div class="job-status-info">${si.join("")}</div>`;
   }
+  const logClass = forModal ? " job--modal-detail" : jobCardLogsExpandedClass(j);
+  const notesBlock = forModal
+    ? renderEngineerNotesForModal(j)
+    : renderEngineerNotesSavedSection(j);
   return `
-      <div class="job job-card ${vis.cardClass}${jobCardLogsExpandedClass(
-    j
-  )}" data-job-id="${idForAttr}" data-status="${escapeHtml(
+      <div class="job job-card ${vis.cardClass}${logClass}" data-job-id="${idForAttr}" data-status="${escapeHtml(
     st
   )}" data-sla-overdue="${slaO}" data-park-overdue="${
     isParkOverDueAttr ? "1" : "0"
@@ -1215,7 +1486,7 @@ function renderActiveCard(j) {
           ${renderJobPrioritySlaBlock(j)}
           ${statusInfoBlock}
         </div>
-        ${renderEngineerNotesSavedSection(j)}
+        ${notesBlock}
         <label class="comment-label">Add a note</label>
         <textarea class="comment-field comment-new" rows="2" placeholder="Type a note, then tap Save note"></textarea>
         <div class="comment-save-row">
@@ -1233,7 +1504,14 @@ function renderActiveCard(j) {
     `;
 }
 
-function renderHistoryCard(j) {
+function renderActiveCard(j) {
+  if (isNarrowLayout()) {
+    return renderActiveCardCompact(j);
+  }
+  return renderActiveCardFull(j, false);
+}
+
+function renderHistoryCardFull(j, forModal) {
   const vis = getJobCardStatusVisual(j);
   const qid = idAttr(j.id);
   const safePhoto =
@@ -1242,10 +1520,14 @@ function renderHistoryCard(j) {
     ? `<div class="job-photo-wrap"><img class="job-photo-thumb" src="${safePhoto}" alt="Fault photo" tabindex="0" role="button"></div>`
     : "";
   const when = formatDateClean(j.completedAt);
+  const logClass = forModal ? " job--modal-detail" : jobCardLogsExpandedClass(j);
+  const notesBlock = forModal
+    ? renderEngineerNotesForModal(j)
+    : renderEngineerNotesSavedSection(j);
   return `
-      <div class="job job-card done job-history ${vis.cardClass}${jobCardLogsExpandedClass(
-    j
-  )}" data-job-id="${jobIdForDomAttr(j.id)}" data-status="Done">
+      <div class="job job-card done job-history ${vis.cardClass}${logClass}" data-job-id="${jobIdForDomAttr(
+    j.id
+  )}" data-status="Done">
         <span class="job-status-badge job-status-badge--${vis.badgeMod}">${vis.badgeText}</span>
         ${photoBlock}
         <div class="job-body job-meta">
@@ -1259,7 +1541,7 @@ function renderHistoryCard(j) {
             when || "—"
           )}</div></div>
         </div>
-        ${renderEngineerNotesSavedSection(j)}
+        ${notesBlock}
         <div class="job-actions job-actions-single">
           <button type="button" class="btn-del" onclick='deleteJob(${qid})'>Delete</button>
         </div>
@@ -1267,7 +1549,14 @@ function renderHistoryCard(j) {
     `;
 }
 
-function renderDeletedCard(j) {
+function renderHistoryCard(j) {
+  if (isNarrowLayout()) {
+    return renderHistoryCardCompact(j);
+  }
+  return renderHistoryCardFull(j, false);
+}
+
+function renderDeletedCardFull(j, forModal) {
   const idForAttr = jobIdForDomAttr(j.id);
   const safePhoto =
     j.photo && String(j.photo).indexOf("data:image/") === 0 ? j.photo : "";
@@ -1276,10 +1565,12 @@ function renderDeletedCard(j) {
     : "";
   const delWhen = formatDateClean(j.deletedAt) || "—";
   const prev = (j.previousStatus && String(j.previousStatus).trim()) || "—";
+  const logClass = forModal ? " job--modal-detail" : jobCardLogsExpandedClass(j);
+  const notesBlock = forModal
+    ? renderEngineerNotesForModal(j)
+    : renderEngineerNotesSavedSection(j);
   return `
-      <div class="job job-card deleted job-card-shell${jobCardLogsExpandedClass(
-    j
-  )}" data-job-id="${idForAttr}" data-status="Deleted">
+      <div class="job job-card deleted job-card-shell${logClass}" data-job-id="${idForAttr}" data-status="Deleted">
         <span class="job-status-badge job-status-badge--deleted">DELETED</span>
         ${photoBlock}
         <div class="job-body job-meta">
@@ -1295,13 +1586,212 @@ function renderDeletedCard(j) {
     prev
   )}</div></div>
         </div>
-        ${renderEngineerNotesSavedSection(j)}
+        ${notesBlock}
         <div class="job-actions job-actions-deleted">
           <button type="button" class="btn-restore">Restore</button>
           <button type="button" class="btn-permanent-delete">Delete permanently</button>
         </div>
       </div>
     `;
+}
+
+function renderDeletedCard(j) {
+  if (isNarrowLayout()) {
+    return renderDeletedCardCompact(j);
+  }
+  return renderDeletedCardFull(j, false);
+}
+
+function renderJobDetailBodyForModal(j) {
+  if (j.deleted) {
+    return renderDeletedCardFull(j, true);
+  }
+  if (j.status === "Done") {
+    return renderHistoryCardFull(j, true);
+  }
+  return renderActiveCardFull(j, true);
+}
+
+function getJobDetailHeaderBadgeVisual(j) {
+  if (j.deleted) {
+    return { badgeMod: "deleted", badgeText: "DELETED" };
+  }
+  return getJobCardStatusVisual(j);
+}
+
+function setReportFormCollapsed(collapse) {
+  const form = document.getElementById("reportJobForm");
+  if (!form) return;
+  if (collapse) {
+    form.classList.add("report-job-form--collapsed");
+  } else {
+    form.classList.remove("report-job-form--collapsed");
+  }
+}
+
+function updateJobDetailModal() {
+  const modal = document.getElementById("jobDetailModal");
+  const content = document.getElementById("jobDetailModalBody");
+  if (!modal || !content) return;
+  if (!isNarrowLayout() || !mobileJobDetailId) {
+    if (!isNarrowLayout()) {
+      mobileJobDetailId = null;
+    }
+    modal.hidden = true;
+    syncAppBodyScrollLock();
+    return;
+  }
+  const j = jobs.find((x) => String(x.id) === String(mobileJobDetailId));
+  if (!j) {
+    mobileJobDetailId = null;
+    modal.hidden = true;
+    const b = document.getElementById("jobDetailModalBadge");
+    if (b) {
+      b.textContent = "";
+      b.className = "job-detail-modal__badge";
+      b.removeAttribute("aria-label");
+    }
+    syncAppBodyScrollLock();
+    return;
+  }
+  content.innerHTML = renderJobDetailBodyForModal(j);
+  const badgeEl = document.getElementById("jobDetailModalBadge");
+  if (badgeEl) {
+    const vis = getJobDetailHeaderBadgeVisual(j);
+    badgeEl.className =
+      "job-detail-modal__badge job-status-badge job-status-badge--" + vis.badgeMod;
+    badgeEl.textContent = vis.badgeText;
+    badgeEl.setAttribute("aria-label", "Status: " + vis.badgeText);
+  }
+  modal.hidden = false;
+  syncAppBodyScrollLock();
+}
+
+function syncAppBodyScrollLock() {
+  const detail = document.getElementById("jobDetailModal");
+  const parkM = document.getElementById("parkModal");
+  const photoB = document.getElementById("photoLightbox");
+  if (detail && !detail.hidden) {
+    document.body.style.overflow = "hidden";
+    return;
+  }
+  if (parkM && !parkM.hidden) return;
+  if (photoB && !photoB.hidden) return;
+  document.body.style.overflow = "";
+}
+
+function updateMobileFormFab() {
+  const form = document.getElementById("reportJobForm");
+  const fab = document.getElementById("fabNewJob");
+  const modal = document.getElementById("jobDetailModal");
+  if (!fab) return;
+  if (!isNarrowLayout()) {
+    fab.classList.remove("fab-hidden");
+    fab.removeAttribute("aria-hidden");
+    return;
+  }
+  const formOpen = form && !form.classList.contains("report-job-form--collapsed");
+  const detailOpen = modal && !modal.hidden;
+  const hide = formOpen || detailOpen || mobileFabHiddenByScroll;
+  if (hide) {
+    fab.classList.add("fab-hidden");
+    fab.setAttribute("aria-hidden", "true");
+  } else {
+    fab.classList.remove("fab-hidden");
+    fab.removeAttribute("aria-hidden");
+  }
+}
+
+/**
+ * NARROW only: show FAB near top; hide when scrolling down, show when scrolling up.
+ * Form open / full-screen job handled in updateMobileFormFab (this updates scroll flags only).
+ */
+function onMobileFabScroll() {
+  if (typeof window === "undefined") return;
+  if (!isNarrowLayout()) return;
+  if (!hasMainproLogin()) return;
+  const am = document.getElementById("appMain");
+  if (!am || am.hidden) return;
+  const y =
+    window.scrollY ||
+    window.pageYOffset ||
+    (document.documentElement && document.documentElement.scrollTop) ||
+    0;
+  const form = document.getElementById("reportJobForm");
+  const modal = document.getElementById("jobDetailModal");
+  const formOpen = form && !form.classList.contains("report-job-form--collapsed");
+  const detailOpen = modal && !modal.hidden;
+  if (formOpen || detailOpen) {
+    mobileFabLastScrollY = y;
+    updateMobileFormFab();
+    return;
+  }
+  const d = MOBILE_FAB_SCROLL_DELTA;
+  if (y <= MOBILE_FAB_TOP_ZONE_PX) {
+    mobileFabHiddenByScroll = false;
+  } else {
+    if (y > mobileFabLastScrollY + d) {
+      mobileFabHiddenByScroll = true;
+    } else if (y < mobileFabLastScrollY - d) {
+      mobileFabHiddenByScroll = false;
+    }
+  }
+  mobileFabLastScrollY = y;
+  updateMobileFormFab();
+}
+
+function onJobCardTapOpen(e) {
+  if (!isNarrowLayout()) return;
+  if (e.target.closest(".btn-job-log-toggle")) return;
+  if (e.target.closest(".job-photo-thumb")) return;
+  if (e.target.closest(".job-actions")) return;
+  const tap = e.target.closest(".job-card-tap");
+  if (!tap) return;
+  const jobEl = tap.closest(".job");
+  if (!jobEl || !jobEl.classList.contains("job-card--list-compact")) return;
+  if (
+    e.target.closest(
+      "button, a, input, textarea, select, label, option, [type=file]"
+    )
+  ) {
+    return;
+  }
+  const id = jobIdFromDomAttr(jobEl.getAttribute("data-job-id"));
+  if (id == null) return;
+  e.preventDefault();
+  mobileJobsListScrollY =
+    window.scrollY ||
+    window.pageYOffset ||
+    document.documentElement.scrollTop ||
+    0;
+  mobileJobDetailId = String(id);
+  render();
+}
+
+function closeJobDetailModal() {
+  mobileJobDetailId = null;
+  const modal = document.getElementById("jobDetailModal");
+  if (modal) modal.hidden = true;
+  const badgeEl = document.getElementById("jobDetailModalBadge");
+  if (badgeEl) {
+    badgeEl.textContent = "";
+    badgeEl.className = "job-detail-modal__badge";
+    badgeEl.removeAttribute("aria-label");
+  }
+  syncAppBodyScrollLock();
+  const y = mobileJobsListScrollY;
+  mobileFabLastScrollY = y;
+  if (y <= MOBILE_FAB_TOP_ZONE_PX) {
+    mobileFabHiddenByScroll = false;
+  } else {
+    mobileFabHiddenByScroll = true;
+  }
+  updateMobileFormFab();
+  requestAnimationFrame(function () {
+    window.scrollTo(0, y);
+    mobileFabLastScrollY = y;
+    updateMobileFormFab();
+  });
 }
 
 function updateDeletedFilterCount() {
@@ -1380,8 +1870,23 @@ function addJob() {
     if (fileInput) fileInput.value = "";
     const prev = document.getElementById("jobPhotoPreview");
     if (prev) prev.innerHTML = "";
+    if (isNarrowLayout()) {
+      setReportFormCollapsed(true);
+    }
     render();
     setTab("active");
+    if (isNarrowLayout()) {
+      setTimeout(function () {
+        const stack = document.querySelector(".app-jobs-stack");
+        if (stack) {
+          try {
+            stack.scrollIntoView({ behavior: "smooth", block: "start" });
+          } catch (e) {
+            stack.scrollIntoView(true);
+          }
+        }
+      }, 80);
+    }
   };
 
   if (file) {
@@ -1443,7 +1948,7 @@ function closeParkDialog() {
   if (m) m.hidden = true;
   const reasonEl = document.getElementById("parkReasonInput");
   if (reasonEl) reasonEl.value = "";
-  document.body.style.overflow = "";
+  syncAppBodyScrollLock();
 }
 
 function confirmPark() {
@@ -1539,9 +2044,36 @@ function saveEngineerNote(btn) {
   }, 0);
 }
 
+function scrollToReportJob() {
+  if (isNarrowLayout()) {
+    setReportFormCollapsed(false);
+  }
+  const form = document.getElementById("reportJobForm");
+  if (form) {
+    try {
+      form.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (e) {
+      form.scrollIntoView(true);
+    }
+  }
+  setTimeout(function () {
+    const loc = document.getElementById("location");
+    if (loc) {
+      try {
+        loc.focus({ preventScroll: true });
+      } catch (err) {
+        loc.focus();
+      }
+    }
+  }, 450);
+  updateMobileFormFab();
+}
+
 window.saveEngineerNote = saveEngineerNote;
 window.toggleJobLog = toggleJobLog;
 window.toggleMyJobsFilter = toggleMyJobsFilter;
+window.scrollToReportJob = scrollToReportJob;
+window.closeJobDetailModal = closeJobDetailModal;
 
 function openPhotoLightbox(src) {
   if (!src || String(src).indexOf("data:image/") !== 0) return;
@@ -1559,7 +2091,7 @@ function closePhotoLightbox() {
   const im = document.getElementById("photoLightboxImg");
   if (im) im.removeAttribute("src");
   if (box) box.hidden = true;
-  document.body.style.overflow = "";
+  syncAppBodyScrollLock();
 }
 
 function deleteJob(id) {
@@ -1724,6 +2256,11 @@ document.addEventListener("click", function (e) {
 });
 document.addEventListener("keydown", function (e) {
   if (e.key === "Escape" || e.key === "Esc") {
+    const jdm = document.getElementById("jobDetailModal");
+    if (jdm && !jdm.hidden) {
+      closeJobDetailModal();
+      return;
+    }
     const parkM = document.getElementById("parkModal");
     if (parkM && !parkM.hidden) {
       closeParkDialog();
@@ -1738,5 +2275,55 @@ document.addEventListener("keydown", function (e) {
     openPhotoLightbox(t.getAttribute("src"));
   }
 });
+
+(function bindMobileJobOpen() {
+  const app = document.getElementById("appMain");
+  if (!app || app._mobileTapBound) return;
+  app._mobileTapBound = true;
+  app.addEventListener("click", onJobCardTapOpen);
+})();
+
+document.addEventListener("keydown", function (e) {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  const te = e.target;
+  if (!te || !te.classList || !te.classList.contains("job-card-tap")) return;
+  const job = te.closest(".job");
+  if (!job || !job.classList.contains("job-card--list-compact")) return;
+  e.preventDefault();
+  const id = jobIdFromDomAttr(job.getAttribute("data-job-id"));
+  if (id == null) return;
+  mobileJobsListScrollY =
+    window.scrollY ||
+    window.pageYOffset ||
+    document.documentElement.scrollTop ||
+    0;
+  mobileJobDetailId = String(id);
+  render();
+});
+
+window.addEventListener("resize", function () {
+  if (!isNarrowLayout() && mobileJobDetailId) {
+    mobileJobDetailId = null;
+    const m = document.getElementById("jobDetailModal");
+    if (m) m.hidden = true;
+    syncAppBodyScrollLock();
+  }
+  if (!isNarrowLayout()) {
+    mobileFabHiddenByScroll = false;
+  }
+  mobileFabLastScrollY =
+    window.scrollY || (document.documentElement && document.documentElement.scrollTop) || 0;
+  if (isNarrowLayout()) {
+    onMobileFabScroll();
+  } else {
+    updateMobileFormFab();
+  }
+});
+
+(function bindMobileFabScroll() {
+  if (typeof window === "undefined" || window._mainproFabScrollBound) return;
+  window._mainproFabScrollBound = true;
+  window.addEventListener("scroll", onMobileFabScroll, { passive: true });
+})();
 
 applyAuthUi();
