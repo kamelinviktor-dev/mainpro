@@ -36,6 +36,44 @@ const ASSIGNED_ENGINEER_OPTIONS = [
 /** Quick filter "My Jobs" — same value as dropdown option. */
 const MY_JOBS_ENGINEER_FILTER = "Engineer 1";
 
+/** Report form + saved on job */
+const JOB_PRIORITIES = ["Low", "Medium", "High", "Critical"];
+const PRIORITY_SLA_HOURS = { Low: 24, Medium: 8, High: 4, Critical: 1 };
+
+function normalizePriorityValue(p) {
+  const s = String(p == null ? "" : p).trim();
+  if (!s) return "Low";
+  if (/^urgent$/i.test(s)) return "Critical";
+  if (JOB_PRIORITIES.indexOf(s) >= 0) return s;
+  return "Low";
+}
+
+/**
+ * @param {string} createdAtIso
+ * @param {string} priority
+ */
+function computeDueAtIso(createdAtIso, priority) {
+  const p = normalizePriorityValue(priority);
+  const hours =
+    PRIORITY_SLA_HOURS[p] != null ? PRIORITY_SLA_HOURS[p] : PRIORITY_SLA_HOURS.Low;
+  let base = Date.now();
+  if (createdAtIso && String(createdAtIso).trim()) {
+    const t = new Date(createdAtIso).getTime();
+    if (!isNaN(t)) base = t;
+  }
+  return new Date(base + hours * 3600 * 1000).toISOString();
+}
+
+/** SLA clock: after dueAt, not done, not deleted. */
+function isSlaOverdue(j) {
+  if (!j || j.deleted || j.status === "Done") return false;
+  const d = (j.dueAt == null ? "" : String(j.dueAt)).trim();
+  if (!d) return false;
+  const t = new Date(d).getTime();
+  if (isNaN(t)) return false;
+  return Date.now() > t;
+}
+
 function normalizeAssignedTo(j) {
   if (!j) return "Unassigned";
   const v = String(j.assignedTo == null ? "" : j.assignedTo).trim();
@@ -173,6 +211,36 @@ function loadJobs() {
       if (ASSIGNED_ENGINEER_OPTIONS.indexOf(x.assignedTo) < 0) {
         x.assignedTo = "Unassigned";
         changed = true;
+      }
+    }
+    {
+      const prevP = x.priority;
+      x.priority = normalizePriorityValue(x.priority);
+      if (x.priority !== prevP) {
+        changed = true;
+      }
+    }
+    {
+      const du0 = (x.dueAt == null ? "" : String(x.dueAt)).trim();
+      const t0 = du0 ? new Date(du0).getTime() : NaN;
+      if (!du0 || isNaN(t0)) {
+        x.dueAt = computeDueAtIso(x.createdAt, x.priority);
+        changed = true;
+      } else {
+        x.dueAt = du0;
+      }
+    }
+    {
+      if (x.slaBecameOverdueLogged == null) {
+        const du = (x.dueAt == null ? "" : String(x.dueAt)).trim();
+        const dt = du ? new Date(du).getTime() : NaN;
+        const nowMs = Date.now();
+        const wasPast = !isNaN(dt) && dt < nowMs;
+        const activeOpen = isActiveStatus(x.status) && !x.deleted;
+        x.slaBecameOverdueLogged = wasPast && activeOpen;
+        changed = true;
+      } else {
+        x.slaBecameOverdueLogged = x.slaBecameOverdueLogged === true;
       }
     }
     if (x.pendingUntil == null) {
@@ -443,6 +511,23 @@ function appendOverdueAuditIfNeeded() {
   if (any) save();
 }
 
+/**
+ * When SLA dueAt is first passed, one system line "Became Overdue" (uses slaBecameOverdueLogged).
+ */
+function appendSlaBecameOverdueAuditIfNeeded() {
+  let any = false;
+  for (let i = 0; i < jobs.length; i++) {
+    const j = jobs[i];
+    if (j.deleted) continue;
+    if (j.slaBecameOverdueLogged) continue;
+    if (!isSlaOverdue(j)) continue;
+    appendSystemComment(j, "Became Overdue");
+    j.slaBecameOverdueLogged = true;
+    any = true;
+  }
+  if (any) save();
+}
+
 function formatDurationHMFromMs(totalMs) {
   if (totalMs < 0) totalMs = 0;
   const totalMin = Math.floor(totalMs / 60000);
@@ -474,6 +559,38 @@ function renderJobMetaRow(j) {
   return `<div class="job-meta-row"><span class="job-meta-chunk">👤 ${reporter}</span><span class="job-meta-sep" aria-hidden="true">·</span><span class="job-meta-chunk">🧑‍🔧 ${assignee}</span><span class="job-meta-sep" aria-hidden="true">·</span><span class="job-meta-chunk">🕒 ${when}</span></div>`;
 }
 
+/** Priority pill + SLA countdown (or due date on done/deleted). */
+function renderJobPrioritySlaBlock(j) {
+  const p = normalizePriorityValue(j.priority);
+  const slug = p.toLowerCase();
+  const pill = `<span class="job-priority-pill job-priority-pill--${slug}">${escapeHtml(
+    p
+  )}</span>`;
+  const d = (j.dueAt == null ? "" : String(j.dueAt)).trim();
+  if (!d) {
+    return `<div class="job-sla-row">Priority: ${pill}</div>`;
+  }
+  const dueT = new Date(d).getTime();
+  if (isNaN(dueT)) {
+    return `<div class="job-sla-row">Priority: ${pill}</div>`;
+  }
+  if (j.status === "Done" || j.deleted) {
+    const when = formatDateTime(d) || "—";
+    return `<div class="job-sla-row">Priority: ${pill}<span class="job-sla-due">Due: ${escapeHtml(
+      when
+    )}</span></div>`;
+  }
+  const now = Date.now();
+  const diff = dueT - now;
+  const { h, m } = formatDurationHMFromMs(Math.abs(diff));
+  const dueText =
+    diff < 0 ? "Overdue by: " + h + "h " + m + "m" : "Due in: " + h + "h " + m + "m";
+  const modClass = diff < 0 ? " job-sla-due--late" : "";
+  return `<div class="job-sla-row">Priority: ${pill}<span class="job-sla-due${modClass}" aria-live="polite">${escapeHtml(
+    dueText
+  )}</span></div>`;
+}
+
 function getNewJobAssignedToValue() {
   const el = document.getElementById("newJobAssignedTo");
   const raw = el ? String(el.value || "Unassigned").trim() : "Unassigned";
@@ -493,10 +610,10 @@ function getDashboardCounts() {
     const st = j.status;
     if (st === "New") nNew++;
     else if (st === "In Progress") nInProgress++;
-    else if (st === "Pending") {
-      if (j.isOverdue) nOverdue++;
-      else nPending++;
+    else if (st === "Pending" && !j.isOverdue && !isSlaOverdue(j)) {
+      nPending++;
     }
+    if (isSlaOverdue(j)) nOverdue++;
     if (st === "Done" && isCompletedAtToday(j.completedAt)) nDoneToday++;
   }
   return {
@@ -578,18 +695,19 @@ function matchesJobSearch(j, q) {
     getJobCommentsTextBlob(j),
     j.pendingUntil,
     j.pendingReason,
+    j.dueAt,
   ].map((v) => String(v == null ? "" : v).toLowerCase());
   return parts.some((p) => p.indexOf(q) >= 0);
 }
 
 /**
- * Active list filters. Pending = on-time only; Overdue = separate. Stale "Done" → all actives.
+ * Active list: Overdue = SLA (dueAt passed). Pending = on-hold, not past park, not SLA overdue.
  */
 function matchesStatusFilterForActive(j) {
   if (statusFilter === "All" || statusFilter === "Done") return true;
-  if (statusFilter === "Overdue") return j.isOverdue === true;
+  if (statusFilter === "Overdue") return isSlaOverdue(j) === true;
   if (statusFilter === "Pending") {
-    return j.status === "Pending" && !j.isOverdue;
+    return j.status === "Pending" && !j.isOverdue && !isSlaOverdue(j);
   }
   return j.status === statusFilter;
 }
@@ -660,11 +778,12 @@ function onDashboardFilter(dash) {
 window.onDashboardFilter = onDashboardFilter;
 
 function sortKeyActiveList(j) {
-  if (j.isOverdue) return 0;
-  if (j.status === "In Progress") return 1;
-  if (j.status === "Pending") return 2;
-  if (j.status === "New") return 3;
-  return 4;
+  if (isSlaOverdue(j)) return 0;
+  if (j.isOverdue) return 1;
+  if (j.status === "In Progress") return 2;
+  if (j.status === "Pending") return 3;
+  if (j.status === "New") return 4;
+  return 5;
 }
 
 function updateFilterButtonsActiveState() {
@@ -678,6 +797,7 @@ function updateFilterButtonsActiveState() {
 function render() {
   syncOverdueFlags();
   appendOverdueAuditIfNeeded();
+  appendSlaBecameOverdueAuditIfNeeded();
 
   const activeEl = document.getElementById("jobs-active");
   const historyEl = document.getElementById("jobs-history");
@@ -801,6 +921,7 @@ function isSystemLogComment(c) {
  */
 function getCommentLogToneClass(j) {
   if (j.deleted) return "comment-log--tone-default";
+  if (isSlaOverdue(j)) return "comment-log--tone-overdue";
   if (j.status === "Pending" && j.isOverdue) return "comment-log--tone-overdue";
   if (j.status === "Pending") return "comment-log--tone-pending";
   return "comment-log--tone-default";
@@ -849,6 +970,7 @@ function getActivityDisplayLabel(rawMsg) {
   if (/^job restored$/i.test(m)) return "Restored";
   if (/^moved to in progress$/i.test(m)) return "Moved to In Progress";
   if (/^moved to pending$/i.test(m)) return "Moved to Pending";
+  if (/^Became Overdue$/i.test(m)) return "Became Overdue";
   if (/^job became overdue$/i.test(m)) return "Became Overdue";
   if (/^job completed$/i.test(m)) return "Marked Done";
   let x = m.match(/^Moved to (.+)$/i);
@@ -1004,11 +1126,19 @@ function jobCardLogsExpandedClass(j) {
 
 /**
  * Premium shell + CSS status slugs (done, new, in-progress, pending, on-hold, overdue).
+ * SLA past dueAt takes badge OVERDUE; status in data is unchanged.
  */
 function getJobCardStatusVisual(j) {
   const st = j.status;
   if (st === "Done") {
     return { cardClass: "job-card-shell done", badgeMod: "done", badgeText: "DONE" };
+  }
+  if (isSlaOverdue(j)) {
+    return {
+      cardClass: "job-card-shell overdue",
+      badgeMod: "overdue",
+      badgeText: "OVERDUE",
+    };
   }
   if (st === "New") {
     return { cardClass: "job-card-shell new", badgeMod: "new", badgeText: "NEW" };
@@ -1054,7 +1184,8 @@ function renderActiveCard(j) {
       : "";
   const idForAttr = jobIdForDomAttr(j.id);
   const pr = (j.pendingReason || "").trim();
-  const isOverdue = st === "Pending" && j.isOverdue;
+  const isParkOverDueAttr = st === "Pending" && j.isOverdue;
+  const slaO = isSlaOverdue(j) ? "1" : "0";
   let statusInfoBlock = "";
   if (st === "Pending") {
     const si = [];
@@ -1070,17 +1201,18 @@ function renderActiveCard(j) {
     j
   )}" data-job-id="${idForAttr}" data-status="${escapeHtml(
     st
-  )}" data-overdue="${isOverdue ? "1" : "0"}">
+  )}" data-sla-overdue="${slaO}" data-park-overdue="${
+    isParkOverDueAttr ? "1" : "0"
+  }">
         <span class="job-status-badge job-status-badge--${vis.badgeMod}">${vis.badgeText}</span>
         ${photoBlock}
         <div class="job-body job-meta">
           <div class="job-title"><strong>${escapeHtml(
             j.location
-          )}</strong> <span class="priority">(${escapeHtml(
-    j.priority
-  )})</span></div>
+          )}</strong></div>
           <div class="job-problem">${escapeHtml(j.problem)}</div>
           ${renderJobMetaRow(j)}
+          ${renderJobPrioritySlaBlock(j)}
           ${statusInfoBlock}
         </div>
         ${renderEngineerNotesSavedSection(j)}
@@ -1119,11 +1251,10 @@ function renderHistoryCard(j) {
         <div class="job-body job-meta">
           <div class="job-title"><strong>${escapeHtml(
             j.location
-          )}</strong> <span class="priority">(${escapeHtml(
-    j.priority
-  )})</span></div>
+          )}</strong></div>
           <div class="job-problem">${escapeHtml(j.problem)}</div>
           ${renderJobMetaRow(j)}
+          ${renderJobPrioritySlaBlock(j)}
           <div class="job-status-info"><div class="completed-line">Completed: ${escapeHtml(
             when || "—"
           )}</div></div>
@@ -1154,11 +1285,10 @@ function renderDeletedCard(j) {
         <div class="job-body job-meta">
           <div class="job-title"><strong>${escapeHtml(
             j.location
-          )}</strong> <span class="priority">(${escapeHtml(
-    j.priority
-  )})</span></div>
+          )}</strong></div>
           <div class="job-problem">${escapeHtml(j.problem)}</div>
           ${renderJobMetaRow(j)}
+          ${renderJobPrioritySlaBlock(j)}
           <div class="job-status-info"><div class="deleted-meta-line">Deleted: ${escapeHtml(
             delWhen
           )}</div><div class="deleted-meta-line">Previous: ${escapeHtml(
@@ -1212,23 +1342,27 @@ function addJob() {
   const file = fileInput && fileInput.files && fileInput.files[0];
   const done = (photo) => {
     const assignedTo = getNewJobAssignedToValue();
+    const pNorm = normalizePriorityValue(priority);
+    const createdAt = new Date().toISOString();
     const job = {
       id: String(Date.now()) + "-" + String(Math.floor(Math.random() * 1e9)),
       location,
       problem,
-      priority,
+      priority: pNorm,
       reportedBy: reportedBy || "",
       status: "New",
       comments: [],
       photo: photo || "",
       completedAt: "",
-      createdAt: new Date().toISOString(),
+      createdAt: createdAt,
+      dueAt: computeDueAtIso(createdAt, pNorm),
       pendingUntil: "",
       pendingReason: "",
       deleted: false,
       deletedAt: "",
       previousStatus: "",
       assignedTo,
+      slaBecameOverdueLogged: false,
     };
     if (assignedTo !== "Unassigned") {
       appendSystemComment(job, "Assigned to " + assignedTo);
