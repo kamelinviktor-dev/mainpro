@@ -2,7 +2,7 @@
  * MainPro Jobs — offline cache for app shell.
  * Bump CACHE after changing precached files so clients refresh.
  */
-const CACHE = "mainpro-jobs-v2-2";
+const CACHE = "mainpro-jobs-v2-3";
 const PRECACHE = [
   "./",
   "./index.html",

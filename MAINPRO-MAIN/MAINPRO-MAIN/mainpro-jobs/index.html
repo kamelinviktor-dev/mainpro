@@ -48,6 +48,208 @@
       display: none !important;
     }
 
+    .sw-update-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 34900;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 8px 10px;
+      box-sizing: border-box;
+      padding: max(8px, env(safe-area-inset-top, 0px)) 12px 8px 36px;
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.3;
+      color: #0f172a;
+      background: linear-gradient(180deg, #ecfdf5 0%, #d1fae5 100%);
+      border-bottom: 1px solid #6ee7b7;
+      box-shadow: 0 2px 10px rgba(15, 23, 42, 0.12);
+    }
+
+    .sw-update-bar[hidden] {
+      display: none !important;
+    }
+
+    .sw-update-bar__text {
+      flex: 1 1 160px;
+      min-width: 0;
+      text-align: center;
+    }
+
+    .sw-update-bar__btn {
+      flex: 0 0 auto;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1px solid #059669;
+      border-radius: 8px;
+      background: #059669;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    .sw-update-bar__dismiss {
+      position: absolute;
+      top: max(4px, env(safe-area-inset-top, 0px));
+      right: 6px;
+      width: 32px;
+      height: 32px;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      color: #64748b;
+      font-size: 22px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .onboarding-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 19500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px 14px;
+      box-sizing: border-box;
+    }
+
+    .onboarding-modal[hidden] {
+      display: none !important;
+    }
+
+    .onboarding-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.45);
+    }
+
+    .onboarding-card {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 400px;
+      max-height: min(80vh, 520px);
+      display: flex;
+      flex-direction: column;
+      padding: 18px 16px 16px;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 20px 50px rgba(15, 23, 42, 0.2);
+      border: 1px solid #e2e8f0;
+    }
+
+    .onboarding-title {
+      margin: 0 0 10px 0;
+      font-size: 1.2rem;
+      color: #0f172a;
+    }
+
+    .onboarding-body {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .onboarding-para {
+      margin: 0 0 10px 0;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      color: #334155;
+    }
+
+    .onboarding-dont {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.88rem;
+      color: #64748b;
+      margin: 6px 0 12px 0;
+      cursor: pointer;
+    }
+
+    .onboarding-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px 10px;
+    }
+
+    .onboarding-skip {
+      padding: 9px 14px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      background: #fff;
+      color: #64748b;
+      cursor: pointer;
+    }
+
+    .onboarding-next {
+      padding: 9px 16px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 10px;
+      background: #059669;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    .jobs-settings-autobackup {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 4px;
+      padding-top: 10px;
+      border-top: 1px solid #e2e8f0;
+    }
+
+    .jobs-settings-autobackup-row {
+      display: flex;
+      flex-direction: row;
+      align-items: flex-start;
+      gap: 10px;
+      cursor: pointer;
+      text-align: left;
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+
+    .jobs-settings-autobackup-row input {
+      margin-top: 3px;
+      flex: 0 0 auto;
+    }
+
+    .jobs-settings-autobackup-text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .autobackup-line {
+      font-weight: 600;
+      color: #0f172a;
+    }
+
+    .autobackup-hint {
+      font-size: 0.78rem;
+      color: #64748b;
+    }
+
+    .autobackup-meta {
+      font-size: 0.8rem;
+      color: #64748b;
+      margin: 0;
+      padding: 0 0 0 30px;
+    }
+
     .app-wrap {
       --mp-pad-h: 16px;
       max-width: 560px;
@@ -721,6 +923,31 @@
       gap: 12px;
       min-width: 0;
       max-width: 100%;
+    }
+
+    .empty-hint-bullets {
+      list-style: none;
+      margin: 10px 0 12px 0;
+      padding: 0;
+      text-align: left;
+      max-width: 420px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .empty-hint-li {
+      position: relative;
+      padding: 4px 0 4px 1.1em;
+      font-size: 0.9rem;
+      line-height: 1.4;
+      color: #64748b;
+    }
+
+    .empty-hint-li::before {
+      content: "•";
+      position: absolute;
+      left: 0;
+      color: #94a3b8;
     }
 
     .empty-hint {
@@ -1827,6 +2054,26 @@
       border-color: #059669;
       color: #047857;
       background: #ecfdf5;
+    }
+
+    .job-list-result-count {
+      flex: 1 1 100%;
+      min-width: 0;
+      font-size: 12px;
+      font-weight: 600;
+      color: #64748b;
+      text-align: right;
+    }
+
+    .job-list-result-count:empty,
+    .job-list-result-count[hidden] {
+      display: none;
+    }
+
+    .jobs-sticky .job-list-result-count {
+      flex: 0 0 auto;
+      text-align: left;
+      width: 100%;
     }
 
     .job-search {
@@ -2942,6 +3189,34 @@
 <body>
 
   <div id="offlineBar" class="offline-bar" hidden role="status" aria-live="polite" aria-atomic="true"></div>
+  <div id="swUpdateBar" class="sw-update-bar" hidden role="region" aria-label="App update">
+    <span id="swUpdateLineText" class="sw-update-bar__text">A new version is ready</span>
+    <button type="button" class="sw-update-bar__btn" id="btnSwUpdateRefresh" onclick="location.reload()">Refresh</button>
+    <button type="button" class="sw-update-bar__dismiss" id="btnSwUpdateDismiss" onclick="dismissSwUpdateBar()" title="Dismiss" aria-label="Dismiss">×</button>
+  </div>
+
+  <div id="onboardingModal" class="onboarding-modal" hidden role="dialog" aria-modal="true" aria-labelledby="onboardingTitle" aria-describedby="onboardingBodyBlock" data-onboarding-step="0">
+    <div class="onboarding-backdrop" onclick="onboardingSkip()"></div>
+    <div class="onboarding-card">
+      <h2 id="onboardingTitle" class="onboarding-title">Welcome</h2>
+      <div id="onboardingBodyBlock" class="onboarding-body">
+        <div class="onboarding-step" data-step="0">
+          <p class="onboarding-para" id="onboardingStep1"></p>
+        </div>
+        <div class="onboarding-step" data-step="1" hidden>
+          <p class="onboarding-para" id="onboardingStep2"></p>
+        </div>
+        <div class="onboarding-step" data-step="2" hidden>
+          <p class="onboarding-para" id="onboardingStep3"></p>
+        </div>
+      </div>
+      <label class="onboarding-dont"><input type="checkbox" id="onboardingDontShow" /> <span id="onboardingDontShowLabel">Don’t show again</span></label>
+      <div class="onboarding-actions">
+        <button type="button" class="onboarding-skip" id="onboardingSkipBtn" onclick="onboardingSkip()">Skip</button>
+        <button type="button" class="onboarding-next" onclick="onboardingNext()">Next</button>
+      </div>
+    </div>
+  </div>
 
   <div id="loginScreen" class="login-screen" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
     <div class="login-card">
@@ -2993,8 +3268,10 @@
       <p id="jobsTipsDesc" class="jobs-tips-lede">From the main list, when the focus is not in a text field:</p>
       <ul class="jobs-tips-list">
         <li><kbd class="job-search-kbd">/</kbd> — focus job search (same as the <kbd class="job-search-kbd">/</kbd> chip in the field)</li>
+        <li><kbd class="job-search-kbd">[</kbd> / <kbd class="job-search-kbd">]</kbd> — switch <strong>Active</strong> / <strong>History</strong> (when not typing in a field)</li>
+        <li><strong>Clear filters</strong> in the list header — reset search, engineer, “My jobs”, and KPI/History filters in one go</li>
         <li><kbd class="job-search-kbd">?</kbd> or <strong>Settings → Help</strong> — open this panel</li>
-        <li><kbd class="job-search-kbd">Esc</kbd> — close full job, Park dialog, or photo; in search, clear text or close the keyboard if empty</li>
+        <li><kbd class="job-search-kbd">Esc</kbd> — close onboarding, full job, Park dialog, or photo; in search, clear text or close the keyboard if empty</li>
         <li><kbd class="job-search-kbd">Ctrl</kbd> + <kbd class="job-search-kbd">S</kbd> or <kbd class="job-search-kbd">⌘</kbd> + <kbd class="job-search-kbd">S</kbd> — save an engineer note (with the note field focused)</li>
         <li class="jobs-tips-gesture">Narrow screen: pull down at the very top to refresh the list</li>
         <li class="jobs-tips-gesture">Install the app (browser menu → “Install” or “Add to Home Screen”) to open it like an app. After the first full load, core files are cached for offline use (HTTPS or localhost only).</li>
@@ -3021,6 +3298,17 @@
         <div class="jobs-settings-lang" role="group" aria-label="UI language">
           <span class="jobs-settings-lang-label" id="settingsLangLabel">Language</span>
           <button type="button" class="jobs-settings-btn jobs-settings-btn--lang" id="btnUiLang" onclick="toggleUiLang()" title="Switch language" aria-label="Language">EN</button>
+        </div>
+        <div class="jobs-settings-autobackup">
+          <label class="jobs-settings-autobackup-row" for="cbAutobackup">
+            <input type="checkbox" id="cbAutobackup" onchange="onAutobackupToggle()" />
+            <span class="jobs-settings-autobackup-text">
+              <span class="autobackup-line" id="autobackupLabel">Browser backup</span>
+              <span class="autobackup-hint" id="autobackupHint">Keeps a copy in this device.</span>
+            </span>
+          </label>
+          <p class="autobackup-meta" id="autobackupMeta"></p>
+          <button type="button" class="jobs-settings-btn" id="btnRestoreBrowserBackup" disabled onclick="restoreFromBrowserBackup()">Restore from browser backup</button>
         </div>
       </div>
     </div>
@@ -3052,6 +3340,7 @@
           <span class="job-search-shortcut" aria-hidden="true" title="Shortcut: / to focus search"><kbd class="job-search-kbd">/</kbd></span>
         </div>
         <button type="button" class="btn-clear-filters" id="btnClearListFilters" onclick="resetFiltersAndSearch()" hidden title="Reset filters and search">Clear filters</button>
+        <span class="job-list-result-count" id="jobListResultCount" hidden aria-live="polite"></span>
       </div>
       <div class="job-dashboard dashboard-grid" id="jobDashboard" role="group" aria-label="Job counts — tap to filter" aria-live="polite">
         <button type="button" class="job-dashboard-card job-dashboard-card--all job-dashboard-card--click" data-dash="all" title="All active jobs" onclick="onDashboardFilter('all')">
@@ -3178,12 +3467,12 @@
               var w = reg.installing;
               if (!w) return;
               w.addEventListener("statechange", function () {
-                if (
-                  w.state === "installed" &&
-                  navigator.serviceWorker.controller &&
-                  typeof window.showJobsToast === "function"
-                ) {
-                  window.showJobsToast("Update available — refresh to use the latest version");
+                if (w.state === "installed" && navigator.serviceWorker.controller) {
+                  if (typeof window.showSwUpdateBar === "function") {
+                    window.showSwUpdateBar();
+                  } else if (typeof window.showJobsToast === "function") {
+                    window.showJobsToast("Update available — refresh to use the latest version");
+                  }
                 }
               });
             });

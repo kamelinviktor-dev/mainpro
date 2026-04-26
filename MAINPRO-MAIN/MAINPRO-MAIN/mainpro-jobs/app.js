@@ -48,8 +48,14 @@ const MOBILE_FAB_SCROLL_DELTA = 10;
 const JOB_SEARCH_DEBOUNCE_MS = 280;
 let _jobSearchDebounceTimer = null;
 /** Bump with meaningful app changes; included in JSON export. */
-const MAINPRO_JOBS_APP_VERSION = "1.2.0";
+const MAINPRO_JOBS_APP_VERSION = "1.3.0";
+/** Jobs payload version (export, browser backup). Increment when job shape changes. */
+const MAINPRO_JOBS_DATA_SCHEMA = 1;
 const MAINPRO_UI_LANG_KEY = "mainpro_ui_lang";
+const MAINPRO_BROWSER_BACKUP_KEY = "mainpro_jobs_browser_snapshot";
+const MAINPRO_AUTOBACKUP_ENABLED_KEY = "mainpro_jobs_autobackup_enabled";
+const MAINPRO_ONBOARDING_KEY = "mainpro_jobs_onboarding_ok";
+const AUTO_BACKUP_INTERVAL_MS = 4 * 60 * 60 * 1000;
 
 const MAINPRO_I18N = {
   en: {
@@ -87,6 +93,35 @@ const MAINPRO_I18N = {
       "No jobs completed on this day at the current filters. Try &quot;All&quot; history or clear search.",
     resetFilters: "Reset filters &amp; search",
     clearFiltersShort: "Clear filters",
+    listResultLine: "{n} in this list",
+    emptyHintFilterSearch: "Search is active",
+    emptyHintFilterMyJobs: "“My jobs” is on",
+    emptyHintFilterEngineer: "Engineer filter: {name}",
+    emptyHintFilterStatus: "Status filter: {status}",
+    emptyHintFilterDeleted: "Viewing deleted jobs only",
+    emptyHintFilterHistoryToday: "“Done today” in History is on",
+    autobackupLabel: "Browser backup (every ~4h + on user change)",
+    autobackupHint: "Keeps a second copy in this browser’s storage. Not a replacement for Export JSON.",
+    restoreBrowserBackup: "Restore from browser backup",
+    lastBrowserBackup: "Last backup: {t}",
+    noBrowserBackup: "No browser backup yet",
+    importSchemaNewer:
+      "This file needs a newer app version. Update MainPro Jobs, then import again.",
+    onboardingTitle: "Welcome",
+    onboardingStep1:
+      "Use <strong>Active jobs</strong> and <strong>History</strong> to switch lists.",
+    onboardingStep2:
+      "The tiles show counts — tap one to filter, or <strong>All</strong> to see everything open.",
+    onboardingStep3:
+      "Filter by <strong>Engineer</strong> or <strong>My jobs</strong> to focus your work. Clear filters any time.",
+    onboardingNext: "Next",
+    onboardingSkip: "Skip",
+    onboardingDone: "Got it",
+    onboardingDontShow: "Don’t show again",
+    swUpdateLine: "A new version is ready",
+    swUpdateRefresh: "Refresh",
+    swUpdateDismiss: "Dismiss",
+    backupRestored: "Browser backup applied",
   },
   ru: {
     appTitle: "MainPro — заявки",
@@ -123,6 +158,36 @@ const MAINPRO_I18N = {
     emptyHistoryToday: "Сегодня нет по текущим фильтрам. Попробуйте весь период или сбросьте поиск.",
     resetFilters: "Сбросить фильтры и поиск",
     clearFiltersShort: "Сбросить фильтры",
+    listResultLine: "{n} в списке",
+    emptyHintFilterSearch: "Активен поиск",
+    emptyHintFilterMyJobs: "Включён фильтр «Мои»",
+    emptyHintFilterEngineer: "Инженер: {name}",
+    emptyHintFilterStatus: "Статус: {status}",
+    emptyHintFilterDeleted: "Показаны только удалённые",
+    emptyHintFilterHistoryToday: "В истории выбрано «Сегодня»",
+    autobackupLabel: "Копия в браузере (~каждые 4 ч + при смене пользователя)",
+    autobackupHint:
+      "Вторая копия в памяти браузера. Не заменяет ручной экспорт JSON.",
+    restoreBrowserBackup: "Восстановить из копии в браузере",
+    lastBrowserBackup: "Копия: {t}",
+    noBrowserBackup: "Копии в браузере ещё нет",
+    importSchemaNewer:
+      "Файл требует более новой версии приложения. Обновите MainPro Jobs и импортируйте снова.",
+    onboardingTitle: "Добро пожаловать",
+    onboardingStep1:
+      "Переключайте <strong>Активные</strong> и <strong>Историю</strong> вверху.",
+    onboardingStep2:
+      "Плитки — счётчики. Нажмите на статус для фильтра или <strong>Все</strong> для полного списка.",
+    onboardingStep3:
+      "Ряд <strong>Инженер</strong> и <strong>Мои заявки</strong> сужают выдачу. «Сбросить фильтры» вернёт всё.",
+    onboardingNext: "Далее",
+    onboardingSkip: "Пропустить",
+    onboardingDone: "Понятно",
+    onboardingDontShow: "Больше не показывать",
+    swUpdateLine: "Доступна новая версия",
+    swUpdateRefresh: "Обновить",
+    swUpdateDismiss: "Скрыть",
+    backupRestored: "Копия из браузера применена",
   },
 };
 
@@ -212,7 +277,60 @@ function applyMainproI18n() {
     bClear.setAttribute("title", t("resetFilters").replace(/<[^>]+>/g, ""));
   }
   updateClearFiltersButton();
+  el("onboardingStep1", t("onboardingStep1"));
+  el("onboardingStep2", t("onboardingStep2"));
+  el("onboardingStep3", t("onboardingStep3"));
+  tx("onboardingTitle", t("onboardingTitle"));
+  tx("onboardingSkipBtn", t("onboardingSkip"));
+  const odl = document.getElementById("onboardingDontShowLabel");
+  if (odl) odl.textContent = t("onboardingDontShow");
+  const swL = document.getElementById("swUpdateLineText");
+  if (swL) swL.textContent = t("swUpdateLine");
+  const bSwR = document.getElementById("btnSwUpdateRefresh");
+  if (bSwR) bSwR.textContent = t("swUpdateRefresh");
+  const bSwD = document.getElementById("btnSwUpdateDismiss");
+  if (bSwD) bSwD.setAttribute("aria-label", t("swUpdateDismiss"));
+  const abL = document.getElementById("autobackupLabel");
+  if (abL) {
+    abL.textContent = t("autobackupLabel");
+  }
+  const abH = document.getElementById("autobackupHint");
+  if (abH) abH.textContent = t("autobackupHint");
+  const bRB = document.getElementById("btnRestoreBrowserBackup");
+  if (bRB) bRB.textContent = t("restoreBrowserBackup");
+  updateOnboardingFooterButton();
+  updateSettingsBackupInfo();
+  if (hasMainproLogin()) {
+    const c = computeFilteredListCounts();
+    updateListResultCount(c.nActive, c.nHistory);
+  }
 }
+
+function showSwUpdateBar() {
+  const b = document.getElementById("swUpdateBar");
+  if (b) b.hidden = false;
+}
+function dismissSwUpdateBar() {
+  const elbar = document.getElementById("swUpdateBar");
+  if (elbar) elbar.hidden = true;
+}
+window.showSwUpdateBar = showSwUpdateBar;
+window.dismissSwUpdateBar = dismissSwUpdateBar;
+
+function onAutobackupToggle() {
+  const cb = document.getElementById("cbAutobackup");
+  if (!cb) return;
+  setAutobackupEnabled(cb.checked);
+  if (cb.checked) {
+    writeBrowserAutobackupNow();
+  }
+  updateSettingsBackupInfo();
+}
+window.onAutobackupToggle = onAutobackupToggle;
+window.restoreFromBrowserBackup = restoreFromBrowserBackup;
+window.onboardingNext = onboardingNext;
+window.onboardingDone = onboardingDone;
+window.onboardingSkip = onboardingSkip;
 
 function toggleUiLang() {
   try {
@@ -405,6 +523,9 @@ function applyAuthUi() {
     setTimeout(function () {
       tryOpenJobFromUrl();
     }, 0);
+    setTimeout(function () {
+      tryShowOnboarding();
+    }, 600);
     if (isNarrowLayout()) {
       requestAnimationFrame(function () {
         onMobileFabScroll();
@@ -424,6 +545,7 @@ function selectUserRole(role) {
 }
 
 function showChangeUser() {
+  writeBrowserAutobackupNow();
   try {
     localStorage.removeItem(MAINPRO_USER_KEY);
   } catch (e) {
@@ -616,6 +738,7 @@ function save() {
     return o;
   });
   localStorage.setItem("jobs", JSON.stringify(out));
+  maybeWriteBrowserAutobackup();
 }
 
 function escapeHtml(s) {
@@ -629,6 +752,8 @@ function escapeHtml(s) {
 
 /** Set in render() to match job search; used by hl() in card HTML. */
 let _renderSearchQ = "";
+/** Stash list focus so re-render() can try to return keyboard focus to a job card. */
+let _listFocus = null;
 
 function highlightSearchMatchHtml(raw, q) {
   if (q == null || String(q).trim() === "") {
@@ -890,10 +1015,16 @@ function getPendingTimerUntilLine(j) {
 }
 
 function renderJobMetaRow(j) {
-  const reporter = escapeHtml(j.reportedBy || "—");
-  const assignee = escapeHtml(normalizeAssignedTo(j));
+  const repRaw = (j.reportedBy && String(j.reportedBy).trim()
+    ? j.reportedBy
+    : "—");
+  const assignRaw = normalizeAssignedTo(j);
   const when = escapeHtml(formatDateClean(j.createdAt) || "—");
-  return `<div class="job-meta-row"><span class="job-meta-chunk">👤 ${reporter}</span><span class="job-meta-sep" aria-hidden="true">·</span><span class="job-meta-chunk">👷 ${assignee}</span><span class="job-meta-sep" aria-hidden="true">·</span><span class="job-meta-chunk">🕘 ${when}</span></div>`;
+  return `<div class="job-meta-row"><span class="job-meta-chunk">👤 ${hl(
+    repRaw
+  )}</span><span class="job-meta-sep" aria-hidden="true">·</span><span class="job-meta-chunk">👷 ${hl(
+    assignRaw
+  )}</span><span class="job-meta-sep" aria-hidden="true">·</span><span class="job-meta-chunk">🕘 ${when}</span></div>`;
 }
 
 function matchesMyJobsFilter(j) {
@@ -1311,7 +1442,493 @@ function updateClearFiltersButton() {
   if (btn) btn.hidden = !hasListFiltersActive();
 }
 
+function getActiveEmptyFilterHintLines(searchDisplay) {
+  const out = [];
+  if (getSearchQuery()) {
+    out.push(
+      t("emptyHintFilterSearch") +
+        " — «" +
+        escapeHtml(String(searchDisplay == null ? "" : searchDisplay)) +
+        "»"
+    );
+  }
+  if (myJobsFilterActive) {
+    out.push(t("emptyHintFilterMyJobs"));
+  }
+  if (engineerFilter && engineerFilter !== "All") {
+    out.push(
+      t("emptyHintFilterEngineer").replace(
+        "{name}",
+        escapeHtml(engineerFilter)
+      )
+    );
+  }
+  if (statusFilter === "Deleted") {
+    out.push(t("emptyHintFilterDeleted"));
+  } else if (statusFilter && statusFilter !== "All" && statusFilter !== "Done") {
+    out.push(
+      t("emptyHintFilterStatus").replace(
+        "{status}",
+        escapeHtml(statusFilter)
+      )
+    );
+  }
+  return out;
+}
+
+function getHistoryEmptyFilterHintLines(searchDisplay) {
+  const out = [];
+  if (getSearchQuery()) {
+    out.push(
+      t("emptyHintFilterSearch") +
+        " — «" +
+        escapeHtml(String(searchDisplay == null ? "" : searchDisplay)) +
+        "»"
+    );
+  }
+  if (myJobsFilterActive) {
+    out.push(t("emptyHintFilterMyJobs"));
+  }
+  if (engineerFilter && engineerFilter !== "All") {
+    out.push(
+      t("emptyHintFilterEngineer").replace(
+        "{name}",
+        escapeHtml(engineerFilter)
+      )
+    );
+  }
+  if (historyViewFilter === "completedToday") {
+    out.push(t("emptyHintFilterHistoryToday"));
+  }
+  return out;
+}
+
+function emptyFilterHintsHtml(lines) {
+  if (!lines || !lines.length) return "";
+  return (
+    '<ul class="empty-hint-bullets">' +
+    lines
+      .map(function (x) {
+        return '<li class="empty-hint-li">' + x + "</li>";
+      })
+      .join("") +
+    "</ul>"
+  );
+}
+
+function captureListFocusState() {
+  _listFocus = null;
+  const ae = document.activeElement;
+  if (!ae || !ae.closest) return;
+  const inList = ae.closest("#jobs-active .job, #jobs-history .job");
+  if (!inList) return;
+  const job = ae.closest(".job");
+  if (!job) return;
+  const rawId = job.getAttribute("data-job-id");
+  const id = jobIdFromDomAttr(rawId);
+  if (id == null) return;
+  const panel = job.closest("#jobs-history") ? "history" : "active";
+  let kind = "other";
+  if (ae.classList && ae.classList.contains("job-card-tap")) {
+    kind = "tap";
+  } else if (
+    ae.classList &&
+    ae.classList.contains("comment-new") &&
+    ae.tagName &&
+    String(ae.tagName).toLowerCase() === "textarea"
+  ) {
+    kind = "comment";
+  } else if (ae.tagName && String(ae.tagName).toLowerCase() === "button") {
+    kind = "button";
+  }
+  _listFocus = { id: String(id), panel: panel, kind: kind };
+}
+
+function restoreListFocusState() {
+  if (!_listFocus) return;
+  const { id, panel, kind } = _listFocus;
+  _listFocus = null;
+  const contId = panel === "history" ? "jobs-history" : "jobs-active";
+  const cont = document.getElementById(contId);
+  if (!cont) return;
+  let job = null;
+  cont.querySelectorAll(".job[data-job-id]").forEach(function (el) {
+    if (job) return;
+    if (String(jobIdFromDomAttr(el.getAttribute("data-job-id"))) === id) {
+      job = el;
+    }
+  });
+  if (!job) return;
+  let el = null;
+  if (kind === "tap") {
+    el = job.querySelector(".job-card-tap");
+  } else if (kind === "comment") {
+    el = job.querySelector("textarea.comment-new");
+  } else if (kind === "button") {
+    el = job.querySelector("button");
+  } else {
+    el =
+      job.querySelector(".job-card-tap") || job.querySelector("button");
+  }
+  if (!el) return;
+  try {
+    el.focus();
+  } catch (e) {
+    /* ignore */
+  }
+}
+
+function updateListResultCount(nActive, nHistory) {
+  const el = document.getElementById("jobListResultCount");
+  if (!el) return;
+  if (!hasMainproLogin()) {
+    el.textContent = "";
+    el.setAttribute("hidden", "hidden");
+    return;
+  }
+  el.removeAttribute("hidden");
+  const n =
+    getCurrentPanelKind() === "active" ? nActive : nHistory;
+  el.textContent = t("listResultLine").replace(
+    "{n}",
+    String(n)
+  );
+}
+
+function getAutobackupEnabled() {
+  try {
+    return localStorage.getItem(MAINPRO_AUTOBACKUP_ENABLED_KEY) === "1";
+  } catch (e) {
+    return false;
+  }
+}
+
+function setAutobackupEnabled(on) {
+  try {
+    if (on) {
+      localStorage.setItem(MAINPRO_AUTOBACKUP_ENABLED_KEY, "1");
+    } else {
+      localStorage.removeItem(MAINPRO_AUTOBACKUP_ENABLED_KEY);
+    }
+  } catch (e) {
+    /* ignore */
+  }
+}
+
+function buildBrowserSnapshotPayload() {
+  const out = jobs.map((j) => {
+    const o = { ...j };
+    delete o.isOverdue;
+    delete o.engineerComment;
+    delete o.notes;
+    if (!Array.isArray(o.comments)) o.comments = [];
+    return o;
+  });
+  return {
+    savedAt: new Date().toISOString(),
+    schemaVersion: MAINPRO_JOBS_DATA_SCHEMA,
+    appVersion: MAINPRO_JOBS_APP_VERSION,
+    app: "MainPro Jobs",
+    jobs: out,
+  };
+}
+
+function writeBrowserAutobackupNow() {
+  if (!getAutobackupEnabled() || !hasMainproLogin()) return;
+  try {
+    const payload = buildBrowserSnapshotPayload();
+    localStorage.setItem(
+      MAINPRO_BROWSER_BACKUP_KEY,
+      JSON.stringify(payload)
+    );
+  } catch (e) {
+    console.warn("Browser backup failed", e);
+  }
+}
+
+function maybeWriteBrowserAutobackup() {
+  if (!getAutobackupEnabled() || !hasMainproLogin()) return;
+  let last = 0;
+  try {
+    const raw = localStorage.getItem(MAINPRO_BROWSER_BACKUP_KEY);
+    if (raw) {
+      const o = JSON.parse(raw);
+      if (o && o.savedAt) {
+        const t0 = new Date(String(o.savedAt)).getTime();
+        if (!isNaN(t0)) last = t0;
+      }
+    }
+  } catch (e) {
+    /* ignore */
+  }
+  if (Date.now() - last < AUTO_BACKUP_INTERVAL_MS) return;
+  writeBrowserAutobackupNow();
+}
+
+function getBrowserBackupSavedAt() {
+  try {
+    const raw = localStorage.getItem(MAINPRO_BROWSER_BACKUP_KEY);
+    if (!raw) return "";
+    const o = JSON.parse(raw);
+    return (o && o.savedAt) || "";
+  } catch (e) {
+    return "";
+  }
+}
+
+function updateSettingsBackupInfo() {
+  const meta = document.getElementById("autobackupMeta");
+  if (meta) {
+    const s = getBrowserBackupSavedAt();
+    if (s) {
+      let label = s;
+      try {
+        const d = new Date(s);
+        if (!isNaN(d.getTime())) {
+          label = d.toLocaleString();
+        }
+      } catch (e) {
+        /* keep raw */
+      }
+      meta.textContent = t("lastBrowserBackup").replace("{t}", label);
+    } else {
+      meta.textContent = t("noBrowserBackup");
+    }
+  }
+  const cb = document.getElementById("cbAutobackup");
+  if (cb) cb.checked = getAutobackupEnabled();
+  const btnR = document.getElementById("btnRestoreBrowserBackup");
+  if (btnR) {
+    btnR.disabled = !getBrowserBackupSavedAt();
+  }
+}
+
+function restoreFromBrowserBackup() {
+  if (!hasMainproLogin()) return;
+  const raw = (function () {
+    try {
+      return localStorage.getItem(MAINPRO_BROWSER_BACKUP_KEY);
+    } catch (e) {
+      return null;
+    }
+  })();
+  if (!raw) {
+    showJobsToast(t("noBrowserBackup"));
+    return;
+  }
+  let o;
+  try {
+    o = JSON.parse(raw);
+  } catch (e) {
+    showJobsToast("Invalid backup");
+    return;
+  }
+  if (!o || !Array.isArray(o.jobs)) {
+    showJobsToast("Invalid backup");
+    return;
+  }
+  if (
+    typeof o.schemaVersion === "number" &&
+    o.schemaVersion > MAINPRO_JOBS_DATA_SCHEMA
+  ) {
+    showJobsToast(t("importSchemaNewer"));
+    return;
+  }
+  return importJobsFromArrayAfterConfirm(
+    o.jobs,
+    "browser backup",
+    t("backupRestored")
+  );
+}
+
+function importJobsFromArrayAfterConfirm(arr, sourceLabel, toastMsg) {
+  const n = arr.length;
+  if (
+    !confirm(
+      n === 0
+        ? (sourceLabel
+            ? "Replace all jobs with an empty list from " + sourceLabel + "?"
+            : "Import an empty list? All current jobs on this device will be removed. Continue?")
+        : "Replace all " +
+            jobs.length +
+            " current job(s) with " +
+            n +
+            " from " +
+            (sourceLabel || "the file") +
+            "? This cannot be undone."
+    )
+  ) {
+    return false;
+  }
+  try {
+    localStorage.setItem("jobs", JSON.stringify(arr));
+  } catch (e) {
+    showJobsToast("Storage full or blocked");
+    return false;
+  }
+  jobs = loadJobs();
+  if (mobileJobDetailId) {
+    const still = jobs.some((x) => String(x.id) === String(mobileJobDetailId));
+    if (!still) {
+      mobileJobDetailId = null;
+      const m = document.getElementById("jobDetailModal");
+      if (m) m.hidden = true;
+      syncAppBodyScrollLock();
+    }
+  }
+  statusFilter = "All";
+  myJobsFilterActive = false;
+  engineerFilter = "All";
+  historyViewFilter = "all";
+  const s = document.getElementById("jobSearch");
+  if (s) s.value = "";
+  if (_jobSearchDebounceTimer) {
+    clearTimeout(_jobSearchDebounceTimer);
+    _jobSearchDebounceTimer = null;
+  }
+  setTab("active");
+  Object.keys(jobLogExpanded).forEach(function (k) {
+    delete jobLogExpanded[k];
+  });
+  render();
+  hapticNarrow();
+  showJobsToast(toastMsg || "Import complete");
+  const s2 = document.getElementById("jobSearch");
+  if (s2) {
+    try {
+      s2.focus();
+    } catch (e) {
+      /* ignore */
+    }
+  }
+  return true;
+}
+
+function isOnboardingDone() {
+  try {
+    return localStorage.getItem(MAINPRO_ONBOARDING_KEY) === "1";
+  } catch (e) {
+    return false;
+  }
+}
+
+function setOnboardingDone() {
+  try {
+    localStorage.setItem(MAINPRO_ONBOARDING_KEY, "1");
+  } catch (e) {
+    /* ignore */
+  }
+}
+
+function updateOnboardingFooterButton() {
+  const m = document.getElementById("onboardingModal");
+  if (!m) return;
+  const cur = parseInt(m.getAttribute("data-onboarding-step") || "0", 10) || 0;
+  const step = m.querySelectorAll(".onboarding-step");
+  const btn = m.querySelector(".onboarding-next");
+  if (!btn) return;
+  if (cur >= step.length - 1) {
+    btn.textContent = t("onboardingDone");
+  } else {
+    btn.textContent = t("onboardingNext");
+  }
+}
+
+function showOnboardingModal() {
+  const m = document.getElementById("onboardingModal");
+  if (!m) return;
+  m.hidden = false;
+  const step = m.querySelectorAll(".onboarding-step");
+  for (let i = 0; i < step.length; i++) {
+    step[i].hidden = i !== 0;
+  }
+  m.setAttribute("data-onboarding-step", "0");
+  updateOnboardingFooterButton();
+  syncAppBodyScrollLock();
+  const ob = m.querySelector(".onboarding-body");
+  if (ob) ob.scrollTop = 0;
+  updateMobileFormFab();
+  updateMobileScrollTopBtn();
+  try {
+    m.querySelector(".onboarding-next").focus();
+  } catch (e) {
+    /* ignore */
+  }
+}
+
+function closeOnboardingModal() {
+  const m = document.getElementById("onboardingModal");
+  if (m) m.hidden = true;
+  syncAppBodyScrollLock();
+  updateMobileFormFab();
+  updateMobileScrollTopBtn();
+}
+
+function onboardingNext() {
+  const m = document.getElementById("onboardingModal");
+  if (!m) return;
+  const cur = parseInt(m.getAttribute("data-onboarding-step") || "0", 10) || 0;
+  const step = m.querySelectorAll(".onboarding-step");
+  if (cur >= step.length - 1) {
+    onboardingDone();
+    return;
+  }
+  const next = cur + 1;
+  for (let i = 0; i < step.length; i++) {
+    step[i].hidden = i !== next;
+  }
+  m.setAttribute("data-onboarding-step", String(next));
+  const ob = m.querySelector(".onboarding-body");
+  if (ob) ob.scrollTop = 0;
+  updateOnboardingFooterButton();
+}
+
+function onboardingDone() {
+  const box = document.getElementById("onboardingDontShow");
+  if (box && box.checked) {
+    setOnboardingDone();
+  }
+  closeOnboardingModal();
+}
+
+function onboardingSkip() {
+  closeOnboardingModal();
+}
+
+function tryShowOnboarding() {
+  if (!hasMainproLogin() || isOnboardingDone()) return;
+  if (mobileJobDetailId || _urlJobIdToOpen) return;
+  if (getSearchQuery() && getSearchQuery().length > 0) return;
+  const m = document.getElementById("onboardingModal");
+  if (m && !m.hidden) return;
+  showOnboardingModal();
+}
+
+/** Same filter pipeline as in render() — for live counts without a full re-render. */
+function computeFilteredListCounts() {
+  const q = getSearchQuery();
+  let actives;
+  if (statusFilter === "Deleted") {
+    actives = jobs.filter((j) => j.deleted === true);
+  } else {
+    actives = jobs.filter((j) => isActiveStatus(j.status) && !j.deleted);
+    actives = actives.filter((j) => matchesStatusFilterForActive(j));
+  }
+  actives = actives.filter((j) => matchesJobSearch(j, q));
+  actives = actives.filter((j) => matchesEngineerFilter(j));
+  let doneList = jobs
+    .filter((j) => j.status === "Done" && !j.deleted)
+    .slice();
+  if (historyViewFilter === "completedToday") {
+    doneList = doneList.filter((j) => isCompletedAtToday(j.completedAt));
+  }
+  doneList = doneList.filter((j) => matchesJobSearch(j, q));
+  doneList = doneList.filter((j) => matchesEngineerFilter(j));
+  return { nActive: actives.length, nHistory: doneList.length };
+}
+
 function render() {
+  captureListFocusState();
   syncOverdueFlags();
   appendOverdueAuditIfNeeded();
   appendSlaBecameOverdueAuditIfNeeded();
@@ -1323,6 +1940,10 @@ function render() {
 
   const q = getSearchQuery();
   _renderSearchQ = q;
+  const jobSearchDisplay = (function () {
+    const s = document.getElementById("jobSearch");
+    return s ? String(s.value || "").trim() : "";
+  })();
 
   let actives;
   if (statusFilter === "Deleted") {
@@ -1364,10 +1985,13 @@ function render() {
         t("resetFilters") +
         "</button></p>"
       : "";
+    const filterHints = emptyFilterHintsHtml(
+      getActiveEmptyFilterHintLines(jobSearchDisplay)
+    );
     const emptyMsg =
       statusFilter === "Deleted"
-        ? "<p class=\"empty-hint\">" + t("emptyDeleted") + "</p>" + resetBlock
-        : "<p class=\"empty-hint\">" + t("emptyActive") + "</p>" + resetBlock;
+        ? "<p class=\"empty-hint\">" + t("emptyDeleted") + "</p>" + filterHints + resetBlock
+        : "<p class=\"empty-hint\">" + t("emptyActive") + "</p>" + filterHints + resetBlock;
     activeEl.innerHTML = emptyMsg;
   } else {
     actives.forEach((j) => {
@@ -1384,11 +2008,14 @@ function render() {
         t("resetFilters") +
         "</button></p>"
       : "";
+    const hHints = emptyFilterHintsHtml(
+      getHistoryEmptyFilterHintLines(jobSearchDisplay)
+    );
     const baseH =
       historyViewFilter === "completedToday"
         ? "<p class=\"empty-hint\">" + t("emptyHistoryToday") + "</p>"
         : "<p class=\"empty-hint\">" + t("emptyHistory") + "</p>";
-    historyEl.innerHTML = baseH + hReset;
+    historyEl.innerHTML = baseH + hHints + hReset;
   } else {
     doneList.forEach((j) => {
       historyEl.innerHTML += renderHistoryCard(j);
@@ -1400,6 +2027,10 @@ function render() {
   updateMobileFormFab();
   updateMobileScrollTopBtn();
   updateClearFiltersButton();
+  updateListResultCount(actives.length, doneList.length);
+  requestAnimationFrame(function () {
+    restoreListFocusState();
+  });
 }
 
 function idAttr(id) {
@@ -2176,12 +2807,14 @@ function getJobsOpenLayers() {
   const photoLightbox = document.getElementById("photoLightbox");
   const jobsTipsModal = document.getElementById("jobsTipsModal");
   const jobsSettingsModal = document.getElementById("jobsSettingsModal");
+  const onboardingModal = document.getElementById("onboardingModal");
   return {
     jobDetail: !!(jobDetailModal && !jobDetailModal.hidden),
     park: !!(parkModal && !parkModal.hidden),
     photo: !!(photoLightbox && !photoLightbox.hidden),
     tips: !!(jobsTipsModal && !jobsTipsModal.hidden),
     settings: !!(jobsSettingsModal && !jobsSettingsModal.hidden),
+    onboarding: !!(onboardingModal && !onboardingModal.hidden),
   };
 }
 
@@ -2196,6 +2829,10 @@ function syncAppBodyScrollLock() {
     return;
   }
   if (L.settings) {
+    document.body.style.overflow = "hidden";
+    return;
+  }
+  if (L.onboarding) {
     document.body.style.overflow = "hidden";
     return;
   }
@@ -2216,7 +2853,12 @@ function updateMobileFormFab() {
   const L = getJobsOpenLayers();
   const formOpen = form && !form.classList.contains("report-job-form--collapsed");
   const hide =
-    formOpen || L.jobDetail || L.tips || L.settings || mobileFabHiddenByScroll;
+    formOpen ||
+    L.jobDetail ||
+    L.tips ||
+    L.settings ||
+    L.onboarding ||
+    mobileFabHiddenByScroll;
   if (hide) {
     fab.classList.add("fab-hidden");
     fab.setAttribute("aria-hidden", "true");
@@ -2244,7 +2886,7 @@ function updateMobileScrollTopBtn() {
     return;
   }
   const L = getJobsOpenLayers();
-  if (L.jobDetail || L.park || L.photo || L.tips || L.settings) {
+  if (L.jobDetail || L.park || L.photo || L.tips || L.settings || L.onboarding) {
     btn.classList.add("btn-scroll-top--hidden");
     btn.setAttribute("aria-hidden", "true");
     return;
@@ -2396,7 +3038,7 @@ function exportJobsBackup() {
   try {
     const payload = {
       exportedAt: new Date().toISOString(),
-      schemaVersion: 1,
+      schemaVersion: MAINPRO_JOBS_DATA_SCHEMA,
       appVersion: MAINPRO_JOBS_APP_VERSION,
       app: "MainPro Jobs",
       mainpro_user: getMainproUser(),
@@ -2536,6 +3178,15 @@ function importJobsFromJsonText(text) {
     showJobsToast("Invalid JSON file");
     return false;
   }
+  if (o && typeof o === "object" && !Array.isArray(o)) {
+    if (
+      typeof o.schemaVersion === "number" &&
+      o.schemaVersion > MAINPRO_JOBS_DATA_SCHEMA
+    ) {
+      showJobsToast(t("importSchemaNewer"));
+      return false;
+    }
+  }
   let arr;
   if (Array.isArray(o)) {
     arr = o;
@@ -2545,62 +3196,7 @@ function importJobsFromJsonText(text) {
     showJobsToast("File must contain a jobs array");
     return false;
   }
-  const n = arr.length;
-  if (
-    !confirm(
-      n === 0
-        ? "Import an empty list? All current jobs on this device will be removed. Continue?"
-        : "Replace all " +
-            jobs.length +
-            " current job(s) with " +
-            n +
-            " from the file? This cannot be undone."
-    )
-  ) {
-    return false;
-  }
-  try {
-    localStorage.setItem("jobs", JSON.stringify(arr));
-  } catch (e) {
-    showJobsToast("Storage full or blocked");
-    return false;
-  }
-  jobs = loadJobs();
-  if (mobileJobDetailId) {
-    const still = jobs.some((x) => String(x.id) === String(mobileJobDetailId));
-    if (!still) {
-      mobileJobDetailId = null;
-      const m = document.getElementById("jobDetailModal");
-      if (m) m.hidden = true;
-      syncAppBodyScrollLock();
-    }
-  }
-  statusFilter = "All";
-  myJobsFilterActive = false;
-  engineerFilter = "All";
-  historyViewFilter = "all";
-  const s = document.getElementById("jobSearch");
-  if (s) s.value = "";
-  if (_jobSearchDebounceTimer) {
-    clearTimeout(_jobSearchDebounceTimer);
-    _jobSearchDebounceTimer = null;
-  }
-  setTab("active");
-  Object.keys(jobLogExpanded).forEach(function (k) {
-    delete jobLogExpanded[k];
-  });
-  render();
-  hapticNarrow();
-  showJobsToast("Import complete");
-  const s2 = document.getElementById("jobSearch");
-  if (s2) {
-    try {
-      s2.focus();
-    } catch (e) {
-      /* ignore */
-    }
-  }
-  return true;
+  return importJobsFromArrayAfterConfirm(arr, "JSON file", "Import complete");
 }
 
 /**
@@ -2613,6 +3209,15 @@ function importJobsMergeFromJsonText(text) {
   } catch (e) {
     showJobsToast("Invalid JSON file");
     return false;
+  }
+  if (o && typeof o === "object" && !Array.isArray(o)) {
+    if (
+      typeof o.schemaVersion === "number" &&
+      o.schemaVersion > MAINPRO_JOBS_DATA_SCHEMA
+    ) {
+      showJobsToast(t("importSchemaNewer"));
+      return false;
+    }
   }
   let arr;
   if (Array.isArray(o)) {
@@ -2863,6 +3468,7 @@ function openJobsSettings() {
   const am = document.getElementById("appMain");
   if (!am || am.hidden || !hasMainproLogin()) return;
   m.hidden = false;
+  updateSettingsBackupInfo();
   syncAppBodyScrollLock();
   updateMobileFormFab();
   updateMobileScrollTopBtn();
@@ -3129,6 +3735,8 @@ function setTab(tab) {
   });
   updateDashboardCardHighlight();
   updateClearFiltersButton();
+  const _cc = computeFilteredListCounts();
+  updateListResultCount(_cc.nActive, _cc.nHistory);
 }
 
 function bindPhotoPreview() {
@@ -3304,6 +3912,38 @@ document.addEventListener("keydown", function (e) {
       }
     }
   }
+  if (e.key === "[" || e.key === "]") {
+    if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+      const te = e.target;
+      if (te) {
+        const tag = te.tagName && String(te.tagName).toLowerCase();
+        if (
+          tag === "input" ||
+          tag === "textarea" ||
+          tag === "select" ||
+          te.isContentEditable === true
+        ) {
+          return;
+        }
+      }
+      const am = document.getElementById("appMain");
+      if (am && !am.hidden && hasMainproLogin()) {
+        const L = getJobsOpenLayers();
+        if (L.onboarding) return;
+        if (L.jobDetail || L.tips || L.settings || L.park || L.photo) {
+          return;
+        }
+        e.preventDefault();
+        if (e.key === "[") {
+          setTab("active");
+        } else {
+          setTab("history");
+        }
+        const cc = computeFilteredListCounts();
+        updateListResultCount(cc.nActive, cc.nHistory);
+      }
+    }
+  }
   if (e.key === "s" || e.key === "S") {
     if ((e.ctrlKey || e.metaKey) && !e.altKey) {
       const te = e.target;
@@ -3333,6 +3973,12 @@ document.addEventListener("keydown", function (e) {
     }
   }
   if (e.key === "Escape" || e.key === "Esc") {
+    const ob = document.getElementById("onboardingModal");
+    if (ob && !ob.hidden) {
+      e.preventDefault();
+      onboardingSkip();
+      return;
+    }
     const settingsM = document.getElementById("jobsSettingsModal");
     if (settingsM && !settingsM.hidden) {
       closeJobsSettings();
@@ -3451,7 +4097,9 @@ window.addEventListener("resize", function () {
     if (!am || am.hidden) return true;
     if (!hasMainproLogin()) return true;
     const L = getJobsOpenLayers();
-    return L.jobDetail || L.park || L.photo || L.tips || L.settings;
+    return (
+      L.jobDetail || L.park || L.photo || L.tips || L.settings || L.onboarding
+    );
   }
   document.addEventListener(
     "touchstart",
