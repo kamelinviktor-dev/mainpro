@@ -653,6 +653,63 @@
       color: #b91c1c;
     }
 
+    .job-assign-block {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px 10px;
+      margin: 8px 0 6px;
+      padding: 0;
+      min-width: 0;
+    }
+
+    .job-assign-block--modal {
+      margin-top: 4px;
+      margin-bottom: 8px;
+    }
+
+    .job-assign-block--compact {
+      margin: 6px 0 4px;
+      padding: 0 0 0 0;
+    }
+
+    .job-card--list-compact .job-assign-block--compact {
+      margin-top: 4px;
+      margin-left: 0;
+      margin-right: 0;
+    }
+
+    .job-assign-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #374151;
+      flex: 0 0 auto;
+    }
+
+    .job-assign-select {
+      flex: 1 1 140px;
+      min-width: 0;
+      max-width: 100%;
+      height: 40px;
+      padding: 0 10px;
+      font-size: 14px;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      background: #fff;
+      color: #1f2937;
+    }
+
+    .job-assign-select:disabled {
+      background: #f3f4f6;
+      color: #6b7280;
+    }
+
+    .job-assign-select:focus {
+      outline: none;
+      border-color: #059669;
+      box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.12);
+    }
+
     .engineer-filter-row {
       display: flex;
       flex-wrap: wrap;
@@ -1740,7 +1797,7 @@
         max-width: 100%;
         width: 100%;
         margin: 0;
-        padding: 8px 10px 168px;
+        padding: 8px 10px 210px;
         box-sizing: border-box;
       }
 
@@ -1902,11 +1959,31 @@
         overflow-wrap: break-word;
       }
 
+      .job.job-card.overdue {
+        background: #fff8f8;
+        border-color: #e11d48;
+        box-shadow: 0 1px 2px rgba(190, 18, 60, 0.06);
+      }
+
+      .job.job-card.overdue .job-title {
+        font-weight: 600;
+      }
+
+      .job.job-card.overdue .job-sla-due--late {
+        font-weight: 500;
+        color: #be123c;
+      }
+
       .job-meta-row {
         font-size: 11.5px;
         gap: 4px 6px;
         margin-bottom: 4px;
         line-height: 1.3;
+      }
+
+      .job-assign-block--compact .job-assign-select {
+        min-height: 44px;
+        font-size: 16px;
       }
 
       .job-sla-row {
@@ -1950,18 +2027,36 @@
         font-size: 14px;
       }
 
-      .job .job-actions:not(.job-actions-deleted):not(.job-actions-single) {
+      .job .job-actions.job-actions--grid2 {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 8px;
-        margin-top: 6px;
+        gap: 10px;
+        margin-top: 4px;
+        align-items: stretch;
       }
 
-      .job .job-actions:not(.job-actions-deleted):not(.job-actions-single) button {
-        min-height: 44px;
+      .job .job-actions.job-actions--grid2 .job-action-cell {
+        min-width: 0;
+        display: flex;
+        align-items: stretch;
+      }
+
+      .job .job-actions.job-actions--grid2 .job-action-cell > button {
+        width: 100%;
+        min-height: 48px;
         height: auto;
         font-size: 13px;
-        width: 100%;
+        font-weight: 600;
+        box-sizing: border-box;
+      }
+
+      .job .job-actions.job-actions--grid2 .job-action-placeholder {
+        min-height: 48px;
+        border-radius: 10px;
+        background: transparent;
+        box-sizing: border-box;
+        pointer-events: none;
+        visibility: hidden;
       }
 
       .job .job-actions.job-actions-single {
@@ -2172,7 +2267,7 @@
           <option value="Engineer 3">Engineer 3</option>
           <option value="Manager">Manager</option>
         </select>
-        <button type="button" id="btnMyJobs" class="btn-my-jobs" onclick="toggleMyJobsFilter()" aria-pressed="false" title="Show only jobs assigned to Engineer 1">My Jobs</button>
+        <button type="button" id="btnMyJobs" class="btn-my-jobs" onclick="toggleMyJobsFilter()" aria-pressed="false" title="Show jobs for your role: assigned to you (engineers) or reported by / assigned to you (Manager)">My Jobs</button>
         </div>
       </div>
       <div class="status-filters filter-row" role="group" aria-label="Filter by status">

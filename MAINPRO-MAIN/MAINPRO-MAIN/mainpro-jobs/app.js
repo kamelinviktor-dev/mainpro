@@ -5,6 +5,8 @@
 let statusFilter = "All";
 /** "All" | engineer name — filter by job.assignedTo */
 let engineerFilter = "All";
+/** My Jobs quick filter: uses matchesMyJobsFilter (role-based). */
+let myJobsFilterActive = false;
 /** "all" | "completedToday" — History tab */
 let historyViewFilter = "all";
 /** set when opening Park modal */
@@ -32,9 +34,6 @@ const ASSIGNED_ENGINEER_OPTIONS = [
   "Engineer 3",
   "Manager",
 ];
-
-/** Quick filter "My Jobs" — same value as dropdown option. */
-const MY_JOBS_ENGINEER_FILTER = "Engineer 1";
 
 /** Set when a job is open in full-screen detail (narrow layout only). */
 let mobileJobDetailId = null;
@@ -584,7 +583,104 @@ function renderJobMetaRow(j) {
   const reporter = escapeHtml(j.reportedBy || "—");
   const assignee = escapeHtml(normalizeAssignedTo(j));
   const when = escapeHtml(formatDateClean(j.createdAt) || "—");
-  return `<div class="job-meta-row"><span class="job-meta-chunk">👤 ${reporter}</span><span class="job-meta-sep" aria-hidden="true">·</span><span class="job-meta-chunk">🧑‍🔧 ${assignee}</span><span class="job-meta-sep" aria-hidden="true">·</span><span class="job-meta-chunk">🕒 ${when}</span></div>`;
+  return `<div class="job-meta-row"><span class="job-meta-chunk">👤 ${reporter}</span><span class="job-meta-sep" aria-hidden="true">·</span><span class="job-meta-chunk">👷 ${assignee}</span><span class="job-meta-sep" aria-hidden="true">·</span><span class="job-meta-chunk">🕘 ${when}</span></div>`;
+}
+
+function matchesMyJobsFilter(j) {
+  const u = getMainproUser();
+  if (!u) return false;
+  const asg = normalizeAssignedTo(j);
+  const rep = String(j.reportedBy || "").trim();
+  if (u === "Manager") {
+    return rep === "Manager" || asg === "Manager";
+  }
+  if (u === "Engineer 1" || u === "Engineer 2" || u === "Engineer 3") {
+    return asg === u;
+  }
+  return rep === u || asg === u;
+}
+
+function buildAssignmentLogMessage(prev, next) {
+  const p = prev || "Unassigned";
+  const n = next || "Unassigned";
+  if (p === n) return "";
+  if (p === "Unassigned" && n !== "Unassigned") {
+    return "Assigned to " + n;
+  }
+  if (n === "Unassigned" && p !== "Unassigned") {
+    return "Unassigned from " + p;
+  }
+  return "Reassigned from " + p + " to " + n;
+}
+
+/**
+ * @param {object} j job
+ * @param {{ compact?: boolean, disabled?: boolean, modal?: boolean }} opts
+ */
+function renderJobAssignBlock(j, opts) {
+  opts = opts || {};
+  const disabled = opts.disabled === true;
+  const idAttr2 = jobIdForDomAttr(j.id);
+  const current = normalizeAssignedTo(j);
+  const optionsHtml = ASSIGNED_ENGINEER_OPTIONS.map(function (name) {
+    return (
+      '<option value="' +
+      escapeAttr(name) +
+      '"' +
+      (name === current ? " selected" : "") +
+      ">" +
+      escapeHtml(name) +
+      "</option>"
+    );
+  }).join("");
+  const cls =
+    "job-assign-block" +
+    (opts.compact ? " job-assign-block--compact" : "") +
+    (opts.modal ? " job-assign-block--modal" : "");
+  return (
+    '<div class="' +
+    cls +
+    '" data-stops-tap="1" onclick="onJobAssignBlockClick(event)">' +
+    '<span class="job-assign-label">Assigned</span>' +
+    '<select class="job-assign-select" data-job-id="' +
+    idAttr2 +
+    '" onchange="onJobAssignFromUi(this)"' +
+    (disabled ? " disabled" : "") +
+    ' aria-label="Assign or reassign job">' +
+    optionsHtml +
+    "</select></div>"
+  );
+}
+
+function setJobAssignment(rawId, newValue) {
+  const j = jobs.find((x) => String(x.id) === String(rawId));
+  if (!j) return;
+  const s = String(newValue == null ? "" : newValue).trim();
+  const next =
+    ASSIGNED_ENGINEER_OPTIONS.indexOf(s) >= 0 ? s : "Unassigned";
+  const prev = normalizeAssignedTo(j);
+  if (prev === next) return;
+  j.assignedTo = next;
+  const msg = buildAssignmentLogMessage(prev, next);
+  if (msg) {
+    appendSystemComment(j, msg);
+  }
+  save();
+  render();
+}
+
+function onJobAssignBlockClick(e) {
+  if (e && typeof e.stopPropagation === "function") {
+    e.stopPropagation();
+  }
+}
+
+function onJobAssignFromUi(selectEl) {
+  if (!selectEl) return;
+  const raw = selectEl.getAttribute("data-job-id");
+  const id = jobIdFromDomAttr(raw);
+  if (id == null) return;
+  setJobAssignment(id, selectEl.value);
 }
 
 /** Priority pill + SLA countdown (or due date on done/deleted). */
@@ -752,6 +848,9 @@ function matchesStatusFilterForActive(j) {
 }
 
 function matchesEngineerFilter(j) {
+  if (myJobsFilterActive) {
+    return matchesMyJobsFilter(j);
+  }
   if (!engineerFilter || engineerFilter === "All") return true;
   return normalizeAssignedTo(j) === engineerFilter;
 }
@@ -771,17 +870,17 @@ function syncEngineerFilterUi() {
   }
   const btn = document.getElementById("btnMyJobs");
   if (btn) {
-    const on = engineerFilter === MY_JOBS_ENGINEER_FILTER;
-    btn.classList.toggle("active", on);
-    btn.setAttribute("aria-pressed", on ? "true" : "false");
+    btn.classList.toggle("active", myJobsFilterActive);
+    btn.setAttribute("aria-pressed", myJobsFilterActive ? "true" : "false");
   }
 }
 
 function toggleMyJobsFilter() {
-  if (engineerFilter === MY_JOBS_ENGINEER_FILTER) {
-    engineerFilter = "All";
+  if (myJobsFilterActive) {
+    myJobsFilterActive = false;
   } else {
-    engineerFilter = MY_JOBS_ENGINEER_FILTER;
+    myJobsFilterActive = true;
+    engineerFilter = "All";
   }
   render();
 }
@@ -1252,6 +1351,9 @@ function renderActiveCardCompact(j) {
   const previews = preAct
     ? `<div class="job-compact-previews">${preAct}</div>`
     : "";
+  const ph = '<div class="job-action-placeholder" aria-hidden="true"></div>';
+  const progressHtml = progressBtnNew || progressBtnPending || ph;
+  const parkHtml = parkBtn || ph;
   return `
       <div class="job job-card job-card--list-compact ${vis.cardClass}" data-job-id="${idForAttr}" data-status="${escapeHtml(
     st
@@ -1274,12 +1376,12 @@ function renderActiveCardCompact(j) {
           ${previews}
         </div>
         </div>
-        <div class="job-actions job-actions--compact">
-          ${progressBtnNew}
-          ${progressBtnPending}
-          ${parkBtn}
-          <button type="button" class="btn-done" onclick='setStatus(${qid}, ${sDone})'>Done</button>
-          <button type="button" class="btn-del" onclick='deleteJob(${qid})'>Delete</button>
+        ${renderJobAssignBlock(j, { compact: true, disabled: false })}
+        <div class="job-actions job-actions--compact job-actions--grid2">
+          <div class="job-action-cell">${progressHtml}</div>
+          <div class="job-action-cell">${parkHtml}</div>
+          <div class="job-action-cell"><button type="button" class="btn-done" onclick='setStatus(${qid}, ${sDone})'>Done</button></div>
+          <div class="job-action-cell"><button type="button" class="btn-del" onclick='deleteJob(${qid})'>Delete</button></div>
         </div>
       </div>
     `;
@@ -1299,6 +1401,7 @@ function renderHistoryCardCompact(j) {
   const previews = preAct
     ? `<div class="job-compact-previews">${preAct}</div>`
     : "";
+  const ph = '<div class="job-action-placeholder" aria-hidden="true"></div>';
   return `
       <div class="job job-card job-card--list-compact done job-history ${vis.cardClass
     }" data-job-id="${jobIdForDomAttr(j.id)}" data-status="Done">
@@ -1320,8 +1423,12 @@ function renderHistoryCardCompact(j) {
           ${previews}
         </div>
         </div>
-        <div class="job-actions job-actions--compact job-actions-single">
-          <button type="button" class="btn-del" onclick='deleteJob(${qid})'>Delete</button>
+        ${renderJobAssignBlock(j, { compact: true, disabled: true })}
+        <div class="job-actions job-actions--compact job-actions--grid2">
+          <div class="job-action-cell">${ph}</div>
+          <div class="job-action-cell">${ph}</div>
+          <div class="job-action-cell">${ph}</div>
+          <div class="job-action-cell"><button type="button" class="btn-del" onclick='deleteJob(${qid})'>Delete</button></div>
         </div>
       </div>
     `;
@@ -1365,6 +1472,7 @@ function renderDeletedCardCompact(j) {
           ${previews}
         </div>
         </div>
+        ${renderJobAssignBlock(j, { compact: true, disabled: true })}
         <div class="job-actions job-actions--compact job-actions-deleted">
           <button type="button" class="btn-restore">Restore</button>
           <button type="button" class="btn-permanent-delete">Delete permanently</button>
@@ -1483,6 +1591,7 @@ function renderActiveCardFull(j, forModal) {
           )}</strong></div>
           <div class="job-problem">${escapeHtml(j.problem)}</div>
           ${renderJobMetaRow(j)}
+          ${renderJobAssignBlock(j, { modal: forModal, disabled: false })}
           ${renderJobPrioritySlaBlock(j)}
           ${statusInfoBlock}
         </div>
@@ -1536,6 +1645,7 @@ function renderHistoryCardFull(j, forModal) {
           )}</strong></div>
           <div class="job-problem">${escapeHtml(j.problem)}</div>
           ${renderJobMetaRow(j)}
+          ${renderJobAssignBlock(j, { modal: forModal, disabled: true })}
           ${renderJobPrioritySlaBlock(j)}
           <div class="job-status-info"><div class="completed-line">Completed: ${escapeHtml(
             when || "—"
@@ -1579,6 +1689,7 @@ function renderDeletedCardFull(j, forModal) {
           )}</strong></div>
           <div class="job-problem">${escapeHtml(j.problem)}</div>
           ${renderJobMetaRow(j)}
+          ${renderJobAssignBlock(j, { modal: forModal, disabled: true })}
           ${renderJobPrioritySlaBlock(j)}
           <div class="job-status-info"><div class="deleted-meta-line">Deleted: ${escapeHtml(
             delWhen
@@ -1745,6 +1856,7 @@ function onJobCardTapOpen(e) {
   if (e.target.closest(".btn-job-log-toggle")) return;
   if (e.target.closest(".job-photo-thumb")) return;
   if (e.target.closest(".job-actions")) return;
+  if (e.target.closest(".job-assign-block")) return;
   const tap = e.target.closest(".job-card-tap");
   if (!tap) return;
   const jobEl = tap.closest(".job");
@@ -2072,6 +2184,8 @@ function scrollToReportJob() {
 window.saveEngineerNote = saveEngineerNote;
 window.toggleJobLog = toggleJobLog;
 window.toggleMyJobsFilter = toggleMyJobsFilter;
+window.onJobAssignFromUi = onJobAssignFromUi;
+window.onJobAssignBlockClick = onJobAssignBlockClick;
 window.scrollToReportJob = scrollToReportJob;
 window.closeJobDetailModal = closeJobDetailModal;
 
@@ -2199,6 +2313,7 @@ bindPhotoPreview();
   el._mainproBound = true;
   el.addEventListener("change", function () {
     engineerFilter = String(el.value || "All");
+    myJobsFilterActive = false;
     render();
   });
 })();
@@ -2286,6 +2401,7 @@ document.addEventListener("keydown", function (e) {
 document.addEventListener("keydown", function (e) {
   if (e.key !== "Enter" && e.key !== " ") return;
   const te = e.target;
+  if (te && te.closest && te.closest(".job-assign-block")) return;
   if (!te || !te.classList || !te.classList.contains("job-card-tap")) return;
   const job = te.closest(".job");
   if (!job || !job.classList.contains("job-card--list-compact")) return;
