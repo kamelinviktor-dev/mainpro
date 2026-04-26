@@ -2,7 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#059669">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="MainPro Jobs">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="manifest" href="manifest.webmanifest">
   <title>MainPro Jobs</title>
   <style>
     * { box-sizing: border-box; }
@@ -39,6 +46,45 @@
       font-weight: 700;
       letter-spacing: -0.02em;
       color: #111;
+    }
+
+    .app-header-actions {
+      display: flex;
+      flex: 1 1 auto;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .btn-header-export,
+    .btn-header-import {
+      flex: 0 0 auto;
+      padding: 8px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      background: #f9fafb;
+      color: #374151;
+      cursor: pointer;
+      white-space: nowrap;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .btn-header-import {
+      border-color: #a7f3d0;
+      background: #ecfdf5;
+      color: #065f46;
+    }
+
+    .btn-header-export:active,
+    .btn-header-import:active {
+      background: #f3f4f6;
+    }
+
+    .btn-header-import:active {
+      background: #d1fae5;
     }
 
     .btn-change-user {
@@ -310,6 +356,35 @@
       font-size: 0.95rem;
       padding: 20px 12px;
       margin: 0;
+    }
+
+    .empty-hint--actions {
+      padding-top: 0;
+    }
+
+    .btn-empty-reset {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 0 20px;
+      font-size: 15px;
+      font-weight: 600;
+      color: #fff;
+      background: #059669;
+      border: 1px solid #047857;
+      border-radius: 12px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      max-width: 100%;
+    }
+
+    .btn-empty-reset:hover {
+      background: #047857;
+    }
+
+    .btn-empty-reset:active {
+      transform: scale(0.99);
     }
 
     /**
@@ -911,6 +986,7 @@
     .job-problem--compact {
       display: -webkit-box;
       -webkit-line-clamp: 2;
+      line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
       line-height: 1.3;
@@ -1751,6 +1827,36 @@
       margin-bottom: 8px;
     }
 
+    .park-reason-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 8px;
+      margin: 0 0 8px;
+    }
+
+    .park-chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 10px;
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.2;
+      color: #0f766e;
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      border-radius: 999px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .park-chip:hover {
+      background: #d1fae5;
+    }
+
+    .park-chip:active {
+      transform: scale(0.98);
+    }
+
     .park-modal-actions {
       display: flex;
       gap: 10px;
@@ -1810,6 +1916,13 @@
       }
 
       .btn-change-user {
+        min-height: 40px;
+        padding: 8px 12px;
+        font-size: 13px;
+      }
+
+      .btn-header-export,
+      .btn-header-import {
         min-height: 40px;
         padding: 8px 12px;
         font-size: 13px;
@@ -2136,6 +2249,16 @@
         height: auto;
       }
     }
+
+    @media (prefers-reduced-motion: reduce) {
+      #appMain .fab-new-job,
+      .btn-empty-reset,
+      .btn-header-export,
+      .btn-header-import,
+      .btn-change-user {
+        transition: none !important;
+      }
+    }
   </style>
 </head>
 <body>
@@ -2165,6 +2288,14 @@
       <h3 id="parkModalTitle">Park job</h3>
       <p class="park-modal-hint">Set why the job is on hold, then when to resume. It returns to <strong>New</strong> automatically after that time.</p>
       <label class="park-reason-label" for="parkReasonInput">Reason for pending</label>
+      <div class="park-reason-chips" role="group" aria-label="Quick reasons">
+        <button type="button" class="park-chip" data-reason="Waiting for parts" onclick="setParkReasonChip(this)">Parts</button>
+        <button type="button" class="park-chip" data-reason="Waiting for contractor" onclick="setParkReasonChip(this)">Contractor</button>
+        <button type="button" class="park-chip" data-reason="No access to room or area" onclick="setParkReasonChip(this)">No access</button>
+        <button type="button" class="park-chip" data-reason="Guest in room" onclick="setParkReasonChip(this)">Guest in room</button>
+        <button type="button" class="park-chip" data-reason="Awaiting management approval" onclick="setParkReasonChip(this)">Management</button>
+        <button type="button" class="park-chip" data-reason="Waiting for parts order" onclick="setParkReasonChip(this)">Order / PO</button>
+      </div>
       <textarea id="parkReasonInput" class="park-reason-input" rows="2" placeholder="e.g. Waiting parts, waiting contractor, no access, guest in room" autocomplete="off"></textarea>
       <label class="form-hint" for="parkUntilInput" style="display:block;">Pending until</label>
       <input type="datetime-local" id="parkUntilInput" autocomplete="off">
@@ -2178,7 +2309,12 @@
   <div id="appMain" class="app-wrap" hidden>
     <div class="app-header-row">
       <div class="app-header">MainPro Jobs</div>
-      <button type="button" class="btn-change-user" onclick="showChangeUser()">Change user</button>
+      <div class="app-header-actions">
+        <button type="button" class="btn-header-export" id="btnExportBackup" onclick="exportJobsBackup()" title="Download JSON backup of jobs (and current role)">Export</button>
+        <button type="button" class="btn-header-import" onclick="triggerImportBackup()" title="Restore jobs from a JSON backup file">Import</button>
+        <input type="file" id="importBackupInput" accept=".json,application/json" hidden aria-hidden="true">
+        <button type="button" class="btn-change-user" onclick="showChangeUser()">Change user</button>
+      </div>
     </div>
 
     <div class="report-job-form" id="reportJobForm">

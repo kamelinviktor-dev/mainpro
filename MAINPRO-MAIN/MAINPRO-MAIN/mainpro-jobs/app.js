@@ -45,6 +45,9 @@ let mobileFabLastScrollY = 0;
 
 const MOBILE_FAB_TOP_ZONE_PX = 88;
 const MOBILE_FAB_SCROLL_DELTA = 10;
+/** Поиск: отложенный render, меньше лагов при быстром вводе. */
+const JOB_SEARCH_DEBOUNCE_MS = 280;
+let _jobSearchDebounceTimer = null;
 
 function isNarrowLayout() {
   if (typeof window === "undefined" || !window.matchMedia) {
@@ -938,6 +941,43 @@ function updateFilterButtonsActiveState() {
   });
 }
 
+/**
+ * True when the empty list is plausibly due to search/filters, so we show a reset control.
+ */
+function shouldOfferResetForEmptyActive() {
+  if (getSearchQuery()) return true;
+  if (engineerFilter && engineerFilter !== "All") return true;
+  if (myJobsFilterActive) return true;
+  if (statusFilter && statusFilter !== "All") return true;
+  return false;
+}
+
+function shouldOfferResetForEmptyHistory() {
+  if (getSearchQuery()) return true;
+  if (engineerFilter && engineerFilter !== "All") return true;
+  if (myJobsFilterActive) return true;
+  if (historyViewFilter === "completedToday") return true;
+  return false;
+}
+
+/**
+ * Сбрасывает поиск и фильтры к «все / все инженеры / без My Jobs / весь срок / статус All».
+ * Активная/история вкладка не переключается.
+ */
+function resetFiltersAndSearch() {
+  if (_jobSearchDebounceTimer) {
+    clearTimeout(_jobSearchDebounceTimer);
+    _jobSearchDebounceTimer = null;
+  }
+  const s = document.getElementById("jobSearch");
+  if (s) s.value = "";
+  engineerFilter = "All";
+  myJobsFilterActive = false;
+  statusFilter = "All";
+  historyViewFilter = "all";
+  render();
+}
+
 function render() {
   syncOverdueFlags();
   appendOverdueAuditIfNeeded();
@@ -987,10 +1027,16 @@ function render() {
   updateDeletedFilterCount();
 
   if (actives.length === 0 && activeEl) {
+    const canReset = shouldOfferResetForEmptyActive();
+    const resetBlock = canReset
+      ? '<p class="empty-hint empty-hint--actions"><button type="button" class="btn-empty-reset" onclick="resetFiltersAndSearch()">Reset filters &amp; search</button></p>'
+      : "";
     const emptyMsg =
       statusFilter === "Deleted"
-        ? '<p class="empty-hint">No deleted jobs. Items stay here for 7 days, then are removed automatically.</p>'
-        : '<p class="empty-hint">No active jobs to show. Try clearing search or set filter to <strong>All</strong>. Submit a new issue above if needed.</p>';
+        ? '<p class="empty-hint">No deleted jobs. Items stay here for 7 days, then are removed automatically.</p>' +
+          resetBlock
+        : '<p class="empty-hint">No open jobs match your filters. Clear search or set status to <strong>All</strong>, or add a new job from above.</p>' +
+          resetBlock;
     activeEl.innerHTML = emptyMsg;
   } else {
     actives.forEach((j) => {
@@ -1001,10 +1047,15 @@ function render() {
   }
 
   if (doneList.length === 0 && historyEl) {
-    historyEl.innerHTML =
+    const canHReset = shouldOfferResetForEmptyHistory();
+    const hReset = canHReset
+      ? '<p class="empty-hint empty-hint--actions"><button type="button" class="btn-empty-reset" onclick="resetFiltersAndSearch()">Reset filters &amp; search</button></p>'
+      : "";
+    const baseH =
       historyViewFilter === "completedToday"
-        ? '<p class="empty-hint">No jobs completed today yet.</p>'
-        : '<p class="empty-hint">No completed jobs yet.</p>';
+        ? '<p class="empty-hint">No jobs completed on this day at the current filters. Try "All" history or clear search.</p>'
+        : '<p class="empty-hint">No completed jobs match your search or filters yet.</p>';
+    historyEl.innerHTML = baseH + hReset;
   } else {
     doneList.forEach((j) => {
       historyEl.innerHTML += renderHistoryCard(j);
@@ -1925,6 +1976,118 @@ function showJobsToast(msg) {
   }, 2500);
 }
 
+/**
+ * Скачать JSON-резерв: заявки + текущий пользователь (для переноса/архива).
+ */
+function exportJobsBackup() {
+  if (!hasMainproLogin()) {
+    showJobsToast("Select a role first");
+    return;
+  }
+  try {
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      app: "MainPro Jobs",
+      mainpro_user: getMainproUser(),
+      jobs: jobs,
+    };
+    const json = JSON.stringify(payload, null, 2);
+    const blob = new Blob([json], { type: "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download =
+      "mainpro-jobs-backup-" +
+      new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19) +
+      ".json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showJobsToast("Backup downloaded");
+  } catch (e) {
+    showJobsToast("Export failed");
+  }
+}
+
+/**
+ * Восстанавливает jobs из JSON (файл Export или сырой массив). Перезаписывает localStorage.
+ */
+function importJobsFromJsonText(text) {
+  let o;
+  try {
+    o = JSON.parse(text);
+  } catch (e) {
+    showJobsToast("Invalid JSON file");
+    return false;
+  }
+  let arr;
+  if (Array.isArray(o)) {
+    arr = o;
+  } else if (o && Array.isArray(o.jobs)) {
+    arr = o.jobs;
+  } else {
+    showJobsToast("File must contain a jobs array");
+    return false;
+  }
+  const n = arr.length;
+  if (
+    !confirm(
+      n === 0
+        ? "Import an empty list? All current jobs on this device will be removed. Continue?"
+        : "Replace all " +
+            jobs.length +
+            " current job(s) with " +
+            n +
+            " from the file? This cannot be undone."
+    )
+  ) {
+    return false;
+  }
+  try {
+    localStorage.setItem("jobs", JSON.stringify(arr));
+  } catch (e) {
+    showJobsToast("Storage full or blocked");
+    return false;
+  }
+  jobs = loadJobs();
+  if (mobileJobDetailId) {
+    const still = jobs.some((x) => String(x.id) === String(mobileJobDetailId));
+    if (!still) {
+      mobileJobDetailId = null;
+      const m = document.getElementById("jobDetailModal");
+      if (m) m.hidden = true;
+      syncAppBodyScrollLock();
+    }
+  }
+  statusFilter = "All";
+  myJobsFilterActive = false;
+  engineerFilter = "All";
+  historyViewFilter = "all";
+  const s = document.getElementById("jobSearch");
+  if (s) s.value = "";
+  if (_jobSearchDebounceTimer) {
+    clearTimeout(_jobSearchDebounceTimer);
+    _jobSearchDebounceTimer = null;
+  }
+  setTab("active");
+  Object.keys(jobLogExpanded).forEach(function (k) {
+    delete jobLogExpanded[k];
+  });
+  render();
+  showJobsToast("Import complete");
+  return true;
+}
+
+function triggerImportBackup() {
+  if (!hasMainproLogin()) {
+    showJobsToast("Select a role first");
+    return;
+  }
+  const inp = document.getElementById("importBackupInput");
+  if (inp) inp.click();
+}
+
 function addJob() {
   const location = document.getElementById("location").value.trim();
   const problem = document.getElementById("problem").value.trim();
@@ -2102,9 +2265,25 @@ function confirmPark() {
   render();
 }
 
+function setParkReasonChip(btn) {
+  if (!btn || !btn.getAttribute) return;
+  const v = btn.getAttribute("data-reason");
+  if (v == null) return;
+  const reasonEl = document.getElementById("parkReasonInput");
+  if (reasonEl) {
+    reasonEl.value = v;
+    try {
+      reasonEl.focus();
+    } catch (e) {
+      /* ignore */
+    }
+  }
+}
+
 window.openParkDialog = openParkDialog;
 window.closeParkDialog = closeParkDialog;
 window.confirmPark = confirmPark;
+window.setParkReasonChip = setParkReasonChip;
 
 function flashCommentSaved(id) {
   const want = String(id);
@@ -2186,6 +2365,7 @@ window.toggleJobLog = toggleJobLog;
 window.toggleMyJobsFilter = toggleMyJobsFilter;
 window.onJobAssignFromUi = onJobAssignFromUi;
 window.onJobAssignBlockClick = onJobAssignBlockClick;
+window.resetFiltersAndSearch = resetFiltersAndSearch;
 window.scrollToReportJob = scrollToReportJob;
 window.closeJobDetailModal = closeJobDetailModal;
 
@@ -2304,7 +2484,23 @@ function bindPhotoPreview() {
 bindPhotoPreview();
 (function bindListToolbar() {
   const s = document.getElementById("jobSearch");
-  if (s) s.addEventListener("input", render);
+  if (!s) return;
+  s.addEventListener("input", function () {
+    if (_jobSearchDebounceTimer) {
+      clearTimeout(_jobSearchDebounceTimer);
+    }
+    _jobSearchDebounceTimer = setTimeout(function () {
+      _jobSearchDebounceTimer = null;
+      render();
+    }, JOB_SEARCH_DEBOUNCE_MS);
+  });
+  s.addEventListener("search", function () {
+    if (_jobSearchDebounceTimer) {
+      clearTimeout(_jobSearchDebounceTimer);
+      _jobSearchDebounceTimer = null;
+    }
+    render();
+  });
 })();
 
 (function bindEngineerFilter() {
@@ -2441,5 +2637,84 @@ window.addEventListener("resize", function () {
   window._mainproFabScrollBound = true;
   window.addEventListener("scroll", onMobileFabScroll, { passive: true });
 })();
+
+/**
+ * Pull-to-refresh (touch): вверху страницы потянуть вниз — render() + тост.
+ */
+(function bindPullToRefresh() {
+  if (typeof document === "undefined" || window._mainproPullRefreshBound) {
+    return;
+  }
+  window._mainproPullRefreshBound = true;
+  let startY = 0;
+  let tracking = false;
+  function blockers() {
+    const am = document.getElementById("appMain");
+    if (!am || am.hidden) return true;
+    if (!hasMainproLogin()) return true;
+    const d = document.getElementById("jobDetailModal");
+    if (d && !d.hidden) return true;
+    const p = document.getElementById("parkModal");
+    if (p && !p.hidden) return true;
+    const b = document.getElementById("photoLightbox");
+    if (b && !b.hidden) return true;
+    return false;
+  }
+  document.addEventListener(
+    "touchstart",
+    function (e) {
+      if (blockers()) return;
+      if (window.scrollY > 12) return;
+      if (!e.touches || !e.touches[0]) return;
+      startY = e.touches[0].clientY;
+      tracking = true;
+    },
+    { passive: true }
+  );
+  document.addEventListener(
+    "touchend",
+    function (e) {
+      if (!tracking) return;
+      tracking = false;
+      if (blockers()) return;
+      if (window.scrollY > 12) return;
+      if (!e.changedTouches || !e.changedTouches[0]) return;
+      const endY = e.changedTouches[0].clientY;
+      if (endY - startY > 72) {
+        render();
+        showJobsToast("Refreshed");
+      }
+    },
+    { passive: true }
+  );
+})();
+
+(function bindImportBackup() {
+  const inp = document.getElementById("importBackupInput");
+  if (!inp || inp._mainproImportBound) return;
+  inp._mainproImportBound = true;
+  inp.addEventListener("change", function () {
+    const f = inp.files && inp.files[0];
+    if (!f) return;
+    if (!hasMainproLogin()) {
+      showJobsToast("Select a role first");
+      inp.value = "";
+      return;
+    }
+    const r = new FileReader();
+    r.onload = function () {
+      if (typeof r.result !== "string") return;
+      importJobsFromJsonText(r.result);
+    };
+    r.onerror = function () {
+      showJobsToast("Could not read file");
+    };
+    r.readAsText(f);
+    inp.value = "";
+  });
+})();
+
+window.exportJobsBackup = exportJobsBackup;
+window.triggerImportBackup = triggerImportBackup;
 
 applyAuthUi();
