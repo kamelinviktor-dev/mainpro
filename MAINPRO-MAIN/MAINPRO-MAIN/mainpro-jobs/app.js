@@ -875,7 +875,9 @@ function renderEngineerNotesSavedSection(j) {
 
   let activityBlock = "";
   if (sortedActivity.length) {
-    activityBlock = `<h4 class="log-title section-title system">Activity</h4><div class="activity-timeline" role="list">${visibleActivity
+    activityBlock = `<h4 class="log-title section-title system">Activity</h4><div class="activity-timeline${
+      expanded ? " expanded" : ""
+    }" role="list">${visibleActivity
       .map((c) => renderSystemLogItemHtml(c))
       .join("")}</div>`;
   }

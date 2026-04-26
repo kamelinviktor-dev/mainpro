@@ -300,61 +300,57 @@
     }
 
     /**
-     * Unified premium job cards (same structure as Done): soft tint, 2px border, 18px radius.
+     * Job cards: identical structure; theme = color only (soft tint, never plain white on NEW).
      */
     .job.job-card {
       position: relative;
       border-width: 2px;
       border-style: solid;
-      border-radius: 18px;
-      padding: 14px;
+      border-radius: 16px;
+      padding: 12px;
+      margin-bottom: 12px;
       overflow: hidden;
       box-sizing: border-box;
-      background: #f8fafc;
-      border-color: #64748b;
-      box-shadow: 0 2px 14px rgba(15, 23, 42, 0.08);
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      background: #f1f5f9;
+      border-color: #94a3b8;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.07), 0 1px 2px rgba(15, 23, 42, 0.05);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
     }
 
     .job.job-card:hover {
       transform: translateY(-1px);
-      box-shadow: 0 4px 18px rgba(15, 23, 42, 0.12);
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.1);
     }
 
     .job.job-card.new {
-      background: #f8fafc;
-      border-color: #64748b;
+      background: #f1f5f9;
+      border-color: #94a3b8;
     }
 
     .job.job-card.in-progress {
       background: #fff7ed;
       border-color: #fb923c;
-      box-shadow: 0 2px 14px rgba(234, 88, 12, 0.1);
     }
 
     .job.job-card.pending,
     .job.job-card.on-hold {
       background: #fffbeb;
       border-color: #f59e0b;
-      box-shadow: 0 2px 14px rgba(245, 158, 11, 0.1);
     }
 
     .job.job-card.overdue {
       background: #fff1f2;
       border-color: #e11d48;
-      box-shadow: 0 2px 16px rgba(225, 29, 72, 0.12);
     }
 
     .job.job-card.done {
       background: #ecfdf5;
       border-color: #22c55e;
-      box-shadow: 0 2px 14px rgba(34, 197, 94, 0.12);
     }
 
     .job.job-card.deleted {
       background: #f8fafc;
       border-color: #6b7280;
-      box-shadow: 0 2px 12px rgba(75, 85, 99, 0.1);
       opacity: 1;
     }
 
@@ -364,60 +360,70 @@
 
     .job-status-badge {
       position: absolute;
-      top: 12px;
-      right: 12px;
+      top: 10px;
+      right: 10px;
       z-index: 2;
-      max-width: 5.2rem;
-      line-height: 1.2;
+      max-width: 5.6rem;
+      line-height: 1.25;
       text-align: center;
-      font-weight: 800;
+      font-weight: 600;
       text-transform: uppercase;
-      font-size: 0.7rem;
-      letter-spacing: 0.04em;
-      padding: 4px 8px;
-      border-radius: 6px;
+      font-size: 11px;
+      letter-spacing: 0.03em;
+      padding: 4px 10px;
+      border-radius: 10px;
+      border-width: 1px;
+      border-style: solid;
     }
 
-    /* Badges: one shape; color only (same idea as card shell). */
+    /* Badge fills: consistent pill + readable contrast */
     .job-status-badge--pending {
-      background: linear-gradient(180deg, #fde68a, #fbbf24);
-      color: #78350f;
-      border: 1px solid #f59e0b;
+      background: #fef3c7;
+      color: #92400e;
+      border-color: #f59e0b;
     }
 
     .job-status-badge--overdue {
       background: #e11d48;
       color: #fff;
-      border: 1px solid #be123c;
+      border-color: #be123c;
     }
 
     .job-status-badge--new {
-      background: linear-gradient(180deg, #e2e8f0, #cbd5e1);
-      color: #1e293b;
-      border: 1px solid #64748b;
+      background: #e2e8f0;
+      color: #0f172a;
+      border-color: #94a3b8;
     }
 
     .job-status-badge--progress {
-      background: linear-gradient(180deg, #ffedd5, #fdba74);
+      background: #ffedd5;
       color: #7c2d12;
-      border: 1px solid #fb923c;
+      border-color: #fb923c;
     }
 
     .job-status-badge--done {
-      background: linear-gradient(180deg, #bbf7d0, #86efac);
+      background: #bbf7d0;
       color: #14532d;
-      border: 1px solid #22c55e;
+      border-color: #22c55e;
     }
 
     .job-status-badge--deleted {
       background: #6b7280;
       color: #fff;
-      border: 1px solid #4b5563;
+      border-color: #4b5563;
     }
 
     .job.job-card.deleted .job-status-badge--deleted {
       background: #6b7280;
       color: #fff;
+    }
+
+    /* Shared badge typography (optional class on other UI) */
+    .status-badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 10px;
     }
 
     .deleted-meta-line {
@@ -529,8 +535,8 @@
 
     .job-meta {
       font-size: 12.5px;
-      line-height: 1.3;
-      color: #4b5563;
+      line-height: 1.35;
+      color: #374151;
     }
 
     .job-meta strong {
@@ -569,7 +575,7 @@
       align-items: center;
       gap: 8px;
       font-size: 12.5px;
-      color: #6b7280;
+      color: #4b5563;
       margin-bottom: 6px;
     }
 
@@ -969,7 +975,7 @@
 
     .job-log--timeline .comment-log-item--engineer.note-card,
     .job-log--timeline .note-card {
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
 
     .notes-container {
@@ -997,6 +1003,14 @@
       margin-bottom: 8px;
     }
 
+    .activity-timeline.expanded {
+      max-height: 180px;
+      overflow-y: auto;
+      padding-right: 4px;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+    }
+
     .activity-timeline::before {
       content: "";
       position: absolute;
@@ -1004,7 +1018,7 @@
       top: 4px;
       bottom: 4px;
       width: 2px;
-      background: #e5e7eb;
+      background: rgba(100, 116, 139, 0.35);
     }
 
     .activity-item {
@@ -1012,7 +1026,8 @@
       padding-left: 10px;
       margin-bottom: 8px;
       font-size: 13px;
-      color: #374151;
+      color: #1f2937;
+      opacity: 0.9;
     }
 
     .activity-item:last-child {
@@ -1023,7 +1038,8 @@
       content: "";
       position: absolute;
       left: -12px;
-      top: 6px;
+      top: 50%;
+      transform: translateY(-50%);
       width: 8px;
       height: 8px;
       border-radius: 50%;
@@ -1064,27 +1080,29 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 13px;
+      font-size: 12.5px;
       gap: 12px;
       min-width: 0;
     }
 
+    .activity-text,
     .activity-line-text {
       min-width: 0;
       line-height: 1.35;
       flex: 1;
+      font-size: 12.5px;
     }
 
     .activity-time {
       flex-shrink: 0;
       color: #6b7280;
-      font-size: 12px;
+      font-size: 11.5px;
       font-variant-numeric: tabular-nums;
       white-space: nowrap;
     }
 
     .activity-line-text strong {
-      color: #111827;
+      color: #0f172a;
       font-weight: 600;
     }
 
@@ -1131,21 +1149,40 @@
       word-break: break-word;
     }
 
+    .note-card,
     .comment-log-item--engineer.note-card,
     .note-card.comment-log-item--engineer {
-      padding: 10px 12px;
-      margin-bottom: 8px;
-      background: rgba(255, 255, 255, 0.82);
-      border: 1px solid rgba(148, 163, 184, 0.25);
-      border-radius: 12px;
-      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+      padding: 7px 9px;
+      margin-bottom: 6px;
+      background: rgba(255, 255, 255, 0.85);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 10px;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+    }
+
+    .note-card .note-date,
+    .note-card .comment-log-time.note-date {
+      font-size: 11.5px;
+      margin-bottom: 1px;
+    }
+
+    .note-card .note-author,
+    .note-card .comment-log-author.note-author {
+      font-size: 12.5px;
+      margin-bottom: 1px;
+    }
+
+    .note-card .note-text,
+    .note-card .comment-log-text {
+      font-size: 12.5px;
+      line-height: 1.35;
     }
 
     .comment-log--tone-pending .comment-log-item--engineer.note-card,
     .comment-log--tone-overdue .comment-log-item--engineer.note-card,
     .comment-log--tone-default .comment-log-item--engineer.note-card {
-      background: rgba(255, 255, 255, 0.88);
-      border: 1px solid rgba(148, 163, 184, 0.28);
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.22);
     }
 
     .comment-log-time {
@@ -1368,6 +1405,12 @@
       background: #ea580c;
       color: #fff;
       border-color: #ea580c;
+    }
+
+    /* Softer controls inside main app (login / lightbox / park modal excluded) */
+    #appMain button {
+      border-radius: 10px;
+      font-size: 13px;
     }
   </style>
 </head>
