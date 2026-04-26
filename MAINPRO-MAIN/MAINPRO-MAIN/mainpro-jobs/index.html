@@ -579,6 +579,11 @@
       border-radius: 14px;
     }
 
+    .jobs-sticky .job-search-bar {
+      margin-top: 4px;
+      padding-top: 8px;
+    }
+
     .jobs-sticky .job-search {
       min-height: 48px;
       height: 48px;
@@ -1767,12 +1772,6 @@
       margin: 10px 0 0;
     }
 
-    .jobs-controls-panel .job-search-wrap {
-      margin-top: 12px;
-      padding-top: 12px;
-      border-top: 1px solid #f1f5f9;
-    }
-
     .job-search-wrap::after {
       content: "";
       position: absolute;
@@ -1787,8 +1786,47 @@
       transform: translateY(-50%);
     }
 
-    .jobs-controls-panel .job-search-wrap::after {
-      top: calc(12px + 24px);
+    .jobs-controls-panel .job-search-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px 10px;
+      width: 100%;
+      min-width: 0;
+      margin-top: 6px;
+      padding-top: 12px;
+      border-top: 1px solid #f1f5f9;
+    }
+
+    .jobs-controls-panel .job-search-wrap {
+      flex: 1 1 220px;
+      min-width: 0;
+      margin: 0;
+      padding: 0;
+    }
+
+    .btn-clear-filters {
+      box-sizing: border-box;
+      flex: 0 0 auto;
+      align-self: center;
+      min-height: 40px;
+      padding: 8px 12px;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1.2;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      background: #fff;
+      color: #64748b;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .btn-clear-filters:hover {
+      border-color: #059669;
+      color: #047857;
+      background: #ecfdf5;
     }
 
     .job-search {
@@ -3008,6 +3046,13 @@
         <button type="button" class="tab active" data-tab="active" onclick="setTab('active')">Active Jobs</button>
         <button type="button" class="tab" data-tab="history" onclick="setTab('history')">History</button>
       </div>
+      <div class="job-search-bar">
+        <div class="job-search-wrap" role="search" aria-label="Search jobs list">
+          <input type="search" id="jobSearch" class="job-search" placeholder="Search jobs..." autocomplete="off" enterkeyhint="search" title="Press / to focus from anywhere. Escape: clear text or close keyboard when empty." aria-label="Search jobs. Press the slash key to focus this field from outside a text input. Press Escape to clear, or to dismiss the keyboard if the field is empty.">
+          <span class="job-search-shortcut" aria-hidden="true" title="Shortcut: / to focus search"><kbd class="job-search-kbd">/</kbd></span>
+        </div>
+        <button type="button" class="btn-clear-filters" id="btnClearListFilters" onclick="resetFiltersAndSearch()" hidden title="Reset filters and search">Clear filters</button>
+      </div>
       <div class="job-dashboard dashboard-grid" id="jobDashboard" role="group" aria-label="Job counts — tap to filter" aria-live="polite">
         <button type="button" class="job-dashboard-card job-dashboard-card--all job-dashboard-card--click" data-dash="all" title="All active jobs" onclick="onDashboardFilter('all')">
           <span class="job-dashboard-label" id="dashLabelAll">All</span>
@@ -3037,10 +3082,6 @@
           <span class="job-dashboard-label" id="dashLabelDeleted">Deleted</span>
           <span class="job-dashboard-value" id="dashCountDeleted">0</span>
         </button>
-      </div>
-      <div class="job-search-wrap" role="search" aria-label="Search jobs list">
-        <input type="search" id="jobSearch" class="job-search" placeholder="Search jobs..." autocomplete="off" enterkeyhint="search" title="Press / to focus from anywhere. Escape: clear text or close keyboard when empty." aria-label="Search jobs. Press the slash key to focus this field from outside a text input. Press Escape to clear, or to dismiss the keyboard if the field is empty.">
-        <span class="job-search-shortcut" aria-hidden="true" title="Shortcut: / to focus search"><kbd class="job-search-kbd">/</kbd></span>
       </div>
       <div class="engineer-filter-row">
         <label for="engineerFilter" class="engineer-filter-label">Engineer</label>

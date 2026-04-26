@@ -86,6 +86,7 @@ const MAINPRO_I18N = {
     emptyHistoryToday:
       "No jobs completed on this day at the current filters. Try &quot;All&quot; history or clear search.",
     resetFilters: "Reset filters &amp; search",
+    clearFiltersShort: "Clear filters",
   },
   ru: {
     appTitle: "MainPro — заявки",
@@ -121,6 +122,7 @@ const MAINPRO_I18N = {
     emptyHistory: "Нет завершённых заявок по поиску или фильтрам.",
     emptyHistoryToday: "Сегодня нет по текущим фильтрам. Попробуйте весь период или сбросьте поиск.",
     resetFilters: "Сбросить фильтры и поиск",
+    clearFiltersShort: "Сбросить фильтры",
   },
 };
 
@@ -204,6 +206,12 @@ function applyMainproI18n() {
   tx("dashLabelOverdue", t("kpiOverdue"));
   tx("dashLabelDoneToday", t("kpiDoneToday"));
   tx("dashLabelDeleted", t("kpiDeleted"));
+  const bClear = document.getElementById("btnClearListFilters");
+  if (bClear) {
+    bClear.textContent = t("clearFiltersShort");
+    bClear.setAttribute("title", t("resetFilters").replace(/<[^>]+>/g, ""));
+  }
+  updateClearFiltersButton();
 }
 
 function toggleUiLang() {
@@ -1284,6 +1292,25 @@ function resetFiltersAndSearch() {
   render();
 }
 
+function hasListFiltersActive() {
+  if (getSearchQuery()) return true;
+  if (myJobsFilterActive) return true;
+  if (engineerFilter && engineerFilter !== "All") return true;
+  if (getCurrentPanelKind() === "active") {
+    if (statusFilter === "Deleted") return true;
+    if (statusFilter && statusFilter !== "All" && statusFilter !== "Done")
+      return true;
+  } else if (historyViewFilter === "completedToday") {
+    return true;
+  }
+  return false;
+}
+
+function updateClearFiltersButton() {
+  const btn = document.getElementById("btnClearListFilters");
+  if (btn) btn.hidden = !hasListFiltersActive();
+}
+
 function render() {
   syncOverdueFlags();
   appendOverdueAuditIfNeeded();
@@ -1372,6 +1399,7 @@ function render() {
   updateJobDetailModal();
   updateMobileFormFab();
   updateMobileScrollTopBtn();
+  updateClearFiltersButton();
 }
 
 function idAttr(id) {
@@ -3100,6 +3128,7 @@ function setTab(tab) {
     el.classList.toggle("active", on);
   });
   updateDashboardCardHighlight();
+  updateClearFiltersButton();
 }
 
 function bindPhotoPreview() {
