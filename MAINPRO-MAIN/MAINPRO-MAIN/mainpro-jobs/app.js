@@ -419,18 +419,26 @@ function formatDurationHMFromMs(totalMs) {
   return { h: h, m: m };
 }
 
-function getPendingTimerBlock(j) {
+/** Pending: one line — timer/countdown + until date (visual only). */
+function getPendingTimerUntilLine(j) {
   if (j.status !== "Pending" || !(j.pendingUntil || "").trim()) return "";
   const t = new Date(j.pendingUntil).getTime();
   if (isNaN(t)) return "";
+  const untilEsc = escapeHtml(formatDateClean(j.pendingUntil) || "—");
   const now = Date.now();
   if (j.isOverdue) {
     const { h, m } = formatDurationHMFromMs(now - t);
-    return `<div class="pending-timer-line pending-timer--overdue meta-line" aria-live="polite">⚠️ Overdue by ${h}h ${m}m</div>`;
+    return `<div class="pending-timer-combined pending-timer--overdue" aria-live="polite">⏱ Overdue by ${h}h ${m}m <span class="pending-sep" aria-hidden="true">·</span> Until ${untilEsc}</div>`;
   }
   if (t <= now) return "";
   const { h, m } = formatDurationHMFromMs(t - now);
-  return `<div class="pending-timer-line pending-timer--left meta-line" aria-live="polite">⏱️ ${h}h ${m}m left</div>`;
+  return `<div class="pending-timer-combined pending-timer--left" aria-live="polite">⏱ ${h}h ${m}m left <span class="pending-sep" aria-hidden="true">·</span> Until ${untilEsc}</div>`;
+}
+
+function renderJobMetaRow(j) {
+  const reporter = escapeHtml(j.reportedBy || "—");
+  const when = escapeHtml(formatDateClean(j.createdAt) || "—");
+  return `<div class="job-meta-row"><span class="job-meta-chunk">👤 ${reporter}</span><span class="job-meta-sep" aria-hidden="true">·</span><span class="job-meta-chunk">🕒 ${when}</span></div>`;
 }
 
 function getDashboardCounts() {
@@ -904,30 +912,30 @@ function jobCardLogsExpandedClass(j) {
 }
 
 /**
- * All cards share base class "job-card-shell" (Pending/Overdue premium shell); tone = color only.
+ * Premium shell + CSS status slugs (done, new, in-progress, pending, on-hold, overdue).
  */
 function getJobCardStatusVisual(j) {
   const st = j.status;
   if (st === "Done") {
-    return { cardClass: "job-card-shell job-card--done", badgeMod: "done", badgeText: "DONE" };
+    return { cardClass: "job-card-shell done", badgeMod: "done", badgeText: "DONE" };
   }
   if (st === "New") {
-    return { cardClass: "job-card-shell job-card--new", badgeMod: "new", badgeText: "NEW" };
+    return { cardClass: "job-card-shell new", badgeMod: "new", badgeText: "NEW" };
   }
   if (st === "In Progress") {
     return {
-      cardClass: "job-card-shell job-card--progress",
+      cardClass: "job-card-shell in-progress",
       badgeMod: "progress",
       badgeText: "IN PROGRESS",
     };
   }
   if (st === "Pending") {
     if (j.isOverdue) {
-      return { cardClass: "job-card-shell job-card--overdue", badgeMod: "overdue", badgeText: "OVERDUE" };
+      return { cardClass: "job-card-shell overdue", badgeMod: "overdue", badgeText: "OVERDUE" };
     }
-    return { cardClass: "job-card-shell job-card--pending", badgeMod: "pending", badgeText: "ON HOLD" };
+    return { cardClass: "job-card-shell pending on-hold", badgeMod: "pending", badgeText: "ON HOLD" };
   }
-  return { cardClass: "job-card-shell job-card--new", badgeMod: "new", badgeText: "NEW" };
+  return { cardClass: "job-card-shell new", badgeMod: "new", badgeText: "NEW" };
 }
 
 function renderActiveCard(j) {
@@ -956,21 +964,16 @@ function renderActiveCard(j) {
   const idForAttr = jobIdForDomAttr(j.id);
   const pr = (j.pendingReason || "").trim();
   const isOverdue = st === "Pending" && j.isOverdue;
-  const reasonLine =
-    st === "Pending"
-      ? `<div class="pending-reason-line meta-line">Reason: ${escapeHtml(
-          pr || "—"
-        )}</div>`
-      : "";
-  const timerLine = st === "Pending" ? getPendingTimerBlock(j) : "";
-  const pendingLine =
-    st === "Pending" && (j.pendingUntil || "").trim()
-      ? `<div class="pending-until-line meta-line">Pending until: ${escapeHtml(
-          formatDateClean(j.pendingUntil) || "—"
-        )}</div>`
-      : st === "Pending"
-        ? `<div class="pending-until-line meta-line">Pending until: —</div>`
-        : "";
+  let statusInfoBlock = "";
+  if (st === "Pending") {
+    const si = [];
+    si.push(
+      `<div class="pending-reason-line">Reason: ${escapeHtml(pr || "—")}</div>`
+    );
+    const timerUntil = getPendingTimerUntilLine(j);
+    if (timerUntil) si.push(timerUntil);
+    statusInfoBlock = `<div class="job-status-info">${si.join("")}</div>`;
+  }
   return `
       <div class="job job-card ${vis.cardClass}${jobCardLogsExpandedClass(
     j
@@ -982,19 +985,12 @@ function renderActiveCard(j) {
         <div class="job-body job-meta">
           <div class="job-title"><strong>${escapeHtml(
             j.location
-          )}</strong> <span class="job-priority-paren">(${escapeHtml(
+          )}</strong> <span class="priority">(${escapeHtml(
     j.priority
   )})</span></div>
           <div class="job-problem">${escapeHtml(j.problem)}</div>
-          <div class="reported-by-line meta-line">Reported by: ${escapeHtml(
-            j.reportedBy || "—"
-          )}</div>
-          <div class="created-line meta-line">Reported: ${escapeHtml(
-            formatDateClean(j.createdAt) || "—"
-          )}</div>
-          ${reasonLine}
-          ${timerLine}
-          ${pendingLine}
+          ${renderJobMetaRow(j)}
+          ${statusInfoBlock}
         </div>
         ${renderEngineerNotesSavedSection(j)}
         <label class="comment-label">Add a note</label>
@@ -1032,17 +1028,14 @@ function renderHistoryCard(j) {
         <div class="job-body job-meta">
           <div class="job-title"><strong>${escapeHtml(
             j.location
-          )}</strong> <span class="job-priority-paren">(${escapeHtml(
+          )}</strong> <span class="priority">(${escapeHtml(
     j.priority
   )})</span></div>
           <div class="job-problem">${escapeHtml(j.problem)}</div>
-          <div class="reported-by-line meta-line">Reported by: ${escapeHtml(
-            j.reportedBy || "—"
-          )}</div>
-          <div class="created-line meta-line">Reported: ${escapeHtml(
-            formatDateClean(j.createdAt) || "—"
-          )}</div>
-          <div class="completed-line meta-line">Completed: ${escapeHtml(when || "—")}</div>
+          ${renderJobMetaRow(j)}
+          <div class="job-status-info"><div class="completed-line">Completed: ${escapeHtml(
+            when || "—"
+          )}</div></div>
         </div>
         ${renderEngineerNotesSavedSection(j)}
         <div class="job-actions job-actions-single">
@@ -1062,7 +1055,7 @@ function renderDeletedCard(j) {
   const delWhen = formatDateClean(j.deletedAt) || "—";
   const prev = (j.previousStatus && String(j.previousStatus).trim()) || "—";
   return `
-      <div class="job job-card deleted job--deleted job-card-shell job-deleted${jobCardLogsExpandedClass(
+      <div class="job job-card deleted job-card-shell${jobCardLogsExpandedClass(
     j
   )}" data-job-id="${idForAttr}" data-status="Deleted">
         <span class="job-status-badge job-status-badge--deleted">DELETED</span>
@@ -1070,18 +1063,16 @@ function renderDeletedCard(j) {
         <div class="job-body job-meta">
           <div class="job-title"><strong>${escapeHtml(
             j.location
-          )}</strong> <span class="job-priority-paren">(${escapeHtml(
+          )}</strong> <span class="priority">(${escapeHtml(
     j.priority
   )})</span></div>
           <div class="job-problem">${escapeHtml(j.problem)}</div>
-          <div class="reported-by-line meta-line">Reported by: ${escapeHtml(
-            j.reportedBy || "—"
-          )}</div>
-          <div class="deleted-meta-line meta-line">Reported: ${escapeHtml(
-            formatDateClean(j.createdAt) || "—"
-          )}</div>
-          <div class="deleted-meta-line meta-line">Deleted: ${escapeHtml(delWhen)}</div>
-          <div class="deleted-meta-line meta-line">Previous status: ${escapeHtml(prev)}</div>
+          ${renderJobMetaRow(j)}
+          <div class="job-status-info"><div class="deleted-meta-line">Deleted: ${escapeHtml(
+            delWhen
+          )}</div><div class="deleted-meta-line">Previous: ${escapeHtml(
+    prev
+  )}</div></div>
         </div>
         ${renderEngineerNotesSavedSection(j)}
         <div class="job-actions job-actions-deleted">
