@@ -48,12 +48,148 @@ const MOBILE_FAB_SCROLL_DELTA = 10;
 /** Поиск: отложенный render, меньше лагов при быстром вводе. */
 const JOB_SEARCH_DEBOUNCE_MS = 280;
 let _jobSearchDebounceTimer = null;
+/** Bump with meaningful app changes; included in JSON export. */
+const MAINPRO_JOBS_APP_VERSION = "1.2.0";
+const MAINPRO_UI_LANG_KEY = "mainpro_ui_lang";
+
+const MAINPRO_I18N = {
+  en: {
+    appTitle: "MainPro Jobs",
+    loginTitle: "Select your role",
+    loginSub: "Who is using this device right now?",
+    reportTitle: "Report a Job",
+    tabActive: "Active Jobs",
+    tabHistory: "History",
+    searchPh: "Search jobs…",
+    exportJson: "Export",
+    importJson: "Import",
+    importMerge: "Merge",
+    exportCsv: "CSV",
+    changeUser: "Change user",
+    lang: "EN",
+    langNext: "RU",
+    roomPh: "Room / area",
+    problemPh: "Describe the problem",
+    emptyActive: "No open jobs match your filters. Clear search or set status to <strong>All</strong>, or add a new job from above.",
+    emptyDeleted: "No deleted jobs. Items stay here for 7 days, then are removed automatically.",
+    emptyHistory: "No completed jobs match your search or filters yet.",
+    emptyHistoryToday:
+      "No jobs completed on this day at the current filters. Try &quot;All&quot; history or clear search.",
+    resetFilters: "Reset filters &amp; search",
+  },
+  ru: {
+    appTitle: "MainPro — заявки",
+    loginTitle: "Выберите роль",
+    loginSub: "Кто сейчас с этой страницей работает?",
+    reportTitle: "Сообщить о заявке",
+    tabActive: "Активные",
+    tabHistory: "История",
+    searchPh: "Поиск заявок…",
+    exportJson: "Экспорт",
+    importJson: "Импорт",
+    importMerge: "Слияние",
+    exportCsv: "CSV",
+    changeUser: "Сменить пользователя",
+    lang: "RU",
+    langNext: "EN",
+    roomPh: "Комната / зона",
+    problemPh: "Опишите проблему",
+    emptyActive:
+      "Нет открытых заявок по фильтрам. Сбросьте поиск или статус <strong>All</strong>, или создайте заявку выше.",
+    emptyDeleted: "Нет удалённых заявок. Они хранятся 7 дней, затем очищаются.",
+    emptyHistory: "Нет завершённых заявок по поиску или фильтрам.",
+    emptyHistoryToday: "Сегодня нет по текущим фильтрам. Попробуйте весь период или сбросьте поиск.",
+    resetFilters: "Сбросить фильтры и поиск",
+  },
+};
+
+function getUiLang() {
+  try {
+    const s = String(localStorage.getItem(MAINPRO_UI_LANG_KEY) || "en");
+    return s === "ru" ? "ru" : "en";
+  } catch (e) {
+    return "en";
+  }
+}
+
+function t(key) {
+  const lang = getUiLang();
+  const a = MAINPRO_I18N[lang] || MAINPRO_I18N.en;
+  if (a[key] != null) return a[key];
+  return MAINPRO_I18N.en[key] != null ? MAINPRO_I18N.en[key] : key;
+}
+
+function applyMainproI18n() {
+  const el = function (id, html) {
+    const n = document.getElementById(id);
+    if (!n) return;
+    n.innerHTML = html;
+  };
+  const tx = function (id, text) {
+    const n = document.getElementById(id);
+    if (!n) return;
+    n.textContent = text;
+  };
+  el("loginTitle", t("loginTitle"));
+  el("loginSub", t("loginSub"));
+  tx("appHeaderTitle", t("appTitle"));
+  el("reportFormTitle", t("reportTitle"));
+  const loc = document.getElementById("location");
+  if (loc) loc.setAttribute("placeholder", t("roomPh"));
+  const prob = document.getElementById("problem");
+  if (prob) prob.setAttribute("placeholder", t("problemPh"));
+  const s = document.getElementById("jobSearch");
+  if (s) s.setAttribute("placeholder", t("searchPh"));
+  const ta = document.querySelector('.tab[data-tab="active"]');
+  const th = document.querySelector('.tab[data-tab="history"]');
+  if (ta) ta.textContent = t("tabActive");
+  if (th) th.textContent = t("tabHistory");
+  const bEx = document.getElementById("btnExportBackup");
+  if (bEx) bEx.textContent = t("exportJson");
+  const bIm = document.getElementById("btnImportBackup");
+  if (bIm) bIm.textContent = t("importJson");
+  const bMr = document.getElementById("btnImportMerge");
+  if (bMr) bMr.textContent = t("importMerge");
+  const bCs = document.getElementById("btnExportCsv");
+  if (bCs) bCs.textContent = t("exportCsv");
+  const bCh = document.getElementById("btnChangeUser");
+  if (bCh) bCh.textContent = t("changeUser");
+  const bLang = document.getElementById("btnUiLang");
+  if (bLang) {
+    bLang.textContent = t("lang");
+    bLang.setAttribute("title", t("langNext"));
+  }
+}
+
+function toggleUiLang() {
+  try {
+    localStorage.setItem(MAINPRO_UI_LANG_KEY, getUiLang() === "en" ? "ru" : "en");
+  } catch (e) {
+    /* ignore */
+  }
+  applyMainproI18n();
+  if (hasMainproLogin()) {
+    render();
+  }
+}
 
 function isNarrowLayout() {
   if (typeof window === "undefined" || !window.matchMedia) {
     return false;
   }
   return window.matchMedia("(max-width: 600px)").matches;
+}
+
+/** Короткая вибрация на телефоне (если API есть). */
+function hapticNarrow() {
+  if (!isNarrowLayout()) return;
+  try {
+    if (typeof navigator !== "undefined" && navigator.vibrate) {
+      navigator.vibrate(14);
+    }
+  } catch (e) {
+    /* ignore */
+  }
 }
 
 /** Report form + saved on job */
@@ -119,7 +255,84 @@ function hasMainproLogin() {
   return isMainproRole(getMainproUser());
 }
 
+let _urlJobIdToOpen = null;
+
+function scheduleJobUrlParamIfPresent() {
+  _urlJobIdToOpen = null;
+  if (!hasMainproLogin()) {
+    return;
+  }
+  try {
+    const p = new URLSearchParams(window.location.search).get("job");
+    if (p && String(p).trim()) {
+      _urlJobIdToOpen = String(p).trim();
+    }
+  } catch (e) {
+    /* ignore */
+  }
+}
+
+function tryStripJobUrlParam() {
+  try {
+    const u = new URL(window.location.href);
+    u.searchParams.delete("job");
+    history.replaceState({}, "", (u.pathname || ".") + u.search + u.hash);
+  } catch (e) {
+    /* ignore */
+  }
+}
+
+function tryOpenJobFromUrl() {
+  if (!_urlJobIdToOpen) {
+    return;
+  }
+  const want = _urlJobIdToOpen;
+  _urlJobIdToOpen = null;
+  const j = jobs.find((x) => String(x.id) === String(want));
+  if (!j) {
+    showJobsToast("Job not found");
+    tryStripJobUrlParam();
+    return;
+  }
+  if (j.deleted) {
+    setTab("active");
+    statusFilter = "Deleted";
+  } else if (j.status === "Done") {
+    setTab("history");
+  } else {
+    setTab("active");
+  }
+  historyViewFilter = "all";
+  if (isNarrowLayout()) {
+    mobileJobDetailId = String(j.id);
+    render();
+  } else {
+    render();
+    requestAnimationFrame(function () {
+      let target = null;
+      document.querySelectorAll(".job[data-job-id]").forEach(function (el) {
+        if (jobIdFromDomAttr(el.getAttribute("data-job-id")) === String(j.id)) {
+          target = el;
+        }
+      });
+      if (target) {
+        try {
+          target.scrollIntoView({ behavior: "smooth", block: "center" });
+        } catch (e) {
+          target.scrollIntoView(true);
+        }
+        target.classList.add("job-card--url-flash");
+        setTimeout(function () {
+          target.classList.remove("job-card--url-flash");
+        }, 2200);
+      }
+    });
+  }
+  tryStripJobUrlParam();
+}
+
 function applyAuthUi() {
+  applyMainproI18n();
   const ok = hasMainproLogin();
   const u = getMainproUser();
   const login = document.getElementById("loginScreen");
@@ -134,8 +347,14 @@ function applyAuthUi() {
     } else {
       setReportFormCollapsed(false);
     }
+    scheduleJobUrlParamIfPresent();
     render();
-    setTab("active");
+    if (!_urlJobIdToOpen) {
+      setTab("active");
+    }
+    setTimeout(function () {
+      tryOpenJobFromUrl();
+    }, 0);
     if (isNarrowLayout()) {
       requestAnimationFrame(function () {
         onMobileFabScroll();
@@ -357,6 +576,41 @@ function escapeHtml(s) {
     .replace(/"/g, "&quot;");
 }
 
+/** Set in render() to match job search; used by hl() in card HTML. */
+let _renderSearchQ = "";
+
+function highlightSearchMatchHtml(raw, q) {
+  if (q == null || String(q).trim() === "") {
+    return escapeHtml(raw);
+  }
+  const s = String(raw == null ? "" : raw);
+  const qLower = String(q).toLowerCase();
+  if (qLower.length === 0) {
+    return escapeHtml(s);
+  }
+  const sLower = s.toLowerCase();
+  let out = "";
+  let from = 0;
+  let idx;
+  for (;;) {
+    idx = sLower.indexOf(qLower, from);
+    if (idx < 0) {
+      out += escapeHtml(s.slice(from));
+      break;
+    }
+    out += escapeHtml(s.slice(from, idx));
+    out += '<mark class="search-hit">';
+    out += escapeHtml(s.slice(idx, idx + qLower.length));
+    out += "</mark>";
+    from = idx + qLower.length;
+  }
+  return out;
+}
+
+function hl(raw) {
+  return highlightSearchMatchHtml(raw, _renderSearchQ);
+}
+
 /** For double-quoted HTML attributes (e.g. data-jid). */
 function escapeAttr(s) {
   if (s == null) return "";
@@ -539,6 +793,7 @@ function appendOverdueAuditIfNeeded() {
     any = true;
   }
   if (any) save();
+  return any;
 }
 
 /**
@@ -556,6 +811,7 @@ function appendSlaBecameOverdueAuditIfNeeded() {
     any = true;
   }
   if (any) save();
+  return any;
 }
 
 function formatDurationHMFromMs(totalMs) {
@@ -669,6 +925,7 @@ function setJobAssignment(rawId, newValue) {
     appendSystemComment(j, msg);
   }
   save();
+  hapticNarrow();
   render();
 }
 
@@ -989,6 +1246,7 @@ function render() {
   if (historyEl) historyEl.innerHTML = "";
 
   const q = getSearchQuery();
+  _renderSearchQ = q;
 
   let actives;
   if (statusFilter === "Deleted") {
@@ -1029,14 +1287,14 @@ function render() {
   if (actives.length === 0 && activeEl) {
     const canReset = shouldOfferResetForEmptyActive();
     const resetBlock = canReset
-      ? '<p class="empty-hint empty-hint--actions"><button type="button" class="btn-empty-reset" onclick="resetFiltersAndSearch()">Reset filters &amp; search</button></p>'
+      ? '<p class="empty-hint empty-hint--actions"><button type="button" class="btn-empty-reset" onclick="resetFiltersAndSearch()">' +
+        t("resetFilters") +
+        "</button></p>"
       : "";
     const emptyMsg =
       statusFilter === "Deleted"
-        ? '<p class="empty-hint">No deleted jobs. Items stay here for 7 days, then are removed automatically.</p>' +
-          resetBlock
-        : '<p class="empty-hint">No open jobs match your filters. Clear search or set status to <strong>All</strong>, or add a new job from above.</p>' +
-          resetBlock;
+        ? "<p class=\"empty-hint\">" + t("emptyDeleted") + "</p>" + resetBlock
+        : "<p class=\"empty-hint\">" + t("emptyActive") + "</p>" + resetBlock;
     activeEl.innerHTML = emptyMsg;
   } else {
     actives.forEach((j) => {
@@ -1049,12 +1307,14 @@ function render() {
   if (doneList.length === 0 && historyEl) {
     const canHReset = shouldOfferResetForEmptyHistory();
     const hReset = canHReset
-      ? '<p class="empty-hint empty-hint--actions"><button type="button" class="btn-empty-reset" onclick="resetFiltersAndSearch()">Reset filters &amp; search</button></p>'
+      ? '<p class="empty-hint empty-hint--actions"><button type="button" class="btn-empty-reset" onclick="resetFiltersAndSearch()">' +
+        t("resetFilters") +
+        "</button></p>"
       : "";
     const baseH =
       historyViewFilter === "completedToday"
-        ? '<p class="empty-hint">No jobs completed on this day at the current filters. Try "All" history or clear search.</p>'
-        : '<p class="empty-hint">No completed jobs match your search or filters yet.</p>';
+        ? "<p class=\"empty-hint\">" + t("emptyHistoryToday") + "</p>"
+        : "<p class=\"empty-hint\">" + t("emptyHistory") + "</p>";
     historyEl.innerHTML = baseH + hReset;
   } else {
     doneList.forEach((j) => {
@@ -1065,6 +1325,7 @@ function render() {
   syncEngineerFilterUi();
   updateJobDetailModal();
   updateMobileFormFab();
+  updateMobileScrollTopBtn();
 }
 
 function idAttr(id) {
@@ -1415,10 +1676,10 @@ function renderActiveCardCompact(j) {
         <div class="job-card-tap" role="button" tabindex="0" aria-label="Open full job">
         ${photoBlock}
         <div class="job-body job-meta">
-          <div class="job-title"><strong>${escapeHtml(
+          <div class="job-title"><strong>${hl(
             j.location
           )}</strong></div>
-          <div class="job-problem job-problem--compact">${escapeHtml(
+          <div class="job-problem job-problem--compact">${hl(
             j.problem
           )}</div>
           ${renderJobMetaRow(j)}
@@ -1460,10 +1721,10 @@ function renderHistoryCardCompact(j) {
         <div class="job-card-tap" role="button" tabindex="0" aria-label="Open full job">
         ${photoBlock}
         <div class="job-body job-meta">
-          <div class="job-title"><strong>${escapeHtml(
+          <div class="job-title"><strong>${hl(
             j.location
           )}</strong></div>
-          <div class="job-problem job-problem--compact">${escapeHtml(
+          <div class="job-problem job-problem--compact">${hl(
             j.problem
           )}</div>
           ${renderJobMetaRow(j)}
@@ -1507,10 +1768,10 @@ function renderDeletedCardCompact(j) {
         <div class="job-card-tap" role="button" tabindex="0" aria-label="Open full job">
         ${photoBlock}
         <div class="job-body job-meta">
-          <div class="job-title"><strong>${escapeHtml(
+          <div class="job-title"><strong>${hl(
             j.location
           )}</strong></div>
-          <div class="job-problem job-problem--compact">${escapeHtml(
+          <div class="job-problem job-problem--compact">${hl(
             j.problem
           )}</div>
           ${renderJobMetaRow(j)}
@@ -1637,18 +1898,18 @@ function renderActiveCardFull(j, forModal) {
         <span class="job-status-badge job-status-badge--${vis.badgeMod}">${vis.badgeText}</span>
         ${photoBlock}
         <div class="job-body job-meta">
-          <div class="job-title"><strong>${escapeHtml(
+          <div class="job-title"><strong>${hl(
             j.location
           )}</strong></div>
-          <div class="job-problem">${escapeHtml(j.problem)}</div>
+          <div class="job-problem">${hl(j.problem)}</div>
           ${renderJobMetaRow(j)}
           ${renderJobAssignBlock(j, { modal: forModal, disabled: false })}
           ${renderJobPrioritySlaBlock(j)}
           ${statusInfoBlock}
         </div>
         ${notesBlock}
-        <label class="comment-label">Add a note</label>
-        <textarea class="comment-field comment-new" rows="2" placeholder="Type a note, then tap Save note"></textarea>
+        <label class="comment-label">Add a note <span class="comment-shortcut-hint" aria-hidden="true">· Ctrl/⌘+S</span></label>
+        <textarea class="comment-field comment-new" rows="2" placeholder="Type a note, then tap Save note" title="Ctrl+S or ⌘+S to save (desktop)"></textarea>
         <div class="comment-save-row">
           <button type="button" class="btn-save-note" onclick="saveEngineerNote(this)">Save note</button>
           <span class="comment-saved-hint" data-saved-hint="1" hidden>Saved</span>
@@ -1691,10 +1952,10 @@ function renderHistoryCardFull(j, forModal) {
         <span class="job-status-badge job-status-badge--${vis.badgeMod}">${vis.badgeText}</span>
         ${photoBlock}
         <div class="job-body job-meta">
-          <div class="job-title"><strong>${escapeHtml(
+          <div class="job-title"><strong>${hl(
             j.location
           )}</strong></div>
-          <div class="job-problem">${escapeHtml(j.problem)}</div>
+          <div class="job-problem">${hl(j.problem)}</div>
           ${renderJobMetaRow(j)}
           ${renderJobAssignBlock(j, { modal: forModal, disabled: true })}
           ${renderJobPrioritySlaBlock(j)}
@@ -1735,10 +1996,10 @@ function renderDeletedCardFull(j, forModal) {
         <span class="job-status-badge job-status-badge--deleted">DELETED</span>
         ${photoBlock}
         <div class="job-body job-meta">
-          <div class="job-title"><strong>${escapeHtml(
+          <div class="job-title"><strong>${hl(
             j.location
           )}</strong></div>
-          <div class="job-problem">${escapeHtml(j.problem)}</div>
+          <div class="job-problem">${hl(j.problem)}</div>
           ${renderJobMetaRow(j)}
           ${renderJobAssignBlock(j, { modal: forModal, disabled: true })}
           ${renderJobPrioritySlaBlock(j)}
@@ -1801,6 +2062,7 @@ function updateJobDetailModal() {
     }
     modal.hidden = true;
     syncAppBodyScrollLock();
+    updateMobileScrollTopBtn();
     return;
   }
   const j = jobs.find((x) => String(x.id) === String(mobileJobDetailId));
@@ -1814,6 +2076,7 @@ function updateJobDetailModal() {
       b.removeAttribute("aria-label");
     }
     syncAppBodyScrollLock();
+    updateMobileScrollTopBtn();
     return;
   }
   content.innerHTML = renderJobDetailBodyForModal(j);
@@ -1827,34 +2090,53 @@ function updateJobDetailModal() {
   }
   modal.hidden = false;
   syncAppBodyScrollLock();
+  updateMobileScrollTopBtn();
+}
+
+/**
+ * Оверлеи: деталь заявки, Park, фото, подсказки — влияют на scroll lock, FAB, pull-to-refresh.
+ */
+function getJobsOpenLayers() {
+  const jobDetailModal = document.getElementById("jobDetailModal");
+  const parkModal = document.getElementById("parkModal");
+  const photoLightbox = document.getElementById("photoLightbox");
+  const jobsTipsModal = document.getElementById("jobsTipsModal");
+  return {
+    jobDetail: !!(jobDetailModal && !jobDetailModal.hidden),
+    park: !!(parkModal && !parkModal.hidden),
+    photo: !!(photoLightbox && !photoLightbox.hidden),
+    tips: !!(jobsTipsModal && !jobsTipsModal.hidden),
+  };
 }
 
 function syncAppBodyScrollLock() {
-  const detail = document.getElementById("jobDetailModal");
-  const parkM = document.getElementById("parkModal");
-  const photoB = document.getElementById("photoLightbox");
-  if (detail && !detail.hidden) {
+  const L = getJobsOpenLayers();
+  if (L.jobDetail) {
     document.body.style.overflow = "hidden";
     return;
   }
-  if (parkM && !parkM.hidden) return;
-  if (photoB && !photoB.hidden) return;
+  if (L.tips) {
+    document.body.style.overflow = "hidden";
+    return;
+  }
+  if (L.park) return;
+  if (L.photo) return;
   document.body.style.overflow = "";
 }
 
 function updateMobileFormFab() {
   const form = document.getElementById("reportJobForm");
   const fab = document.getElementById("fabNewJob");
-  const modal = document.getElementById("jobDetailModal");
   if (!fab) return;
   if (!isNarrowLayout()) {
     fab.classList.remove("fab-hidden");
     fab.removeAttribute("aria-hidden");
     return;
   }
+  const L = getJobsOpenLayers();
   const formOpen = form && !form.classList.contains("report-job-form--collapsed");
-  const detailOpen = modal && !modal.hidden;
-  const hide = formOpen || detailOpen || mobileFabHiddenByScroll;
+  const hide =
+    formOpen || L.jobDetail || L.tips || mobileFabHiddenByScroll;
   if (hide) {
     fab.classList.add("fab-hidden");
     fab.setAttribute("aria-hidden", "true");
@@ -1862,6 +2144,58 @@ function updateMobileFormFab() {
     fab.classList.remove("fab-hidden");
     fab.removeAttribute("aria-hidden");
   }
+}
+
+/**
+ * NARROW: кнопка «наверх» слева внизу (не пересекает + Job справа).
+ */
+function updateMobileScrollTopBtn() {
+  const btn = document.getElementById("btnScrollTop");
+  if (!btn) return;
+  if (!isNarrowLayout() || !hasMainproLogin()) {
+    btn.classList.add("btn-scroll-top--hidden");
+    btn.setAttribute("aria-hidden", "true");
+    return;
+  }
+  const am = document.getElementById("appMain");
+  if (!am || am.hidden) {
+    btn.classList.add("btn-scroll-top--hidden");
+    btn.setAttribute("aria-hidden", "true");
+    return;
+  }
+  const L = getJobsOpenLayers();
+  if (L.jobDetail || L.park || L.photo || L.tips) {
+    btn.classList.add("btn-scroll-top--hidden");
+    btn.setAttribute("aria-hidden", "true");
+    return;
+  }
+  const y =
+    window.scrollY ||
+    window.pageYOffset ||
+    (document.documentElement && document.documentElement.scrollTop) ||
+    0;
+  if (y < 160) {
+    btn.classList.add("btn-scroll-top--hidden");
+    btn.setAttribute("aria-hidden", "true");
+  } else {
+    btn.classList.remove("btn-scroll-top--hidden");
+    btn.removeAttribute("aria-hidden");
+  }
+}
+
+function scrollToListTop() {
+  if (typeof window === "undefined") return;
+  try {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  } catch (e) {
+    window.scrollTo(0, 0);
+  }
+  setTimeout(function () {
+    if (isNarrowLayout()) {
+      onMobileFabScroll();
+      updateMobileScrollTopBtn();
+    }
+  }, 400);
 }
 
 /**
@@ -1880,12 +2214,12 @@ function onMobileFabScroll() {
     (document.documentElement && document.documentElement.scrollTop) ||
     0;
   const form = document.getElementById("reportJobForm");
-  const modal = document.getElementById("jobDetailModal");
+  const L = getJobsOpenLayers();
   const formOpen = form && !form.classList.contains("report-job-form--collapsed");
-  const detailOpen = modal && !modal.hidden;
-  if (formOpen || detailOpen) {
+  if (formOpen || L.jobDetail || L.tips) {
     mobileFabLastScrollY = y;
     updateMobileFormFab();
+    updateMobileScrollTopBtn();
     return;
   }
   const d = MOBILE_FAB_SCROLL_DELTA;
@@ -1900,6 +2234,7 @@ function onMobileFabScroll() {
   }
   mobileFabLastScrollY = y;
   updateMobileFormFab();
+  updateMobileScrollTopBtn();
 }
 
 function onJobCardTapOpen(e) {
@@ -1950,10 +2285,12 @@ function closeJobDetailModal() {
     mobileFabHiddenByScroll = true;
   }
   updateMobileFormFab();
+  updateMobileScrollTopBtn();
   requestAnimationFrame(function () {
     window.scrollTo(0, y);
     mobileFabLastScrollY = y;
     updateMobileFormFab();
+    updateMobileScrollTopBtn();
   });
 }
 
@@ -1987,6 +2324,8 @@ function exportJobsBackup() {
   try {
     const payload = {
       exportedAt: new Date().toISOString(),
+      schemaVersion: 1,
+      appVersion: MAINPRO_JOBS_APP_VERSION,
       app: "MainPro Jobs",
       mainpro_user: getMainproUser(),
       jobs: jobs,
@@ -2008,6 +2347,110 @@ function exportJobsBackup() {
   } catch (e) {
     showJobsToast("Export failed");
   }
+}
+
+function csvEscapeCell(v) {
+  const s = String(v == null ? "" : v).replace(/\r\n/g, "\n");
+  if (/[",\n]/.test(s)) {
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+  return s;
+}
+
+/**
+ * Таблица заявок для Excel: основные поля.
+ */
+function exportJobsCsv() {
+  if (!hasMainproLogin()) {
+    showJobsToast("Select a role first");
+    return;
+  }
+  const headers = [
+    "id",
+    "location",
+    "problem",
+    "status",
+    "priority",
+    "assignedTo",
+    "reportedBy",
+    "createdAt",
+    "dueAt",
+    "completedAt",
+    "pendingUntil",
+    "deleted",
+  ];
+  const lines = [headers.join(",")];
+  jobs.forEach(function (j) {
+    if (!j) {
+      return;
+    }
+    const row = headers.map(function (h) {
+      if (h === "deleted") {
+        return j.deleted ? "1" : "0";
+      }
+      return csvEscapeCell(j[h]);
+    });
+    lines.push(row.join(","));
+  });
+  const blob = new Blob(["\uFEFF" + lines.join("\r\n")], {
+    type: "text/csv;charset=utf-8",
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download =
+    "mainpro-jobs-" +
+    new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19) +
+    ".csv";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showJobsToast("CSV downloaded");
+}
+
+function compressDataUrlWithCanvas(dataUrl, maxW, q, next) {
+  if (!dataUrl || String(dataUrl).indexOf("data:image/") !== 0) {
+    next(dataUrl);
+    return;
+  }
+  if (typeof document === "undefined" || !document.createElement) {
+    next(dataUrl);
+    return;
+  }
+  const im = new Image();
+  im.onload = function () {
+    let w = im.width;
+    let h = im.height;
+    if (w < 2 || h < 2) {
+      next(dataUrl);
+      return;
+    }
+    if (w > maxW) {
+      h = Math.max(1, Math.round((h * maxW) / w));
+      w = maxW;
+    }
+    const c = document.createElement("canvas");
+    c.width = w;
+    c.height = h;
+    const ctx = c.getContext("2d");
+    if (!ctx) {
+      next(dataUrl);
+      return;
+    }
+    ctx.drawImage(im, 0, 0, w, h);
+    let out;
+    try {
+      out = c.toDataURL("image/jpeg", q);
+    } catch (e) {
+      out = dataUrl;
+    }
+    next(out);
+  };
+  im.onerror = function () {
+    next(dataUrl);
+  };
+  im.src = dataUrl;
 }
 
 /**
@@ -2075,7 +2518,92 @@ function importJobsFromJsonText(text) {
     delete jobLogExpanded[k];
   });
   render();
+  hapticNarrow();
   showJobsToast("Import complete");
+  const s2 = document.getElementById("jobSearch");
+  if (s2) {
+    try {
+      s2.focus();
+    } catch (e) {
+      /* ignore */
+    }
+  }
+  return true;
+}
+
+/**
+ * Слияние: id совпали — заявка заменяется нормализованной; новые id — добавляются.
+ */
+function importJobsMergeFromJsonText(text) {
+  let o;
+  try {
+    o = JSON.parse(text);
+  } catch (e) {
+    showJobsToast("Invalid JSON file");
+    return false;
+  }
+  let arr;
+  if (Array.isArray(o)) {
+    arr = o;
+  } else if (o && Array.isArray(o.jobs)) {
+    arr = o.jobs;
+  } else {
+    showJobsToast("File must contain a jobs array");
+    return false;
+  }
+  const n = arr.length;
+  if (
+    !confirm(
+      "Merge " +
+        n +
+        " job(s) into the current list? Matching id = replace, new id = add. Continue?"
+    )
+  ) {
+    return false;
+  }
+  const lsBackup = localStorage.getItem("jobs");
+  try {
+    for (let k = 0; k < arr.length; k++) {
+      const raw = arr[k];
+      try {
+        localStorage.setItem("jobs", JSON.stringify([raw]));
+        const norm = loadJobs();
+        if (!norm.length) {
+          continue;
+        }
+        const one = norm[0];
+        const ix = jobs.findIndex(function (j) {
+          return String(j.id) === String(one.id);
+        });
+        if (ix >= 0) {
+          jobs[ix] = one;
+        } else {
+          jobs.push(one);
+        }
+      } finally {
+        localStorage.setItem("jobs", lsBackup);
+      }
+    }
+  } catch (e) {
+    showJobsToast("Merge failed");
+    return false;
+  }
+  save();
+  jobs = loadJobs();
+  if (mobileJobDetailId) {
+    const still = jobs.some(function (x) {
+      return String(x.id) === String(mobileJobDetailId);
+    });
+    if (!still) {
+      mobileJobDetailId = null;
+      const m = document.getElementById("jobDetailModal");
+      if (m) m.hidden = true;
+      syncAppBodyScrollLock();
+    }
+  }
+  render();
+  hapticNarrow();
+  showJobsToast("Merge complete");
   return true;
 }
 
@@ -2085,6 +2613,15 @@ function triggerImportBackup() {
     return;
   }
   const inp = document.getElementById("importBackupInput");
+  if (inp) inp.click();
+}
+
+function triggerImportMerge() {
+  if (!hasMainproLogin()) {
+    showJobsToast("Select a role first");
+    return;
+  }
+  const inp = document.getElementById("importMergeInput");
   if (inp) inp.click();
 }
 
@@ -2134,6 +2671,7 @@ function addJob() {
     }
     jobs.unshift(job);
     save();
+    hapticNarrow();
     const locEl = document.getElementById("location");
     const probEl = document.getElementById("problem");
     const priEl = document.getElementById("priority");
@@ -2167,7 +2705,10 @@ function addJob() {
   if (file) {
     const r = new FileReader();
     r.onload = function () {
-      done(typeof r.result === "string" ? r.result : "");
+      const src = typeof r.result === "string" ? r.result : "";
+      compressDataUrlWithCanvas(src, 1280, 0.82, function (out) {
+        done(out);
+      });
     };
     r.onerror = function () {
       done("");
@@ -2201,6 +2742,7 @@ function setStatus(id, status) {
   }
   save();
   render();
+  hapticNarrow();
 }
 
 function openParkDialog(id) {
@@ -2215,6 +2757,7 @@ function openParkDialog(id) {
   const m = document.getElementById("parkModal");
   if (m) m.hidden = false;
   document.body.style.overflow = "hidden";
+  updateMobileScrollTopBtn();
 }
 
 function closeParkDialog() {
@@ -2224,6 +2767,26 @@ function closeParkDialog() {
   const reasonEl = document.getElementById("parkReasonInput");
   if (reasonEl) reasonEl.value = "";
   syncAppBodyScrollLock();
+  updateMobileScrollTopBtn();
+}
+
+function openJobsTipsDialog() {
+  const m = document.getElementById("jobsTipsModal");
+  if (!m) return;
+  const am = document.getElementById("appMain");
+  if (!am || am.hidden || !hasMainproLogin()) return;
+  m.hidden = false;
+  document.body.style.overflow = "hidden";
+  updateMobileFormFab();
+  updateMobileScrollTopBtn();
+}
+
+function closeJobsTipsDialog() {
+  const m = document.getElementById("jobsTipsModal");
+  if (m) m.hidden = true;
+  syncAppBodyScrollLock();
+  updateMobileFormFab();
+  updateMobileScrollTopBtn();
 }
 
 function confirmPark() {
@@ -2263,6 +2826,7 @@ function confirmPark() {
   save();
   closeParkDialog();
   render();
+  hapticNarrow();
 }
 
 function setParkReasonChip(btn) {
@@ -2284,6 +2848,8 @@ window.openParkDialog = openParkDialog;
 window.closeParkDialog = closeParkDialog;
 window.confirmPark = confirmPark;
 window.setParkReasonChip = setParkReasonChip;
+window.openJobsTipsDialog = openJobsTipsDialog;
+window.closeJobsTipsDialog = closeJobsTipsDialog;
 
 function flashCommentSaved(id) {
   const want = String(id);
@@ -2315,8 +2881,15 @@ function saveEngineerNote(btn) {
   const ta = job.querySelector("textarea.comment-new");
   const text = ta ? String(ta.value).trim() : "";
   if (!text) return;
+  const saveB = job.querySelector("button.btn-save-note");
+  if (saveB) {
+    saveB.disabled = true;
+  }
   const j = jobs.find((x) => String(x.id) === String(id));
   if (!j) {
+    if (saveB) {
+      saveB.disabled = false;
+    }
     alert("Could not find this job. Try refreshing the page.");
     return;
   }
@@ -2330,6 +2903,7 @@ function saveEngineerNote(btn) {
   if (ta) ta.value = "";
   save();
   render();
+  hapticNarrow();
   setTimeout(function () {
     flashCommentSaved(String(id));
   }, 0);
@@ -2358,6 +2932,7 @@ function scrollToReportJob() {
     }
   }, 450);
   updateMobileFormFab();
+  updateMobileScrollTopBtn();
 }
 
 window.saveEngineerNote = saveEngineerNote;
@@ -2368,6 +2943,7 @@ window.onJobAssignBlockClick = onJobAssignBlockClick;
 window.resetFiltersAndSearch = resetFiltersAndSearch;
 window.scrollToReportJob = scrollToReportJob;
 window.closeJobDetailModal = closeJobDetailModal;
+window.scrollToListTop = scrollToListTop;
 
 function openPhotoLightbox(src) {
   if (!src || String(src).indexOf("data:image/") !== 0) return;
@@ -2378,6 +2954,7 @@ function openPhotoLightbox(src) {
   im.alt = "Fault photo (full size)";
   box.hidden = false;
   document.body.style.overflow = "hidden";
+  updateMobileScrollTopBtn();
 }
 
 function closePhotoLightbox() {
@@ -2386,6 +2963,7 @@ function closePhotoLightbox() {
   if (im) im.removeAttribute("src");
   if (box) box.hidden = true;
   syncAppBodyScrollLock();
+  updateMobileScrollTopBtn();
 }
 
 function deleteJob(id) {
@@ -2546,7 +3124,26 @@ setInterval(function () {
   if (!hasMainproLogin()) return;
   const am = document.getElementById("appMain");
   if (!am || am.hidden) return;
-  render();
+  const sig = jobs
+    .map(function (j) {
+      return String(j.id) + ":" + (j.isOverdue ? "1" : "0");
+    })
+    .join("|");
+  syncOverdueFlags();
+  const sig2 = jobs
+    .map(function (j) {
+      return String(j.id) + ":" + (j.isOverdue ? "1" : "0");
+    })
+    .join("|");
+  const a = appendOverdueAuditIfNeeded();
+  const b = appendSlaBecameOverdueAuditIfNeeded();
+  if (a || b || sig !== sig2) {
+    render();
+  } else {
+    updateDashboard();
+    updateJobDetailModal();
+    updateDeletedFilterCount();
+  }
 }, 30000);
 
 document.addEventListener("click", function (e) {
@@ -2566,7 +3163,90 @@ document.addEventListener("click", function (e) {
   }
 });
 document.addEventListener("keydown", function (e) {
+  if (e.key === "/") {
+    if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+      const te = e.target;
+      if (te) {
+        const tag = te.tagName && String(te.tagName).toLowerCase();
+        if (
+          tag === "input" ||
+          tag === "textarea" ||
+          tag === "select" ||
+          (te.isContentEditable === true)
+        ) {
+          return;
+        }
+      }
+      const am = document.getElementById("appMain");
+      if (am && !am.hidden && hasMainproLogin()) {
+        const s = document.getElementById("jobSearch");
+        if (s) {
+          e.preventDefault();
+          try {
+            s.focus();
+            if (s.select) s.select();
+          } catch (err) {
+            s.focus();
+          }
+        }
+      }
+    }
+  }
+  if (e.key === "?") {
+    if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+      const te = e.target;
+      if (te) {
+        const tag = te.tagName && String(te.tagName).toLowerCase();
+        if (
+          tag === "input" ||
+          tag === "textarea" ||
+          tag === "select" ||
+          te.isContentEditable === true
+        ) {
+          return;
+        }
+      }
+      const am = document.getElementById("appMain");
+      if (am && !am.hidden && hasMainproLogin()) {
+        e.preventDefault();
+        openJobsTipsDialog();
+      }
+    }
+  }
+  if (e.key === "s" || e.key === "S") {
+    if ((e.ctrlKey || e.metaKey) && !e.altKey) {
+      const te = e.target;
+      if (
+        te &&
+        te.classList &&
+        te.classList.contains("comment-new") &&
+        te.tagName &&
+        String(te.tagName).toLowerCase() === "textarea"
+      ) {
+        const am = document.getElementById("appMain");
+        if (
+          am &&
+          !am.hidden &&
+          hasMainproLogin() &&
+          te.closest &&
+          te.closest("#appMain")
+        ) {
+          e.preventDefault();
+          const job = te.closest(".job");
+          if (job) {
+            const btn = job.querySelector("button.btn-save-note");
+            if (btn) saveEngineerNote(btn);
+          }
+        }
+      }
+    }
+  }
   if (e.key === "Escape" || e.key === "Esc") {
+    const tipsM = document.getElementById("jobsTipsModal");
+    if (tipsM && !tipsM.hidden) {
+      closeJobsTipsDialog();
+      return;
+    }
     const jdm = document.getElementById("jobDetailModal");
     if (jdm && !jdm.hidden) {
       closeJobDetailModal();
@@ -2578,7 +3258,28 @@ document.addEventListener("keydown", function (e) {
       return;
     }
     const box = document.getElementById("photoLightbox");
-    if (box && !box.hidden) closePhotoLightbox();
+    if (box && !box.hidden) {
+      closePhotoLightbox();
+      return;
+    }
+    const s = document.getElementById("jobSearch");
+    if (s && e.target === s) {
+      e.preventDefault();
+      if (String(s.value || "").trim() !== "") {
+        s.value = "";
+        if (_jobSearchDebounceTimer) {
+          clearTimeout(_jobSearchDebounceTimer);
+          _jobSearchDebounceTimer = null;
+        }
+        render();
+      } else {
+        try {
+          s.blur();
+        } catch (err) {
+          /* ignore */
+        }
+      }
+    }
   }
   const t = e.target;
   if (t && t.classList && t.classList.contains("job-photo-thumb") && (e.key === "Enter" || e.key === " ")) {
@@ -2629,6 +3330,7 @@ window.addEventListener("resize", function () {
     onMobileFabScroll();
   } else {
     updateMobileFormFab();
+    updateMobileScrollTopBtn();
   }
 });
 
@@ -2652,13 +3354,8 @@ window.addEventListener("resize", function () {
     const am = document.getElementById("appMain");
     if (!am || am.hidden) return true;
     if (!hasMainproLogin()) return true;
-    const d = document.getElementById("jobDetailModal");
-    if (d && !d.hidden) return true;
-    const p = document.getElementById("parkModal");
-    if (p && !p.hidden) return true;
-    const b = document.getElementById("photoLightbox");
-    if (b && !b.hidden) return true;
-    return false;
+    const L = getJobsOpenLayers();
+    return L.jobDetail || L.park || L.photo || L.tips;
   }
   document.addEventListener(
     "touchstart",
@@ -2714,7 +3411,76 @@ window.addEventListener("resize", function () {
   });
 })();
 
+(function bindImportMerge() {
+  const inp = document.getElementById("importMergeInput");
+  if (!inp || inp._mainproImportMergeBound) return;
+  inp._mainproImportMergeBound = true;
+  inp.addEventListener("change", function () {
+    const f = inp.files && inp.files[0];
+    if (!f) return;
+    if (!hasMainproLogin()) {
+      showJobsToast("Select a role first");
+      inp.value = "";
+      return;
+    }
+    const r = new FileReader();
+    r.onload = function () {
+      if (typeof r.result !== "string") return;
+      importJobsMergeFromJsonText(r.result);
+    };
+    r.onerror = function () {
+      showJobsToast("Could not read file");
+    };
+    r.readAsText(f);
+    inp.value = "";
+  });
+})();
+
 window.exportJobsBackup = exportJobsBackup;
+window.exportJobsCsv = exportJobsCsv;
 window.triggerImportBackup = triggerImportBackup;
+window.triggerImportMerge = triggerImportMerge;
+window.toggleUiLang = toggleUiLang;
+window.showJobsToast = showJobsToast;
+
+let _mainproPrevOffline = false;
+
+function updateOnlineStatusBar() {
+  const el = document.getElementById("offlineBar");
+  if (!el) return;
+  const online = typeof navigator === "undefined" || navigator.onLine;
+  if (online) {
+    el.hidden = true;
+    el.textContent = "";
+    return;
+  }
+  el.hidden = false;
+  el.textContent =
+    "You're offline — work is saved on this device only";
+}
+
+function onOnlineStatusEvent() {
+  const online = typeof navigator === "undefined" || navigator.onLine;
+  if (online) {
+    if (_mainproPrevOffline) {
+      showJobsToast("Back online");
+    }
+    _mainproPrevOffline = false;
+  } else {
+    _mainproPrevOffline = true;
+  }
+  updateOnlineStatusBar();
+}
+
+(function bindOnlineStatus() {
+  if (typeof window === "undefined" || window._mainproOnlineBound) return;
+  window._mainproOnlineBound = true;
+  if (typeof navigator !== "undefined" && !navigator.onLine) {
+    _mainproPrevOffline = true;
+  }
+  window.addEventListener("online", onOnlineStatusEvent);
+  window.addEventListener("offline", onOnlineStatusEvent);
+  updateOnlineStatusBar();
+})();
 
 applyAuthUi();

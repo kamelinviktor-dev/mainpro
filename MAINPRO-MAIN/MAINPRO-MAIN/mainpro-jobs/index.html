@@ -9,7 +9,10 @@
   <meta name="apple-mobile-web-app-title" content="MainPro Jobs">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="format-detection" content="telephone=no">
+  <meta name="description" content="Local-first hotel maintenance and job tracking. Assign, status, notes, export backup, works offline in the browser.">
   <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="icon.svg" sizes="any">
+  <link rel="apple-touch-icon" href="icon.svg">
   <title>MainPro Jobs</title>
   <style>
     * { box-sizing: border-box; }
@@ -22,6 +25,27 @@
       background: #f5f5f5;
       color: #1a1a1a;
       line-height: 1.45;
+    }
+
+    .offline-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 35000;
+      box-sizing: border-box;
+      padding: max(8px, env(safe-area-inset-top, 0px)) 14px 8px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.3;
+      color: #fff;
+      background: #b45309;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+    }
+
+    .offline-bar[hidden] {
+      display: none !important;
     }
 
     .app-wrap {
@@ -85,6 +109,96 @@
 
     .btn-header-import:active {
       background: #d1fae5;
+    }
+
+    .btn-header-tips {
+      flex: 0 0 auto;
+      min-width: 38px;
+      padding: 8px 10px;
+      font-size: 15px;
+      font-weight: 800;
+      line-height: 1;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      background: #f9fafb;
+      color: #475569;
+      cursor: pointer;
+      white-space: nowrap;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .btn-header-tips:active {
+      background: #f1f5f9;
+    }
+
+    .btn-header-lang {
+      flex: 0 0 auto;
+      min-width: 38px;
+      padding: 8px 8px;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1;
+      border: 1px solid #a7f3d0;
+      border-radius: 8px;
+      background: #ecfdf5;
+      color: #065f46;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .search-hit {
+      background: rgba(250, 204, 21, 0.45);
+      color: inherit;
+      padding: 0 1px;
+      border-radius: 2px;
+    }
+
+    .job-card--url-flash {
+      animation: mainproUrlFlash 1.1s ease-out 1;
+    }
+
+    @keyframes mainproUrlFlash {
+      0% { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.7); }
+      100% { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .job-card--url-flash {
+        animation: none;
+        outline: 2px solid #059669;
+        outline-offset: 2px;
+      }
+    }
+
+    .jobs-tips-lede {
+      font-size: 0.86rem;
+      color: #64748b;
+      margin: 0 0 10px;
+      line-height: 1.4;
+    }
+
+    .jobs-tips-list {
+      margin: 0;
+      padding: 0 0 0 1.1em;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      color: #334155;
+    }
+
+    .jobs-tips-list li {
+      margin-bottom: 8px;
+    }
+
+    .jobs-tips-list li:last-child {
+      margin-bottom: 0;
+    }
+
+    .jobs-tips-gesture {
+      list-style: none;
+      margin-left: -1.1em;
+      padding-top: 4px;
+      font-size: 0.86rem;
+      color: #64748b;
     }
 
     .btn-change-user {
@@ -293,6 +407,9 @@
       margin-top: 0;
       border-top: 1px solid #e5e7eb;
       padding-top: 12px;
+      min-width: 0;
+      max-width: 100%;
+      box-sizing: border-box;
     }
 
     .tabs {
@@ -348,6 +465,8 @@
       display: flex;
       flex-direction: column;
       gap: 12px;
+      min-width: 0;
+      max-width: 100%;
     }
 
     .empty-hint {
@@ -399,6 +518,8 @@
       margin-bottom: 12px;
       overflow: hidden;
       box-sizing: border-box;
+      min-width: 0;
+      max-width: 100%;
       background: #f1f5f9;
       border-color: #94a3b8;
       box-shadow: 0 1px 3px rgba(15, 23, 42, 0.07), 0 1px 2px rgba(15, 23, 42, 0.05);
@@ -444,6 +565,8 @@
 
     .job .job-body {
       padding-right: 5.6rem;
+      min-width: 0;
+      max-width: 100%;
     }
 
     .job-status-badge {
@@ -637,6 +760,7 @@
       margin-bottom: 2px;
       color: #111827;
       line-height: 1.25;
+      overflow-wrap: anywhere;
     }
 
     .job-title strong {
@@ -655,6 +779,7 @@
       color: #1f2937;
       line-height: 1.35;
       font-weight: 500;
+      overflow-wrap: anywhere;
     }
 
     .job-meta-row {
@@ -1103,10 +1228,28 @@
       margin: 6px 0 4px;
     }
 
+    .comment-shortcut-hint {
+      font-weight: 500;
+      color: #94a3b8;
+      font-size: 0.92em;
+    }
+
+    @media (max-width: 600px) {
+      .comment-shortcut-hint {
+        display: none;
+      }
+    }
+
     .comment-field {
       min-height: 64px;
       font-size: 15px;
       margin-bottom: 4px;
+      display: block;
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
+      resize: vertical;
     }
 
     .job .job-actions {
@@ -1268,16 +1411,48 @@
       box-shadow: 0 0 0 1px #fff, 0 0 0 2px #059669;
     }
 
+    .job-search-wrap {
+      position: relative;
+      width: 100%;
+      margin: 0;
+    }
+
     .job-search {
       box-sizing: border-box;
       width: 100%;
       height: 48px;
-      padding: 0 16px;
+      padding: 0 44px 0 16px;
       font-size: 16px;
       border: 1px solid #e2e8f0;
       border-radius: 16px;
       margin: 0;
       background: #fff;
+    }
+
+    .job-search-shortcut {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .job-search-kbd {
+      display: inline-block;
+      min-width: 1.4em;
+      padding: 2px 6px;
+      font-size: 11px;
+      font-weight: 600;
+      font-family: ui-monospace, "Cascadia Code", "Segoe UI", monospace;
+      line-height: 1.2;
+      text-align: center;
+      color: #64748b;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      border-bottom-width: 2px;
+      border-radius: 5px;
     }
 
     .job-search::placeholder {
@@ -1348,6 +1523,8 @@
       gap: 10px;
       margin: 6px 0 2px;
       flex-wrap: wrap;
+      min-width: 0;
+      max-width: 100%;
     }
 
     .btn-save-note {
@@ -1377,6 +1554,8 @@
 
     .job-log-stack {
       margin-bottom: 2px;
+      min-width: 0;
+      max-width: 100%;
     }
 
     .comment-log {
@@ -1426,15 +1605,19 @@
     .notes-container {
       max-height: 120px;
       overflow-y: auto;
+      overflow-x: hidden;
       padding-right: 4px;
       margin-bottom: 4px;
+      min-width: 0;
+      max-width: 100%;
       -webkit-overflow-scrolling: touch;
       scrollbar-width: thin;
     }
 
     .job-card.logs-expanded .notes-container {
       max-height: none;
-      overflow: visible;
+      overflow-x: hidden;
+      overflow-y: visible;
     }
 
     .notes-container .comment-log--empty {
@@ -1597,6 +1780,9 @@
     .note-card,
     .comment-log-item--engineer.note-card,
     .note-card.comment-log-item--engineer {
+      min-width: 0;
+      max-width: 100%;
+      box-sizing: border-box;
       padding: 7px 9px;
       margin-bottom: 6px;
       background: rgba(255, 255, 255, 0.85);
@@ -1711,6 +1897,8 @@
       line-height: 1.4;
       color: #111827;
       white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      word-break: break-word;
     }
 
     textarea.comment-new {
@@ -1892,6 +2080,10 @@
       display: none;
     }
 
+    .btn-scroll-top {
+      display: none;
+    }
+
     /* —— Mobile: phone-optimized layout (≤600px) —— */
     @media (max-width: 600px) {
       html {
@@ -1921,8 +2113,10 @@
         font-size: 13px;
       }
 
+      .btn-header-lang,
       .btn-header-export,
-      .btn-header-import {
+      .btn-header-import,
+      .btn-header-tips {
         min-height: 40px;
         padding: 8px 12px;
         font-size: 13px;
@@ -2198,6 +2392,45 @@
         width: 100%;
       }
 
+      #appMain .btn-scroll-top {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: fixed;
+        left: 14px;
+        bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+        z-index: 100;
+        width: 48px;
+        height: 48px;
+        margin: 0;
+        padding: 0;
+        border: 1px solid #e2e8f0;
+        border-radius: 50% !important;
+        font-size: 18px;
+        font-weight: 700;
+        line-height: 1;
+        color: #0f766e;
+        background: #fff;
+        box-shadow: 0 2px 12px rgba(15, 23, 42, 0.12);
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+        transition: opacity 0.25s ease, transform 0.25s ease, background 0.15s ease;
+      }
+
+      #appMain .btn-scroll-top.btn-scroll-top--hidden {
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(12px);
+      }
+
+      #appMain .btn-scroll-top:not(.btn-scroll-top--hidden):active {
+        transform: scale(0.96);
+        background: #f0fdf4;
+      }
+
       #appMain .fab-new-job {
         display: flex;
         align-items: center;
@@ -2252,9 +2485,12 @@
 
     @media (prefers-reduced-motion: reduce) {
       #appMain .fab-new-job,
+      #appMain .btn-scroll-top,
       .btn-empty-reset,
       .btn-header-export,
       .btn-header-import,
+      .btn-header-tips,
+      .btn-header-lang,
       .btn-change-user {
         transition: none !important;
       }
@@ -2263,10 +2499,12 @@
 </head>
 <body>
 
+  <div id="offlineBar" class="offline-bar" hidden role="status" aria-live="polite" aria-atomic="true"></div>
+
   <div id="loginScreen" class="login-screen" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
     <div class="login-card">
       <h1 id="loginTitle">Select your role</h1>
-      <p class="login-sub">Who is using this device right now?</p>
+      <p id="loginSub" class="login-sub">Who is using this device right now?</p>
       <div class="login-roles">
         <button type="button" onclick="selectUserRole('Reception')">Reception</button>
         <button type="button" onclick="selectUserRole('Housekeeping')">Housekeeping</button>
@@ -2306,19 +2544,43 @@
     </div>
   </div>
 
+  <div id="jobsTipsModal" class="park-modal" style="z-index: 18900;" hidden role="dialog" aria-modal="true" aria-labelledby="jobsTipsTitle" aria-describedby="jobsTipsDesc">
+    <div class="park-modal-backdrop" onclick="closeJobsTipsDialog()"></div>
+    <div class="park-modal-card" role="document">
+      <h3 id="jobsTipsTitle">Keyboard &amp; gestures</h3>
+      <p id="jobsTipsDesc" class="jobs-tips-lede">From the main list, when the focus is not in a text field:</p>
+      <ul class="jobs-tips-list">
+        <li><kbd class="job-search-kbd">/</kbd> — focus job search (same as the <kbd class="job-search-kbd">/</kbd> chip in the field)</li>
+        <li><kbd class="job-search-kbd">?</kbd> or the <strong>?</strong> button up here — open this panel</li>
+        <li><kbd class="job-search-kbd">Esc</kbd> — close full job, Park dialog, or photo; in search, clear text or close the keyboard if empty</li>
+        <li><kbd class="job-search-kbd">Ctrl</kbd> + <kbd class="job-search-kbd">S</kbd> or <kbd class="job-search-kbd">⌘</kbd> + <kbd class="job-search-kbd">S</kbd> — save an engineer note (with the note field focused)</li>
+        <li class="jobs-tips-gesture">Narrow screen: pull down at the very top to refresh the list</li>
+        <li class="jobs-tips-gesture">Install the app (browser menu → “Install” or “Add to Home Screen”) to open it like an app. After the first full load, core files are cached for offline use (HTTPS or localhost only).</li>
+      </ul>
+      <div class="park-modal-actions" style="margin-top: 14px;">
+        <button type="button" onclick="closeJobsTipsDialog()">Close</button>
+      </div>
+    </div>
+  </div>
+
   <div id="appMain" class="app-wrap" hidden>
     <div class="app-header-row">
-      <div class="app-header">MainPro Jobs</div>
+      <div class="app-header" id="appHeaderTitle">MainPro Jobs</div>
       <div class="app-header-actions">
+        <button type="button" class="btn-header-lang" id="btnUiLang" onclick="toggleUiLang()" title="Switch language" aria-label="Language">EN</button>
+        <button type="button" class="btn-header-tips" onclick="openJobsTipsDialog()" title="Keyboard tips — press ?" aria-label="Keyboard tips">?</button>
         <button type="button" class="btn-header-export" id="btnExportBackup" onclick="exportJobsBackup()" title="Download JSON backup of jobs (and current role)">Export</button>
-        <button type="button" class="btn-header-import" onclick="triggerImportBackup()" title="Restore jobs from a JSON backup file">Import</button>
+        <button type="button" class="btn-header-export" id="btnExportCsv" onclick="exportJobsCsv()" title="Download CSV (Excel)">CSV</button>
+        <button type="button" class="btn-header-import" id="btnImportBackup" onclick="triggerImportBackup()" title="Replace all jobs from JSON file">Import</button>
+        <button type="button" class="btn-header-import" id="btnImportMerge" onclick="triggerImportMerge()" title="Merge jobs from JSON (same id = replace)">Merge</button>
         <input type="file" id="importBackupInput" accept=".json,application/json" hidden aria-hidden="true">
-        <button type="button" class="btn-change-user" onclick="showChangeUser()">Change user</button>
+        <input type="file" id="importMergeInput" accept=".json,application/json" hidden aria-hidden="true">
+        <button type="button" class="btn-change-user" id="btnChangeUser" onclick="showChangeUser()">Change user</button>
       </div>
     </div>
 
     <div class="report-job-form" id="reportJobForm">
-      <h2 class="report-job-form__title">Report a Job</h2>
+      <h2 class="report-job-form__title" id="reportFormTitle">Report a Job</h2>
       <div class="form-field">
         <input id="location" placeholder="Room / area">
       </div>
@@ -2391,7 +2653,10 @@
           <span class="job-dashboard-value" id="dashCountDeleted">0</span>
         </button>
       </div>
-      <input type="search" id="jobSearch" class="job-search" placeholder="Search jobs..." autocomplete="off" enterkeyhint="search">
+      <div class="job-search-wrap" role="search" aria-label="Search jobs list">
+        <input type="search" id="jobSearch" class="job-search" placeholder="Search jobs..." autocomplete="off" enterkeyhint="search" title="Press / to focus from anywhere. Escape: clear text or close keyboard when empty." aria-label="Search jobs. Press the slash key to focus this field from outside a text input. Press Escape to clear, or to dismiss the keyboard if the field is empty.">
+        <span class="job-search-shortcut" aria-hidden="true" title="Shortcut: / to focus search"><kbd class="job-search-kbd">/</kbd></span>
+      </div>
       <div class="engineer-filter-row">
         <label for="engineerFilter" class="engineer-filter-label">Engineer</label>
         <div class="engineer-filter-controls">
@@ -2426,6 +2691,7 @@
     </div>
     </div>
 
+    <button type="button" class="btn-scroll-top btn-scroll-top--hidden" id="btnScrollTop" onclick="scrollToListTop()" title="Back to top" aria-label="Back to top">↑</button>
     <button type="button" class="fab-new-job" id="fabNewJob" onclick="scrollToReportJob()" aria-label="Report a new job">+ Job</button>
   </div>
 
@@ -2440,6 +2706,35 @@
   <div id="jobsToast" class="jobs-toast" role="status" aria-live="polite" hidden></div>
 
   <script src="app.js"></script>
+  <script>
+    (function () {
+      if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
+        return;
+      }
+      window.addEventListener("load", function () {
+        navigator.serviceWorker
+          .register("sw.js", { scope: "./" })
+          .then(function (reg) {
+            reg.addEventListener("updatefound", function () {
+              var w = reg.installing;
+              if (!w) return;
+              w.addEventListener("statechange", function () {
+                if (
+                  w.state === "installed" &&
+                  navigator.serviceWorker.controller &&
+                  typeof window.showJobsToast === "function"
+                ) {
+                  window.showJobsToast("Update available — refresh to use the latest version");
+                }
+              });
+            });
+          })
+          .catch(function () {
+            /* file://, or registration blocked */
+          });
+      });
+    })();
+  </script>
 
 </body>
 </html>
