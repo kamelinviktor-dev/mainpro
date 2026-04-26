@@ -1,9 +1,10 @@
-let jobs = loadJobs();
 /**
  * All | New | In Progress | Pending | Overdue (active list).
  * "Done" kept for old localStorage.
  */
 let statusFilter = "All";
+/** "All" | engineer name — filter by job.assignedTo */
+let engineerFilter = "All";
 /** "all" | "completedToday" — History tab */
 let historyViewFilter = "all";
 /** set when opening Park modal */
@@ -22,6 +23,27 @@ const MAINPRO_ROLES = [
   "Maintenance",
   "Manager",
 ];
+
+/** Assign dropdown + filter (temporary list). */
+const ASSIGNED_ENGINEER_OPTIONS = [
+  "Unassigned",
+  "Engineer 1",
+  "Engineer 2",
+  "Engineer 3",
+  "Manager",
+];
+
+/** Quick filter "My Jobs" — same value as dropdown option. */
+const MY_JOBS_ENGINEER_FILTER = "Engineer 1";
+
+function normalizeAssignedTo(j) {
+  if (!j) return "Unassigned";
+  const v = String(j.assignedTo == null ? "" : j.assignedTo).trim();
+  if (!v) return "Unassigned";
+  return v;
+}
+
+let jobs = loadJobs();
 
 function getMainproUser() {
   try {
@@ -142,6 +164,16 @@ function loadJobs() {
     if (x.reportedBy == null) {
       x.reportedBy = "";
       changed = true;
+    }
+    if (x.assignedTo == null || String(x.assignedTo).trim() === "") {
+      x.assignedTo = "Unassigned";
+      changed = true;
+    } else {
+      x.assignedTo = String(x.assignedTo).trim();
+      if (ASSIGNED_ENGINEER_OPTIONS.indexOf(x.assignedTo) < 0) {
+        x.assignedTo = "Unassigned";
+        changed = true;
+      }
     }
     if (x.pendingUntil == null) {
       x.pendingUntil = "";
@@ -437,8 +469,16 @@ function getPendingTimerUntilLine(j) {
 
 function renderJobMetaRow(j) {
   const reporter = escapeHtml(j.reportedBy || "—");
+  const assignee = escapeHtml(normalizeAssignedTo(j));
   const when = escapeHtml(formatDateClean(j.createdAt) || "—");
-  return `<div class="job-meta-row"><span class="job-meta-chunk">👤 ${reporter}</span><span class="job-meta-sep" aria-hidden="true">·</span><span class="job-meta-chunk">🕒 ${when}</span></div>`;
+  return `<div class="job-meta-row"><span class="job-meta-chunk">👤 ${reporter}</span><span class="job-meta-sep" aria-hidden="true">·</span><span class="job-meta-chunk">🧑‍🔧 ${assignee}</span><span class="job-meta-sep" aria-hidden="true">·</span><span class="job-meta-chunk">🕒 ${when}</span></div>`;
+}
+
+function getNewJobAssignedToValue() {
+  const el = document.getElementById("newJobAssignedTo");
+  const raw = el ? String(el.value || "Unassigned").trim() : "Unassigned";
+  if (ASSIGNED_ENGINEER_OPTIONS.indexOf(raw) >= 0) return raw;
+  return "Unassigned";
 }
 
 function getDashboardCounts() {
@@ -534,6 +574,7 @@ function matchesJobSearch(j, q) {
     j.reportedBy,
     j.priority,
     j.status,
+    normalizeAssignedTo(j),
     getJobCommentsTextBlob(j),
     j.pendingUntil,
     j.pendingReason,
@@ -551,6 +592,41 @@ function matchesStatusFilterForActive(j) {
     return j.status === "Pending" && !j.isOverdue;
   }
   return j.status === statusFilter;
+}
+
+function matchesEngineerFilter(j) {
+  if (!engineerFilter || engineerFilter === "All") return true;
+  return normalizeAssignedTo(j) === engineerFilter;
+}
+
+function syncEngineerFilterUi() {
+  const sel = document.getElementById("engineerFilter");
+  if (sel) {
+    const v = String(engineerFilter || "All");
+    let ok = false;
+    for (let i = 0; i < sel.options.length; i++) {
+      if (sel.options[i].value === v) {
+        ok = true;
+        break;
+      }
+    }
+    sel.value = ok ? v : "All";
+  }
+  const btn = document.getElementById("btnMyJobs");
+  if (btn) {
+    const on = engineerFilter === MY_JOBS_ENGINEER_FILTER;
+    btn.classList.toggle("active", on);
+    btn.setAttribute("aria-pressed", on ? "true" : "false");
+  }
+}
+
+function toggleMyJobsFilter() {
+  if (engineerFilter === MY_JOBS_ENGINEER_FILTER) {
+    engineerFilter = "All";
+  } else {
+    engineerFilter = MY_JOBS_ENGINEER_FILTER;
+  }
+  render();
 }
 
 function setStatusFilter(s) {
@@ -618,6 +694,7 @@ function render() {
     actives = actives.filter((j) => matchesStatusFilterForActive(j));
   }
   actives = actives.filter((j) => matchesJobSearch(j, q));
+  actives = actives.filter((j) => matchesEngineerFilter(j));
   actives.sort((a, b) => {
     if (statusFilter === "Deleted") {
       return String(b.deletedAt || "").localeCompare(String(a.deletedAt || ""));
@@ -640,6 +717,7 @@ function render() {
     doneList = doneList.filter((j) => isCompletedAtToday(j.completedAt));
   }
   doneList = doneList.filter((j) => matchesJobSearch(j, q));
+  doneList = doneList.filter((j) => matchesEngineerFilter(j));
 
   updateFilterButtonsActiveState();
   updateDeletedFilterCount();
@@ -669,6 +747,7 @@ function render() {
     });
   }
   updateDashboard();
+  syncEngineerFilterUi();
 }
 
 function idAttr(id) {
@@ -695,7 +774,14 @@ function getCommentDisplayFields(c) {
   const type = COMMENT_TYPES.indexOf(t) >= 0 ? t : "info";
   const author =
     c.author && String(c.author).trim() ? String(c.author).trim() : "Engineer";
-  return { text: c.text, createdAt: c.createdAt, author, type };
+  return {
+    text: c.text,
+    createdAt: c.createdAt,
+    time: c.time,
+    date: c.date,
+    author,
+    type,
+  };
 }
 
 function getCommentTypeBadgeLabel(type) {
@@ -780,6 +866,8 @@ function getActivityDisplayLabel(rawMsg) {
   }
   x = m.match(/^Job became (.+)$/i);
   if (x) return "Became " + x[1].trim();
+  x = m.match(/^Assigned to (.+)$/i);
+  if (x) return "Assigned to " + x[1].trim();
   return m;
 }
 
@@ -792,6 +880,7 @@ function getActivityDataType(displayLabel) {
   if (L.indexOf("pending") >= 0) return "pending";
   if (L.indexOf("in progress") >= 0) return "progress";
   if (L.indexOf("deleted") >= 0) return "deleted";
+  if (L.indexOf("assigned to") >= 0) return "progress";
   return "default";
 }
 
@@ -1122,6 +1211,7 @@ function addJob() {
 
   const file = fileInput && fileInput.files && fileInput.files[0];
   const done = (photo) => {
+    const assignedTo = getNewJobAssignedToValue();
     const job = {
       id: String(Date.now()) + "-" + String(Math.floor(Math.random() * 1e9)),
       location,
@@ -1138,15 +1228,21 @@ function addJob() {
       deleted: false,
       deletedAt: "",
       previousStatus: "",
+      assignedTo,
     };
+    if (assignedTo !== "Unassigned") {
+      appendSystemComment(job, "Assigned to " + assignedTo);
+    }
     jobs.unshift(job);
     save();
     const locEl = document.getElementById("location");
     const probEl = document.getElementById("problem");
     const priEl = document.getElementById("priority");
+    const assignEl = document.getElementById("newJobAssignedTo");
     if (locEl) locEl.value = "";
     if (probEl) probEl.value = "";
     if (priEl) priEl.value = "Low";
+    if (assignEl) assignEl.value = "Unassigned";
     if (fileInput) fileInput.value = "";
     const prev = document.getElementById("jobPhotoPreview");
     if (prev) prev.innerHTML = "";
@@ -1311,6 +1407,7 @@ function saveEngineerNote(btn) {
 
 window.saveEngineerNote = saveEngineerNote;
 window.toggleJobLog = toggleJobLog;
+window.toggleMyJobsFilter = toggleMyJobsFilter;
 
 function openPhotoLightbox(src) {
   if (!src || String(src).indexOf("data:image/") !== 0) return;
@@ -1430,6 +1527,16 @@ bindPhotoPreview();
   if (s) s.addEventListener("input", render);
 })();
 
+(function bindEngineerFilter() {
+  const el = document.getElementById("engineerFilter");
+  if (!el || el._mainproBound) return;
+  el._mainproBound = true;
+  el.addEventListener("change", function () {
+    engineerFilter = String(el.value || "All");
+    render();
+  });
+})();
+
 (function bindActiveJobsPanelActions() {
   const root = document.getElementById("jobs-active");
   if (!root || root._mainproJobsPanelClickBound) return;
@@ -1465,7 +1572,6 @@ setInterval(function () {
   render();
 }, 30000);
 
-/* Thumbnail / full-screen photo */
 document.addEventListener("click", function (e) {
   const logBtn = e.target && e.target.closest && e.target.closest(".btn-job-log-toggle");
   if (logBtn) {
