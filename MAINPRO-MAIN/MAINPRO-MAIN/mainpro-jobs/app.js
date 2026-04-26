@@ -775,14 +775,15 @@ function getActivityDisplayLabel(rawMsg) {
   return m;
 }
 
-function getActivityItemVariant(displayLabel) {
+/** Timeline dot color via `data-type` on `.activity-item` (visual only). */
+function getActivityDataType(displayLabel) {
   const L = String(displayLabel || "").toLowerCase();
-  if (L.indexOf("deleted") >= 0) return "deleted";
+  if (L.indexOf("overdue") >= 0) return "overdue";
   if (L.indexOf("restored") >= 0) return "restored";
   if (L.indexOf("marked done") >= 0 || L === "marked done") return "done";
-  if (L.indexOf("overdue") >= 0) return "deleted";
   if (L.indexOf("pending") >= 0) return "pending";
   if (L.indexOf("in progress") >= 0) return "progress";
+  if (L.indexOf("deleted") >= 0) return "deleted";
   return "default";
 }
 
@@ -812,11 +813,13 @@ function renderSystemLogItemHtml(c) {
   const d = getCommentDisplayFields(c);
   const msg = String(d.text == null ? "" : d.text).trim();
   const label = getActivityDisplayLabel(msg);
-  const variant = getActivityItemVariant(label);
+  const dataType = getActivityDataType(label);
   const labelEsc = escapeHtml(label);
   const timeRaw = d.time || d.date || d.createdAt;
   const timeEsc = escapeHtml(formatTimeOnly(timeRaw) || "—");
-  return `<div class="activity-item ${variant}" role="listitem"><span class="activity-line-text"><strong>${labelEsc}</strong></span><span class="activity-time">${timeEsc}</span></div>`;
+  return `<div class="activity-item" data-type="${escapeHtml(
+    dataType
+  )}" role="listitem"><div class="activity-row"><span class="activity-line-text"><strong>${labelEsc}</strong></span><span class="activity-time">${timeEsc}</span></div></div>`;
 }
 
 /** Job log in Active and History: engineer cards + Activity (system) + collapse for notes. */
@@ -864,7 +867,7 @@ function renderEngineerNotesSavedSection(j) {
 
   let activityBlock = "";
   if (sortedActivity.length) {
-    activityBlock = `<h4 class="log-title section-title system">Activity</h4><div class="activity" role="list">${visibleActivity
+    activityBlock = `<h4 class="log-title section-title system">Activity</h4><div class="activity-timeline" role="list">${visibleActivity
       .map((c) => renderSystemLogItemHtml(c))
       .join("")}</div>`;
   }
