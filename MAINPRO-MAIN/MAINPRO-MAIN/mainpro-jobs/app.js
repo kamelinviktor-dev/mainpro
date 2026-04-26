@@ -13,7 +13,7 @@ let _parkTargetId = null;
 const jobLogExpanded = Object.create(null);
 const JOB_LOG_PREVIEW_COUNT = 1;
 /** Collapsed Activity: show this many newest system events; expanded shows all. */
-const ACTIVITY_LOG_VISIBLE_COUNT = 2;
+const ACTIVITY_LOG_VISIBLE_COUNT = 1;
 
 const MAINPRO_USER_KEY = "mainpro_user";
 const MAINPRO_ROLES = [
@@ -796,13 +796,13 @@ function renderEngineerLogItemHtml(c) {
           label
         )}</span></div>`
       : "";
-  return `<div class="comment-log-item comment-log-item--engineer" role="listitem">
-      <div class="comment-log-time">${escapeHtml(
+  return `<div class="comment-log-item comment-log-item--engineer note-card" role="listitem">
+      <div class="comment-log-time note-date">${escapeHtml(
         formatDateClean(d.time || d.date || d.createdAt) || "—"
       )}</div>
-      <div class="comment-log-author">${escapeHtml(d.author)}</div>
+      <div class="comment-log-author note-author">${escapeHtml(d.author)}</div>
       ${badgeBlock}
-      <div class="comment-log-text">${escapeHtml(
+      <div class="comment-log-text note-text">${escapeHtml(
         String(d.text == null ? "" : d.text).trim()
       )}</div>
     </div>`;
@@ -816,7 +816,7 @@ function renderSystemLogItemHtml(c) {
   const labelEsc = escapeHtml(label);
   const timeRaw = d.time || d.date || d.createdAt;
   const timeEsc = escapeHtml(formatTimeOnly(timeRaw) || "—");
-  return `<div class="activity-item ${variant}" role="listitem"><span class="activity-line-text"><strong>${labelEsc}</strong> · ${timeEsc}</span></div>`;
+  return `<div class="activity-item ${variant}" role="listitem"><span class="activity-line-text"><strong>${labelEsc}</strong></span><span class="activity-time">${timeEsc}</span></div>`;
 }
 
 /** Job log in Active and History: engineer cards + Activity (system) + collapse for notes. */
@@ -832,41 +832,45 @@ function renderEngineerNotesSavedSection(j) {
   const engineerList = sortCommentsNewestFirst(
     list.filter((c) => !isSystemLogComment(c))
   );
-  const systemList = sortCommentsNewestFirst(
-    list.filter((c) => isSystemLogComment(c))
+  const sortedActivity = [...list.filter((c) => isSystemLogComment(c))].sort(
+    (a, b) => {
+      return (
+        new Date(b.time || b.date || b.createdAt).getTime() -
+        new Date(a.time || a.date || a.createdAt).getTime()
+      );
+    }
   );
 
   const hasMoreEngineer = engineerList.length > JOB_LOG_PREVIEW_COUNT;
-  const hasMoreSystem = systemList.length > ACTIVITY_LOG_VISIBLE_COUNT;
+  const hasMoreSystem = sortedActivity.length > ACTIVITY_LOG_VISIBLE_COUNT;
   const hasMore = hasMoreEngineer || hasMoreSystem;
   const expanded = !!jobLogExpanded[idKey];
-  const displayEngineer =
-    hasMoreEngineer && !expanded
-      ? engineerList.slice(0, JOB_LOG_PREVIEW_COUNT)
-      : engineerList;
-  const displaySystem =
-    expanded || !hasMoreSystem
-      ? systemList
-      : systemList.slice(0, ACTIVITY_LOG_VISIBLE_COUNT);
+  /** Newest-first lists: latest k == first k (chronological list would use slice(-k)). */
+  const visibleNotes = expanded
+    ? engineerList
+    : engineerList.slice(0, JOB_LOG_PREVIEW_COUNT);
+  const visibleActivity = expanded
+    ? sortedActivity
+    : sortedActivity.slice(0, ACTIVITY_LOG_VISIBLE_COUNT);
 
   let engineerBlock = "";
   if (!engineerList.length) {
     engineerBlock = `<h4 class="log-title section-title">Engineer notes</h4><div class="notes-container"><div class="comment-log comment-log--empty job-log--timeline ${tone}">No notes yet</div></div>`;
   } else {
-    engineerBlock = `<h4 class="log-title section-title">Engineer notes</h4><div class="notes-container"><div class="comment-log job-log--timeline job-log--engineer-notes ${tone}" role="list">${displayEngineer
+    engineerBlock = `<h4 class="log-title section-title">Engineer notes</h4><div class="notes-container"><div class="comment-log job-log--timeline job-log--engineer-notes ${tone}" role="list">${visibleNotes
       .map((c) => renderEngineerLogItemHtml(c))
       .join("")}</div></div>`;
   }
 
   let activityBlock = "";
-  if (systemList.length) {
-    activityBlock = `<h4 class="log-title section-title system">Activity</h4><div class="activity" role="list">${displaySystem
+  if (sortedActivity.length) {
+    activityBlock = `<h4 class="log-title section-title system">Activity</h4><div class="activity" role="list">${visibleActivity
       .map((c) => renderSystemLogItemHtml(c))
       .join("")}</div>`;
   }
 
   const toggleBtn = hasMore
-    ? `<div class="job-log-foot"><button type="button" class="btn-job-log-toggle" data-job-id="${jobIdForDomAttr(
+    ? `<div class="job-log-foot"><button type="button" class="btn-job-log-toggle logs-toggle-btn" data-job-id="${jobIdForDomAttr(
         j.id
       )}">${
         expanded ? "Hide logs" : "Show all logs"
@@ -876,8 +880,17 @@ function renderEngineerNotesSavedSection(j) {
   return `<div class="job-log-stack">${engineerBlock}${activityBlock}${toggleBtn}</div>`;
 }
 
+/** Canonical key so expand state matches `jobLogExpanded[String(j.id)]` on re-render. */
+function jobLogExpandedKeyForId(rawId) {
+  if (rawId == null || rawId === "") return "";
+  const sid = String(rawId);
+  const j = jobs.find((x) => String(x.id) === sid);
+  return j ? String(j.id) : sid;
+}
+
 function toggleJobLog(id) {
-  const k = String(id);
+  const k = jobLogExpandedKeyForId(id);
+  if (!k) return;
   jobLogExpanded[k] = !jobLogExpanded[k];
   render();
 }
