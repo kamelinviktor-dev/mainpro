@@ -1,6 +1,5 @@
 /**
- * All | New | In Progress | Pending | Overdue (active list).
- * "Done" kept for old localStorage.
+ * statusFilter: KPI row + dashboard (All, New, In Progress, …). "Done" kept for old localStorage.
  */
 let statusFilter = "All";
 /** "All" | engineer name — filter by job.assignedTo */
@@ -61,11 +60,22 @@ const MAINPRO_I18N = {
     tabActive: "Active Jobs",
     tabHistory: "History",
     searchPh: "Search jobs…",
-    exportJson: "Export",
-    importJson: "Import",
-    importMerge: "Merge",
-    exportCsv: "CSV",
+    exportJson: "Export JSON",
+    importJson: "Import JSON",
+    importMerge: "Merge JSON",
+    exportCsv: "Export CSV",
     changeUser: "Change user",
+    newJob: "+ New Job",
+    settings: "Settings",
+    help: "Help",
+    language: "Language",
+    kpiAll: "All",
+    kpiNew: "New",
+    kpiInProgress: "In progress",
+    kpiPending: "Pending",
+    kpiOverdue: "Overdue",
+    kpiDoneToday: "Done today",
+    kpiDeleted: "Deleted",
     lang: "EN",
     langNext: "RU",
     roomPh: "Room / area",
@@ -85,11 +95,22 @@ const MAINPRO_I18N = {
     tabActive: "Активные",
     tabHistory: "История",
     searchPh: "Поиск заявок…",
-    exportJson: "Экспорт",
-    importJson: "Импорт",
-    importMerge: "Слияние",
-    exportCsv: "CSV",
+    exportJson: "Экспорт JSON",
+    importJson: "Импорт JSON",
+    importMerge: "Слияние JSON",
+    exportCsv: "Экспорт CSV",
     changeUser: "Сменить пользователя",
+    newJob: "+ Заявка",
+    settings: "Настройки",
+    help: "Справка",
+    language: "Язык",
+    kpiAll: "Все",
+    kpiNew: "Новые",
+    kpiInProgress: "В работе",
+    kpiPending: "Ожидание",
+    kpiOverdue: "Просрочка",
+    kpiDoneToday: "Сегодня",
+    kpiDeleted: "Удалённые",
     lang: "RU",
     langNext: "EN",
     roomPh: "Комната / зона",
@@ -132,7 +153,8 @@ function applyMainproI18n() {
   };
   el("loginTitle", t("loginTitle"));
   el("loginSub", t("loginSub"));
-  tx("appHeaderTitle", t("appTitle"));
+  const titleEl = document.getElementById("appHeaderTitle");
+  if (titleEl) titleEl.textContent = t("appTitle");
   el("reportFormTitle", t("reportTitle"));
   const loc = document.getElementById("location");
   if (loc) loc.setAttribute("placeholder", t("roomPh"));
@@ -154,11 +176,34 @@ function applyMainproI18n() {
   if (bCs) bCs.textContent = t("exportCsv");
   const bCh = document.getElementById("btnChangeUser");
   if (bCh) bCh.textContent = t("changeUser");
+  const bNew = document.getElementById("btnNewJob");
+  if (bNew) bNew.textContent = t("newJob");
+  const bSet = document.getElementById("btnOpenSettings");
+  if (bSet) {
+    const stLabel = t("settings");
+    bSet.setAttribute("aria-label", stLabel);
+    bSet.setAttribute("title", stLabel);
+    const st = document.getElementById("settingsBtnText");
+    if (st) st.textContent = stLabel;
+  }
   const bLang = document.getElementById("btnUiLang");
   if (bLang) {
     bLang.textContent = t("lang");
     bLang.setAttribute("title", t("langNext"));
   }
+  const bHelp = document.getElementById("btnSettingsHelp");
+  if (bHelp) bHelp.textContent = t("help");
+  const langLbl = document.getElementById("settingsLangLabel");
+  if (langLbl) langLbl.textContent = t("language");
+  const setTitle = document.getElementById("settingsModalTitle");
+  if (setTitle) setTitle.textContent = t("settings");
+  tx("dashLabelAll", t("kpiAll"));
+  tx("dashLabelNew", t("kpiNew"));
+  tx("dashLabelInProgress", t("kpiInProgress"));
+  tx("dashLabelPending", t("kpiPending"));
+  tx("dashLabelOverdue", t("kpiOverdue"));
+  tx("dashLabelDoneToday", t("kpiDoneToday"));
+  tx("dashLabelDeleted", t("kpiDeleted"));
 }
 
 function toggleUiLang() {
@@ -342,11 +387,8 @@ function applyAuthUi() {
   if (app) app.hidden = !ok;
   if (disp) disp.textContent = ok && u ? u : "—";
   if (ok) {
-    if (isNarrowLayout()) {
-      setReportFormCollapsed(true);
-    } else {
-      setReportFormCollapsed(false);
-    }
+    /* Как на мобильной: список и фильтры сначала, форма — по + New Job */
+    setReportFormCollapsed(true);
     scheduleJobUrlParamIfPresent();
     render();
     if (!_urlJobIdToOpen) {
@@ -379,6 +421,7 @@ function showChangeUser() {
   } catch (e) {
     console.warn("Could not clear mainpro_user", e);
   }
+  closeJobsSettings();
   applyAuthUi();
 }
 
@@ -983,6 +1026,7 @@ function getNewJobAssignedToValue() {
 }
 
 function getDashboardCounts() {
+  let nAll = 0;
   let nNew = 0;
   let nInProgress = 0;
   let nPending = 0;
@@ -996,6 +1040,7 @@ function getDashboardCounts() {
       continue;
     }
     const st = j.status;
+    if (isActiveStatus(st)) nAll++;
     if (st === "New") nNew++;
     else if (st === "In Progress") nInProgress++;
     else if (st === "Pending" && !j.isOverdue && !isSlaOverdue(j)) {
@@ -1005,6 +1050,7 @@ function getDashboardCounts() {
     if (st === "Done" && isCompletedAtToday(j.completedAt)) nDoneToday++;
   }
   return {
+    nAll: nAll,
     nNew: nNew,
     nInProgress: nInProgress,
     nPending: nPending,
@@ -1020,6 +1066,7 @@ function updateDashboard() {
     const el = document.getElementById(id);
     if (el) el.textContent = String(v);
   };
+  set("dashCountAll", c.nAll);
   set("dashCountNew", c.nNew);
   set("dashCountInProgress", c.nInProgress);
   set("dashCountPending", c.nPending);
@@ -1040,8 +1087,11 @@ function updateDashboardCardHighlight() {
   document.querySelectorAll(".job-dashboard-card").forEach((el) => {
     el.classList.remove("job-dashboard-card--active");
   });
-  if (kind === "active" && statusFilter && statusFilter !== "All") {
-    if (statusFilter === "Deleted") {
+  if (kind === "active") {
+    if (statusFilter === "All") {
+      const t = document.querySelector('.job-dashboard-card[data-dash="all"]');
+      if (t) t.classList.add("job-dashboard-card--active");
+    } else if (statusFilter === "Deleted") {
       const d = document.querySelector('.job-dashboard-card[data-dash="deleted"]');
       if (d) d.classList.add("job-dashboard-card--active");
     } else {
@@ -1153,6 +1203,13 @@ function setStatusFilter(s) {
 }
 
 function onDashboardFilter(dash) {
+  if (dash === "all") {
+    statusFilter = "All";
+    historyViewFilter = "all";
+    setTab("active");
+    render();
+    return;
+  }
   if (dash === "doneToday") {
     historyViewFilter = "completedToday";
     setTab("history");
@@ -1188,14 +1245,6 @@ function sortKeyActiveList(j) {
   if (j.status === "Pending") return 3;
   if (j.status === "New") return 4;
   return 5;
-}
-
-function updateFilterButtonsActiveState() {
-  const onActive = getCurrentPanelKind() === "active";
-  document.querySelectorAll("[data-status-filter]").forEach((el) => {
-    const v = el.getAttribute("data-status-filter");
-    el.classList.toggle("active", onActive && v === statusFilter);
-  });
 }
 
 /**
@@ -1280,9 +1329,6 @@ function render() {
   }
   doneList = doneList.filter((j) => matchesJobSearch(j, q));
   doneList = doneList.filter((j) => matchesEngineerFilter(j));
-
-  updateFilterButtonsActiveState();
-  updateDeletedFilterCount();
 
   if (actives.length === 0 && activeEl) {
     const canReset = shouldOfferResetForEmptyActive();
@@ -2101,11 +2147,13 @@ function getJobsOpenLayers() {
   const parkModal = document.getElementById("parkModal");
   const photoLightbox = document.getElementById("photoLightbox");
   const jobsTipsModal = document.getElementById("jobsTipsModal");
+  const jobsSettingsModal = document.getElementById("jobsSettingsModal");
   return {
     jobDetail: !!(jobDetailModal && !jobDetailModal.hidden),
     park: !!(parkModal && !parkModal.hidden),
     photo: !!(photoLightbox && !photoLightbox.hidden),
     tips: !!(jobsTipsModal && !jobsTipsModal.hidden),
+    settings: !!(jobsSettingsModal && !jobsSettingsModal.hidden),
   };
 }
 
@@ -2116,6 +2164,10 @@ function syncAppBodyScrollLock() {
     return;
   }
   if (L.tips) {
+    document.body.style.overflow = "hidden";
+    return;
+  }
+  if (L.settings) {
     document.body.style.overflow = "hidden";
     return;
   }
@@ -2136,7 +2188,7 @@ function updateMobileFormFab() {
   const L = getJobsOpenLayers();
   const formOpen = form && !form.classList.contains("report-job-form--collapsed");
   const hide =
-    formOpen || L.jobDetail || L.tips || mobileFabHiddenByScroll;
+    formOpen || L.jobDetail || L.tips || L.settings || mobileFabHiddenByScroll;
   if (hide) {
     fab.classList.add("fab-hidden");
     fab.setAttribute("aria-hidden", "true");
@@ -2164,7 +2216,7 @@ function updateMobileScrollTopBtn() {
     return;
   }
   const L = getJobsOpenLayers();
-  if (L.jobDetail || L.park || L.photo || L.tips) {
+  if (L.jobDetail || L.park || L.photo || L.tips || L.settings) {
     btn.classList.add("btn-scroll-top--hidden");
     btn.setAttribute("aria-hidden", "true");
     return;
@@ -2216,7 +2268,7 @@ function onMobileFabScroll() {
   const form = document.getElementById("reportJobForm");
   const L = getJobsOpenLayers();
   const formOpen = form && !form.classList.contains("report-job-form--collapsed");
-  if (formOpen || L.jobDetail || L.tips) {
+  if (formOpen || L.jobDetail || L.tips || L.settings) {
     mobileFabLastScrollY = y;
     updateMobileFormFab();
     updateMobileScrollTopBtn();
@@ -2292,14 +2344,6 @@ function closeJobDetailModal() {
     updateMobileFormFab();
     updateMobileScrollTopBtn();
   });
-}
-
-function updateDeletedFilterCount() {
-  const n = jobs.filter((j) => j.deleted).length;
-  const el = document.getElementById("deletedFilterCount");
-  if (el) {
-    el.textContent = n > 0 ? " (" + n + ")" : "";
-  }
 }
 
 function showJobsToast(msg) {
@@ -2683,23 +2727,19 @@ function addJob() {
     if (fileInput) fileInput.value = "";
     const prev = document.getElementById("jobPhotoPreview");
     if (prev) prev.innerHTML = "";
-    if (isNarrowLayout()) {
-      setReportFormCollapsed(true);
-    }
+    setReportFormCollapsed(true);
     render();
     setTab("active");
-    if (isNarrowLayout()) {
-      setTimeout(function () {
-        const stack = document.querySelector(".app-jobs-stack");
-        if (stack) {
-          try {
-            stack.scrollIntoView({ behavior: "smooth", block: "start" });
-          } catch (e) {
-            stack.scrollIntoView(true);
-          }
+    setTimeout(function () {
+      const stack = document.querySelector(".app-jobs-stack");
+      if (stack) {
+        try {
+          stack.scrollIntoView({ behavior: "smooth", block: "start" });
+        } catch (e) {
+          stack.scrollIntoView(true);
         }
-      }, 80);
-    }
+      }
+    }, 80);
   };
 
   if (file) {
@@ -2789,6 +2829,29 @@ function closeJobsTipsDialog() {
   updateMobileScrollTopBtn();
 }
 
+function openJobsSettings() {
+  const m = document.getElementById("jobsSettingsModal");
+  if (!m) return;
+  const am = document.getElementById("appMain");
+  if (!am || am.hidden || !hasMainproLogin()) return;
+  m.hidden = false;
+  syncAppBodyScrollLock();
+  updateMobileFormFab();
+  updateMobileScrollTopBtn();
+}
+
+function closeJobsSettings() {
+  const m = document.getElementById("jobsSettingsModal");
+  if (m) m.hidden = true;
+  syncAppBodyScrollLock();
+  updateMobileFormFab();
+  updateMobileScrollTopBtn();
+}
+
+function openNewJobFromHeader() {
+  scrollToReportJob();
+}
+
 function confirmPark() {
   const id = _parkTargetId;
   if (id == null) return;
@@ -2850,6 +2913,9 @@ window.confirmPark = confirmPark;
 window.setParkReasonChip = setParkReasonChip;
 window.openJobsTipsDialog = openJobsTipsDialog;
 window.closeJobsTipsDialog = closeJobsTipsDialog;
+window.openJobsSettings = openJobsSettings;
+window.closeJobsSettings = closeJobsSettings;
+window.openNewJobFromHeader = openNewJobFromHeader;
 
 function flashCommentSaved(id) {
   const want = String(id);
@@ -2910,9 +2976,7 @@ function saveEngineerNote(btn) {
 }
 
 function scrollToReportJob() {
-  if (isNarrowLayout()) {
-    setReportFormCollapsed(false);
-  }
+  setReportFormCollapsed(false);
   const form = document.getElementById("reportJobForm");
   if (form) {
     try {
@@ -3035,7 +3099,6 @@ function setTab(tab) {
     const on = el.getAttribute("data-tab") === tab;
     el.classList.toggle("active", on);
   });
-  updateFilterButtonsActiveState();
   updateDashboardCardHighlight();
 }
 
@@ -3142,7 +3205,6 @@ setInterval(function () {
   } else {
     updateDashboard();
     updateJobDetailModal();
-    updateDeletedFilterCount();
   }
 }, 30000);
 
@@ -3242,6 +3304,11 @@ document.addEventListener("keydown", function (e) {
     }
   }
   if (e.key === "Escape" || e.key === "Esc") {
+    const settingsM = document.getElementById("jobsSettingsModal");
+    if (settingsM && !settingsM.hidden) {
+      closeJobsSettings();
+      return;
+    }
     const tipsM = document.getElementById("jobsTipsModal");
     if (tipsM && !tipsM.hidden) {
       closeJobsTipsDialog();
@@ -3355,7 +3422,7 @@ window.addEventListener("resize", function () {
     if (!am || am.hidden) return true;
     if (!hasMainproLogin()) return true;
     const L = getJobsOpenLayers();
-    return L.jobDetail || L.park || L.photo || L.tips;
+    return L.jobDetail || L.park || L.photo || L.tips || L.settings;
   }
   document.addEventListener(
     "touchstart",
