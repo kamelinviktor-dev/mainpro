@@ -149,6 +149,26 @@ const MAINPRO_I18N = {
     desktopQaView: "View",
     desktopNoRecent: "No jobs yet.",
     desktopActive: "Active",
+    desktopNavAssets: "Assets",
+    desktopNavUsers: "Users",
+    desktopKpiSubPlus: "+{n} today",
+    desktopKpiOverdueAttn: "Needs attention",
+    desktopThJob: "Job",
+    desktopThRoom: "Room",
+    desktopThEngineer: "Engineer",
+    desktopPriByDonut: "Jobs by priority",
+    desktopViewAllJobs: "View all jobs",
+    desktopUpcomingTitle: "Upcoming (7 days)",
+    desktopUpcomingToday: "Today",
+    desktopUpcomingJobs: "{n} jobs",
+    desktopQaAssign: "Assign engineer",
+    desktopQaCalendar: "View calendar",
+    desktopRoleAdmin: "Administrator",
+    desktopRoleUser: "Team member",
+    desktopNotifEmpty: "No new notifications",
+    desktopCalendarMsg: "Calendar is coming in a later update.",
+    desktopQaSearchHint: "Search jobs",
+    desktopDonutTotalLabel: "Total",
   },
   ru: {
     appTitle: "MainPro — заявки",
@@ -242,6 +262,26 @@ const MAINPRO_I18N = {
     desktopQaView: "Смотреть",
     desktopNoRecent: "Пока нет заявок.",
     desktopActive: "Активен",
+    desktopNavAssets: "Активы",
+    desktopNavUsers: "Пользователи",
+    desktopKpiSubPlus: "+{n} сегодня",
+    desktopKpiOverdueAttn: "Нужен контроль",
+    desktopThJob: "Заявка",
+    desktopThRoom: "Комната",
+    desktopThEngineer: "Инженер",
+    desktopPriByDonut: "По приоритету",
+    desktopViewAllJobs: "Все заявки",
+    desktopUpcomingTitle: "Ближайшие 7 дней",
+    desktopUpcomingToday: "Сегодня",
+    desktopUpcomingJobs: "{n} заявок",
+    desktopQaAssign: "Назначить",
+    desktopQaCalendar: "Календарь",
+    desktopRoleAdmin: "Администратор",
+    desktopRoleUser: "Сотрудник",
+    desktopNotifEmpty: "Новых уведомлений нет",
+    desktopCalendarMsg: "Календарь появится в следующем обновлении.",
+    desktopQaSearchHint: "Поиск",
+    desktopDonutTotalLabel: "Всего",
   },
 };
 
@@ -330,25 +370,25 @@ function applyMainproI18n() {
   tx("desktopLabelPending", t("kpiPending"));
   tx("desktopLabelOverdue", t("kpiOverdue"));
   tx("desktopLabelDoneToday", t("kpiDoneToday"));
-  tx("desktopLabelDeleted", t("kpiDeleted"));
   tx("desktopPageTitle", t("desktopPageTitle"));
   tx("desktopPageSubtitle", t("desktopPageSubtitle"));
   tx("desktopTagline", t("desktopTagline"));
   tx("desktopNavDashboard", t("desktopNavDashboard"));
   tx("desktopNavJobs", t("desktopNavJobs"));
   tx("desktopNavCalendar", t("desktopNavCalendar"));
-  tx("desktopNavLocations", t("desktopNavLocations"));
+  tx("desktopNavAssets", t("desktopNavAssets"));
   tx("desktopNavReports", t("desktopNavReports"));
+  tx("desktopNavUsers", t("desktopNavUsers"));
   tx("desktopNavSettings", t("desktopNavSettings"));
   tx("desktopRecentJobsTitle", t("desktopRecentJobs"));
-  tx("desktopThJobRoom", t("desktopThJobRoom"));
-  tx("desktopThDescription", t("desktopThDescription"));
+  tx("desktopThJob", t("desktopThJob"));
+  tx("desktopThRoom", t("desktopThRoom"));
   tx("desktopThPriority", t("desktopThPriority"));
-  tx("desktopThAssigned", t("desktopThAssigned"));
+  tx("desktopThEngineer", t("desktopThEngineer"));
   tx("desktopThStatus", t("desktopThStatus"));
   tx("desktopThUpdated", t("desktopThUpdated"));
   tx("desktopThAction", t("desktopThAction"));
-  tx("desktopPriTitle", t("desktopPriBy"));
+  tx("desktopPriTitle", t("desktopPriByDonut"));
   tx("desktopPriLabelCritical", t("desktopLabelPriCritical"));
   tx("desktopPriLabelHigh", t("desktopLabelPriHigh"));
   tx("desktopPriLabelMedium", t("desktopLabelPriMedium"));
@@ -356,18 +396,24 @@ function applyMainproI18n() {
   tx("desktopQaTitle", t("desktopQaTitle"));
   const bDNew = document.getElementById("btnDesktopNewJob");
   if (bDNew) bDNew.textContent = t("newJob");
-  const bDSt = document.getElementById("btnDesktopOpenSettings");
-  if (bDSt) bDSt.textContent = t("settings");
-  const bDCh = document.getElementById("btnDesktopChangeUser");
-  if (bDCh) bDCh.textContent = t("changeUser");
   const bQaC = document.getElementById("desktopQaCreate");
   if (bQaC) bQaC.textContent = t("desktopQaCreate");
-  const bQaE = document.getElementById("desktopQaExport");
-  if (bQaE) bQaE.textContent = t("exportJson");
-  const bQaI = document.getElementById("desktopQaImport");
-  if (bQaI) bQaI.textContent = t("importJson");
-  const bQaS = document.getElementById("desktopQaSettings");
-  if (bQaS) bQaS.textContent = t("settings");
+  const bQaA = document.getElementById("desktopQaAssign");
+  if (bQaA) bQaA.textContent = t("desktopQaAssign");
+  const bQaCal = document.getElementById("desktopQaCalendar");
+  if (bQaCal) bQaCal.textContent = t("desktopQaCalendar");
+  const vAll = document.getElementById("desktopViewAllJobs");
+  if (vAll) vAll.textContent = t("desktopViewAllJobs");
+  const upT = document.getElementById("desktopUpcomingTitle");
+  if (upT) upT.textContent = t("desktopUpcomingTitle");
+  const bSrch = document.getElementById("btnDesktopSearch");
+  if (bSrch) bSrch.setAttribute("title", t("desktopQaSearchHint"));
+  const bBell = document.getElementById("btnDesktopNotify");
+  if (bBell) bBell.setAttribute("title", t("desktopNotifEmpty"));
+  const bUser = document.getElementById("btnDesktopProfile");
+  if (bUser) bUser.setAttribute("title", t("changeUser"));
+  const dtl = document.getElementById("desktopDonutTotalLbl");
+  if (dtl) dtl.textContent = t("desktopDonutTotalLabel");
   const bClear = document.getElementById("btnClearListFilters");
   if (bClear) {
     bClear.textContent = t("clearFiltersShort");
@@ -1008,6 +1054,25 @@ function isCompletedAtToday(iso) {
   );
 }
 
+function getLocalDayStartMs(d) {
+  if (!d || !(d instanceof Date) || isNaN(d.getTime())) return NaN;
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+}
+
+function isTimestampOnLocalDay(tsMs, dayDate) {
+  if (tsMs == null || isNaN(tsMs) || !dayDate) return false;
+  const a = getLocalDayStartMs(new Date(tsMs));
+  const b = getLocalDayStartMs(dayDate);
+  return a === b;
+}
+
+function isLocalTodayFromIso(s) {
+  if (!s || !String(s).trim()) return false;
+  const t = new Date(s).getTime();
+  if (isNaN(t)) return false;
+  return isTimestampOnLocalDay(t, new Date());
+}
+
 /** Rule: Pending + pendingUntil + now > until (also sets j.isOverdue via sync). */
 function isJobOverdueState(j) {
   if (j.status !== "Pending") return false;
@@ -1321,6 +1386,168 @@ function getJobPriorityBreakdown() {
   return o;
 }
 
+function countNewCreatedToday() {
+  let n = 0;
+  for (let i = 0; i < jobs.length; i++) {
+    const j = jobs[i];
+    if (!j || j.deleted || j.status !== "New") continue;
+    if (isLocalTodayFromIso(j.createdAt)) n++;
+  }
+  return n;
+}
+
+function countScheduledForLocalDay(dayDate) {
+  const start = getLocalDayStartMs(dayDate);
+  if (isNaN(start)) return 0;
+  const end = start + 86400000;
+  let n = 0;
+  for (let i = 0; i < jobs.length; i++) {
+    const j = jobs[i];
+    if (!j || j.deleted || j.status === "Done") continue;
+    const dueRaw = (j.dueAt && String(j.dueAt).trim()) || "";
+    const puRaw = (j.pendingUntil && String(j.pendingUntil).trim()) || "";
+    const dueT = dueRaw ? new Date(dueRaw).getTime() : NaN;
+    const puT = puRaw ? new Date(puRaw).getTime() : NaN;
+    if (!isNaN(dueT) && dueT >= start && dueT < end) n++;
+    else if (!isNaN(puT) && puT >= start && puT < end) n++;
+  }
+  return n;
+}
+
+function engineerInitials(name) {
+  const s = String(name == null ? "" : name).trim();
+  if (!s || s === "Unassigned") return "—";
+  const parts = s.split(/\s+/);
+  if (parts.length >= 2) {
+    return (
+      String(parts[0][0] || "").toUpperCase() +
+      String(parts[parts.length - 1][0] || "").toUpperCase()
+    );
+  }
+  return s.slice(0, 2).toUpperCase();
+}
+
+function getDesktopRoleLine() {
+  const r = getMainproUser();
+  if (!r) return t("desktopRoleUser");
+  if (r === "Manager") return t("desktopRoleAdmin");
+  return t("desktopRoleUser");
+}
+
+function updateDesktopUserProfile() {
+  const u = getMainproUser() || "—";
+  const initials = engineerInitials(u);
+  const line = getDesktopRoleLine();
+  const setT = (id, v) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = v;
+  };
+  setT("desktopSidebarUserName", u);
+  setT("desktopSidebarUserStatus", line);
+  const av = document.getElementById("desktopUserAvatar");
+  if (av) av.textContent = initials.length > 2 ? initials.slice(0, 2) : initials;
+  const tb = document.getElementById("desktopTopbarAvatar");
+  if (tb) tb.textContent = initials.length > 2 ? initials.slice(0, 2) : initials;
+}
+
+function updateDesktopKpiSublines(c) {
+  const set = (id, v) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = v == null ? "" : String(v);
+  };
+  const sub = (n) =>
+    n > 0 ? t("desktopKpiSubPlus").replace(/\{n\}/g, String(n)) : "";
+  const nNewT = countNewCreatedToday();
+  const nInProgT = countSystemLogPhrasesToday([/moved to in progress/i]);
+  const nPendT = countSystemLogPhrasesToday([/moved to pending/i]);
+  set("desktopKpiSubNew", sub(nNewT));
+  set("desktopKpiSubInProgress", sub(nInProgT));
+  set("desktopKpiSubPending", sub(nPendT));
+  set("desktopKpiSubDone", "");
+  set("desktopKpiSubOverdue", c.nOverdue > 0 ? t("desktopKpiOverdueAttn") : "");
+}
+
+function updateDesktopDonutChart() {
+  const pr = getJobPriorityBreakdown();
+  const total = pr.critical + pr.high + pr.medium + pr.low;
+  const el = document.getElementById("desktopDonutChart");
+  const num = document.getElementById("desktopDonutTotal");
+  if (num) num.textContent = String(total);
+  if (!el) return;
+  if (total === 0) {
+    el.style.background = "#e5e7eb";
+    const setP = (id) => {
+      const n = document.getElementById(id);
+      if (n) n.textContent = "0%";
+    };
+    setP("desktopDonutPctCritical");
+    setP("desktopDonutPctHigh");
+    setP("desktopDonutPctMedium");
+    setP("desktopDonutPctLow");
+    return;
+  }
+  const pC = (pr.critical / total) * 100;
+  const pH = (pr.high / total) * 100;
+  const pM = (pr.medium / total) * 100;
+  const pL = (pr.low / total) * 100;
+  const a1 = pC;
+  const a2 = a1 + pH;
+  const a3 = a2 + pM;
+  const g = `conic-gradient(
+    #e11d48 0% ${a1}%,
+    #f97316 ${a1}% ${a2}%,
+    #eab308 ${a2}% ${a3}%,
+    #0f9d68 ${a3}% 100%
+  )`;
+  el.style.background = g;
+  const pct = (x) => Math.round((x / total) * 100) + "%";
+  const setP = (id, v) => {
+    const n = document.getElementById(id);
+    if (n) n.textContent = v;
+  };
+  setP("desktopDonutPctCritical", pct(pr.critical));
+  setP("desktopDonutPctHigh", pct(pr.high));
+  setP("desktopDonutPctMedium", pct(pr.medium));
+  setP("desktopDonutPctLow", pct(pr.low));
+}
+
+function renderDesktopUpcoming() {
+  const host = document.getElementById("desktopUpcomingStrip");
+  if (!host) return;
+  const now = new Date();
+  const parts = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
+    const nSched = countScheduledForLocalDay(d);
+    const dayLabel =
+      i === 0
+        ? t("desktopUpcomingToday")
+        : d.toLocaleDateString(getUiLang() === "ru" ? "ru-RU" : "en-GB", {
+            weekday: "short",
+          });
+    const dateStr = d.toLocaleDateString(getUiLang() === "ru" ? "ru-RU" : "en-GB", {
+      month: "short",
+      day: "numeric",
+    });
+    const jobsLine = t("desktopUpcomingJobs").replace(/\{n\}/g, String(nSched));
+    parts.push(
+      '<div class="desktop-upcoming__chip' +
+        (i === 0 ? " desktop-upcoming__chip--today" : "") +
+        '">' +
+        '<span class="desktop-upcoming__day">' +
+        escapeHtml(dayLabel) +
+        "</span>" +
+        '<span class="desktop-upcoming__date">' +
+        escapeHtml(dateStr) +
+        "</span>" +
+        '<span class="desktop-upcoming__n">' +
+        escapeHtml(jobsLine) +
+        "</span></div>"
+    );
+  }
+  host.innerHTML = parts.join("");
+}
+
 function updateDesktopSidebarAndPanels() {
   const pr = getJobPriorityBreakdown();
   const set = (id, v) => {
@@ -1331,10 +1558,8 @@ function updateDesktopSidebarAndPanels() {
   set("desktopPriHigh", pr.high);
   set("desktopPriMedium", pr.medium);
   set("desktopPriLow", pr.low);
-  const un = document.getElementById("desktopSidebarUserName");
-  if (un) un.textContent = getMainproUser() || "—";
-  const us = document.getElementById("desktopSidebarUserStatus");
-  if (us) us.textContent = t("desktopActive");
+  updateDesktopUserProfile();
+  updateDesktopDonutChart();
 }
 
 function renderDesktopRecentJobsTable() {
@@ -1364,10 +1589,12 @@ function renderDesktopRecentJobsTable() {
           : "—";
       const room = escapeHtml(String(j.location != null ? j.location : "").trim() || "—");
       const rawProblem = String(j.problem != null ? j.problem : "").trim();
-      const descEsc = escapeHtml(rawProblem);
-      const descShort =
-        rawProblem.length > 120 ? escapeHtml(rawProblem.slice(0, 117)) + "…" : descEsc;
-      const assign = escapeHtml(normalizeAssignedTo(j));
+      const jobTitleEsc = escapeHtml(
+        rawProblem.length > 80 ? rawProblem.slice(0, 77) + "…" : rawProblem || "—"
+      );
+      const assignName = normalizeAssignedTo(j);
+      const inits = escapeHtml(engineerInitials(assignName));
+      const nameEsc = escapeHtml(assignName);
       const stHtml =
         '<span class="job-status-badge job-status-badge--' +
         vis.badgeMod +
@@ -1378,19 +1605,23 @@ function renderDesktopRecentJobsTable() {
         '<span class="job-priority-pill job-priority-pill--' +
         prSlug +
         '">' +
-        escapeHtml(pNorm) +
+        escapeHtml(pNorm.toUpperCase()) +
         "</span>";
+      const engCell =
+        '<span class="desktop-eng"><span class="desktop-eng__avatar" aria-hidden="true">' +
+        inits +
+        "</span><span class=\"desktop-eng__name\">" +
+        nameEsc +
+        "</span></span>";
       return (
-        "<tr><td>" +
+        "<tr><td class=\"desktop-jobs-table__job\">" +
+        jobTitleEsc +
+        "</td><td>" +
         room +
-        '</td><td title="' +
-        descEsc +
-        '">' +
-        (descShort || "—") +
         "</td><td>" +
         prHtml +
         "</td><td>" +
-        assign +
+        engCell +
         "</td><td>" +
         stHtml +
         "</td><td>" +
@@ -1423,9 +1654,10 @@ function updateDashboard() {
   set("desktopKpiPending", c.nPending);
   set("desktopKpiOverdue", c.nOverdue);
   set("desktopKpiDoneToday", c.nDoneToday);
-  set("desktopKpiDeleted", c.nDeleted);
+  updateDesktopKpiSublines(c);
   updateDesktopSidebarAndPanels();
   renderDesktopRecentJobsTable();
+  renderDesktopUpcoming();
   updateDashboardCardHighlight();
 }
 
@@ -2291,6 +2523,35 @@ function isSystemLogComment(c) {
     return true;
   if (String(c.type || "").toLowerCase().trim() === "system") return true;
   return false;
+}
+
+/** Count system log lines today whose text matches any of the regexes (desktop KPI sublines). */
+function countSystemLogPhrasesToday(res) {
+  const dayStart = getLocalDayStartMs(new Date());
+  if (isNaN(dayStart)) return 0;
+  const dayEnd = dayStart + 86400000;
+  let n = 0;
+  for (let i = 0; i < jobs.length; i++) {
+    const j = jobs[i];
+    if (!j || !Array.isArray(j.comments)) continue;
+    for (let k = 0; k < j.comments.length; k++) {
+      const c = j.comments[k];
+      if (!isSystemLogComment(c)) continue;
+      const msg = String(c.text == null ? "" : c.text);
+      let ok = false;
+      for (let r = 0; r < res.length; r++) {
+        if (res[r].test(msg)) {
+          ok = true;
+          break;
+        }
+      }
+      if (!ok) continue;
+      const ms = getCommentSortTimeMs(c);
+      if (isNaN(ms) || ms < dayStart || ms >= dayEnd) continue;
+      n++;
+    }
+  }
+  return n;
 }
 
 /**
@@ -3829,6 +4090,60 @@ window.closeJobsSettings = closeJobsSettings;
 window.openNewJobFromHeader = openNewJobFromHeader;
 window.openDesktopJobFromTable = openDesktopJobFromTable;
 window.openDesktopJobFromTableFromButton = openDesktopJobFromTableFromButton;
+
+function desktopViewAllJobs() {
+  try {
+    setTab("active");
+  } catch (e) {
+    /* ignore */
+  }
+  const el = document.getElementById("app-jobs-stack");
+  if (el) {
+    try {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (e) {
+      el.scrollIntoView(true);
+    }
+  }
+}
+
+function desktopFocusJobSearch() {
+  const s = document.getElementById("jobSearch");
+  if (s) {
+    try {
+      s.focus();
+      if (typeof s.select === "function") s.select();
+    } catch (e) {
+      /* ignore */
+    }
+  }
+}
+
+function desktopNotifyClick() {
+  showJobsToast(t("desktopNotifEmpty"));
+}
+
+function desktopQuickAssign() {
+  desktopViewAllJobs();
+  const sel = document.getElementById("engineerFilter");
+  if (sel) {
+    try {
+      sel.focus();
+    } catch (e) {
+      /* ignore */
+    }
+  }
+}
+
+function desktopQuickCalendar() {
+  showJobsToast(t("desktopCalendarMsg"));
+}
+
+window.desktopViewAllJobs = desktopViewAllJobs;
+window.desktopFocusJobSearch = desktopFocusJobSearch;
+window.desktopNotifyClick = desktopNotifyClick;
+window.desktopQuickAssign = desktopQuickAssign;
+window.desktopQuickCalendar = desktopQuickCalendar;
 
 function flashCommentSaved(id) {
   const want = String(id);

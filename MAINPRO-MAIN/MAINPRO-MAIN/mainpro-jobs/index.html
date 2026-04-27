@@ -38,7 +38,9 @@
       margin: 0;
       min-height: 100vh;
       overflow-x: hidden;
-      background: linear-gradient(165deg, #e8edf3 0%, #f1f5f9 32%, #f8fafc 70%, #f1f5f9 100%);
+      background: radial-gradient(circle at top right, rgba(15, 157, 104, 0.05), transparent 55%),
+        radial-gradient(circle at bottom left, rgba(212, 175, 55, 0.05), transparent 50%),
+        #f4f6f8;
       background-attachment: fixed;
       color: #1a1a1a;
       line-height: 1.45;
@@ -3690,12 +3692,53 @@
       min-height: 20px;
     }
 
+    .desktop-nav-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .desktop-nav-ic {
+      flex: 0 0 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0.92;
+    }
+
+    .desktop-nav-ic--text {
+      font-size: 16px;
+      line-height: 1;
+    }
+
     .desktop-sidebar__user {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 12px;
       margin-top: 12px;
-      padding: 12px 12px 10px;
+      padding: 14px 12px 12px;
       border-radius: 12px;
       background: rgba(15, 23, 42, 0.45);
       border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .desktop-user-avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #0f9d68, #14b87c);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+
+    .desktop-sidebar__user-text {
+      min-width: 0;
     }
 
     .desktop-sidebar__user-line {
@@ -3707,8 +3750,8 @@
     .desktop-sidebar__user-sub {
       margin-top: 2px;
       font-size: 12px;
-      color: var(--mp-green);
-      font-weight: 600;
+      color: rgba(203, 213, 225, 0.85);
+      font-weight: 500;
     }
 
     .desktop-main {
@@ -3767,9 +3810,46 @@
     .desktop-topbar__actions {
       display: flex;
       flex-wrap: wrap;
+      flex-direction: row;
       align-items: center;
       justify-content: flex-end;
-      gap: 10px;
+      gap: 12px 16px;
+    }
+
+    .desktop-topbar__tools {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .desktop-icon-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      border: 1px solid var(--mp-border);
+      border-radius: 10px;
+      background: #fff;
+      color: #475569;
+      cursor: pointer;
+      box-sizing: border-box;
+      transition: background 0.2s ease, border-color 0.2s ease;
+    }
+
+    .desktop-icon-btn:hover {
+      background: #f8fafc;
+      border-color: #d1d5db;
+    }
+
+    .desktop-icon-btn--avatar {
+      border-radius: 50%;
+      background: linear-gradient(135deg, #0f9d68, #14b87c);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 800;
+      border: none;
     }
 
     .desktop-btn {
@@ -3826,7 +3906,7 @@
 
     .desktop-kpi-grid {
       display: grid;
-      grid-template-columns: repeat(6, minmax(130px, 1fr));
+      grid-template-columns: repeat(5, minmax(120px, 1fr));
       gap: 20px;
       padding: 8px 32px 8px;
     }
@@ -3834,7 +3914,8 @@
     /* Premium depth: maps to .kpi-card / .card — desktop only */
     .desktop-kpi,
     .desktop-recent-card,
-    .desktop-side-card {
+    .desktop-side-card,
+    .desktop-upcoming-card {
       border-radius: 18px;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.04);
     }
@@ -3851,8 +3932,20 @@
       transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
 
+    .desktop-kpi--new {
+      background: linear-gradient(180deg, #ffffff, #f0fdf4);
+    }
+
+    .desktop-kpi--progress {
+      background: linear-gradient(180deg, #ffffff, #fffbeb);
+    }
+
+    .desktop-kpi--pending {
+      background: linear-gradient(180deg, #ffffff, #eff6ff);
+    }
+
     .desktop-kpi--done {
-      background: linear-gradient(180deg, #ffffff, #f0faf5);
+      background: linear-gradient(180deg, #ffffff, #f5f3ff);
     }
 
     .desktop-kpi--overdue {
@@ -3861,7 +3954,8 @@
 
     .desktop-kpi:hover,
     .desktop-recent-card:hover,
-    .desktop-side-card:hover {
+    .desktop-side-card:hover,
+    .desktop-upcoming-card:hover {
       transform: translateY(-4px);
       box-shadow: 0 18px 40px rgba(0, 0, 0, 0.08), 0 4px 10px rgba(0, 0, 0, 0.06);
     }
@@ -3874,27 +3968,23 @@
     }
 
     .desktop-kpi--new .desktop-kpi__icon {
-      background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+      background: linear-gradient(135deg, #bbf7d0 0%, #4ade80 100%);
     }
 
     .desktop-kpi--progress .desktop-kpi__icon {
-      background: linear-gradient(135deg, #fef3c7 0%, #fcd34d 100%);
+      background: linear-gradient(135deg, #fef3c7 0%, #f59e0b 100%);
     }
 
     .desktop-kpi--pending .desktop-kpi__icon {
-      background: linear-gradient(135deg, #f3e8ff 0%, #d8b4fe 100%);
+      background: linear-gradient(135deg, #dbeafe 0%, #60a5fa 100%);
     }
 
     .desktop-kpi--overdue .desktop-kpi__icon {
-      background: linear-gradient(135deg, #fee2e2 0%, #fda4af 100%);
+      background: linear-gradient(135deg, #fee2e2 0%, #f87171 100%);
     }
 
     .desktop-kpi--done .desktop-kpi__icon {
-      background: linear-gradient(135deg, #d1fae5 0%, #6ee7b7 100%);
-    }
-
-    .desktop-kpi--deleted .desktop-kpi__icon {
-      background: linear-gradient(135deg, #f3f4f6 0%, #d1d5db 100%);
+      background: linear-gradient(135deg, #e9d5ff 0%, #a78bfa 100%);
     }
 
     .desktop-kpi__body {
@@ -3905,6 +3995,7 @@
     }
 
     .desktop-kpi__value {
+      order: 2;
       font-size: 30px;
       font-weight: 800;
       letter-spacing: -0.02em;
@@ -3913,6 +4004,7 @@
     }
 
     .desktop-kpi__label {
+      order: 1;
       font-size: 12px;
       font-weight: 600;
       text-transform: uppercase;
@@ -3921,7 +4013,7 @@
     }
 
     .desktop-kpi--new .desktop-kpi__value {
-      color: #1d4ed8;
+      color: #047857;
     }
 
     .desktop-kpi--progress .desktop-kpi__value {
@@ -3929,7 +4021,7 @@
     }
 
     .desktop-kpi--pending .desktop-kpi__value {
-      color: #6d28d9;
+      color: #1d4ed8;
     }
 
     .desktop-kpi--overdue .desktop-kpi__value {
@@ -3937,11 +4029,277 @@
     }
 
     .desktop-kpi--done .desktop-kpi__value {
-      color: var(--mp-green);
+      color: #6d28d9;
     }
 
-    .desktop-kpi--deleted .desktop-kpi__value {
-      color: #4b5563;
+    .desktop-kpi__sub {
+      order: 3;
+      display: block;
+      margin-top: 2px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #94a3b8;
+      line-height: 1.3;
+    }
+
+    .desktop-left-col {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      min-width: 0;
+    }
+
+    .desktop-view-all-wrap {
+      padding: 0 20px 20px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .desktop-view-all-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 40px;
+      padding: 0 22px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--mp-green);
+      background: #fff;
+      border: 1px solid rgba(15, 157, 104, 0.4);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .desktop-view-all-btn:hover {
+      background: var(--mp-green-soft);
+      box-shadow: 0 2px 8px rgba(15, 157, 104, 0.15);
+    }
+
+    .desktop-upcoming-card {
+      box-sizing: border-box;
+      padding: 0 0 16px;
+    }
+
+    .desktop-upcoming-card__title {
+      margin: 0;
+      padding: 18px 20px 12px;
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: var(--mp-text);
+    }
+
+    .desktop-upcoming__strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 0 16px 4px;
+      align-items: stretch;
+    }
+
+    .desktop-upcoming__chip {
+      flex: 1 1 100px;
+      min-width: 0;
+      padding: 10px 10px 8px;
+      border-radius: 12px;
+      background: #f8fafc;
+      border: 1px solid var(--mp-border);
+      font-size: 12px;
+      line-height: 1.35;
+      color: var(--mp-text);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .desktop-upcoming__chip--today {
+      border-color: rgba(15, 157, 104, 0.45);
+      background: var(--mp-green-soft);
+    }
+
+    .desktop-upcoming__day {
+      display: block;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #0f9d68;
+    }
+
+    .desktop-upcoming__chip:not(.desktop-upcoming__chip--today) .desktop-upcoming__day {
+      color: #64748b;
+    }
+
+    .desktop-upcoming__date {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #0f172a;
+    }
+
+    .desktop-upcoming__n {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: #475569;
+    }
+
+    .desktop-donut-card .desktop-donut-row {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 20px;
+      padding: 0 20px 20px;
+      flex-wrap: wrap;
+    }
+
+    .desktop-donut-visual {
+      position: relative;
+      width: 160px;
+      height: 160px;
+      flex-shrink: 0;
+    }
+
+    .desktop-donut-ring {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      box-sizing: border-box;
+      background: conic-gradient(#e2e8f0 0% 100%);
+      box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
+    }
+
+    .desktop-donut-visual::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 56%;
+      height: 56%;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.05);
+      pointer-events: none;
+    }
+
+    .desktop-donut-total {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      z-index: 1;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      pointer-events: none;
+    }
+
+    .desktop-donut-total__num {
+      display: block;
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--mp-text);
+      line-height: 1.1;
+    }
+
+    .desktop-donut-total__lbl {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #94a3b8;
+      margin-top: 2px;
+    }
+
+    .desktop-donut-legend {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      flex: 1 1 180px;
+      min-width: 160px;
+      font-size: 13px;
+    }
+
+    .desktop-donut-legend li {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px 8px;
+      padding: 6px 0;
+      color: #64748b;
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    .desktop-donut-legend li:last-child {
+      border-bottom: 0;
+    }
+
+    .desktop-donut-legend strong {
+      margin-left: auto;
+      color: #0f172a;
+      font-weight: 800;
+    }
+
+    .desktop-donut-count {
+      font-size: 12px;
+      font-weight: 600;
+      color: #94a3b8;
+    }
+
+    .desktop-donut-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .desktop-donut-dot--c {
+      background: #ef4444;
+    }
+
+    .desktop-donut-dot--h {
+      background: #f97316;
+    }
+
+    .desktop-donut-dot--m {
+      background: #eab308;
+    }
+
+    .desktop-donut-dot--l {
+      background: #22c55e;
+    }
+
+    .desktop-eng {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .desktop-eng__avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 800;
+      color: #fff;
+      background: linear-gradient(135deg, #64748b, #94a3b8);
+      flex-shrink: 0;
+    }
+
+    .desktop-eng__name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--mp-text);
+      max-width: 9rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .desktop-content-grid {
@@ -3954,7 +4312,8 @@
     }
 
     .desktop-recent-card,
-    .desktop-side-card {
+    .desktop-side-card,
+    .desktop-upcoming-card {
       background: var(--mp-card);
       border: 1px solid var(--mp-border);
       box-sizing: border-box;
@@ -3983,18 +4342,6 @@
       border-collapse: separate;
       border-spacing: 0;
       font-size: 13px;
-    }
-
-    .desktop-jobs-table tbody tr {
-      transition: transform 0.2s ease;
-    }
-
-    .desktop-jobs-table tbody tr:hover td {
-      background: #f9fbfc;
-    }
-
-    .desktop-jobs-table tbody tr:hover {
-      transform: scale(1.002);
     }
 
     .desktop-jobs-table thead th {
@@ -4185,6 +4532,84 @@
       .desktop-content-grid {
         grid-template-columns: 1fr;
       }
+    }
+
+    /* === MAINPRO PREMIUM UPGRADE (depth, gold, primary, table rows) === */
+    .onboarding-card,
+    .login-card,
+    .park-modal-card,
+    .jobs-settings-card,
+    .job.job-card,
+    .jobs-controls-panel,
+    .control-panel,
+    .job-dashboard-card.kpi-card {
+      border-radius: 20px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06), 0 4px 10px rgba(0, 0, 0, 0.04);
+    }
+
+    .login-card:hover,
+    .park-modal-card:hover,
+    .jobs-settings-card:hover,
+    .job.job-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08), 0 6px 12px rgba(0, 0, 0, 0.06);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+
+    .onboarding-card {
+      transition: box-shadow 0.2s ease;
+    }
+
+    .job-dashboard-card.kpi-card {
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+
+    .job-dashboard-card.kpi-card.job-dashboard-card--click:hover:not(.job-dashboard-card--active) {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08), 0 6px 12px rgba(0, 0, 0, 0.06);
+    }
+
+    /* Gold wordmark: optional <span> in .app-title; desktop brand already #d4af37 */
+    .app-title span {
+      color: #d4af37;
+    }
+
+    .btn-primary,
+    .btn-header-primary,
+    .desktop-btn--primary {
+      background: linear-gradient(135deg, #0f9d68, #18c58f);
+      box-shadow: 0 8px 20px rgba(15, 157, 104, 0.35);
+      border-radius: 12px;
+    }
+
+    .btn-header-primary:hover,
+    .btn-header-primary:focus-visible {
+      background: linear-gradient(135deg, #12a66f, #1bc997);
+      box-shadow: 0 10px 24px rgba(15, 157, 104, 0.42);
+    }
+
+    .desktop-btn--primary:hover,
+    .desktop-btn--primary:focus-visible {
+      background: linear-gradient(135deg, #12a66f, #1bc997);
+      box-shadow: 0 8px 22px rgba(15, 157, 104, 0.45);
+    }
+
+    .desktop-jobs-table tbody tr {
+      transition: background-color 0.15s ease, transform 0.15s ease;
+    }
+
+    .desktop-jobs-table tbody tr:hover td {
+      background: #f8fafc;
+    }
+
+    .desktop-jobs-table tbody tr:hover {
+      transform: scale(1.002);
+    }
+
+    .jobs-sticky .jobs-controls-panel,
+    .jobs-sticky .control-panel {
+      border-radius: 20px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06), 0 4px 10px rgba(0, 0, 0, 0.04);
     }
   </style>
 </head>
@@ -4405,23 +4830,60 @@
         <aside class="desktop-sidebar" aria-label="App navigation">
           <div class="desktop-sidebar__logo">
             <span class="desktop-sidebar__mp" aria-hidden="true">MP</span>
-              <div class="desktop-sidebar__wordmark">
-              <div class="desktop-sidebar-brand">MainPro</div>
+            <div class="desktop-sidebar__wordmark">
+              <div class="desktop-sidebar-brand" id="desktopBrandWord">MAINPRO</div>
               <div class="desktop-sidebar__tagline" id="desktopTagline">Intelligent Hotel Operations</div>
             </div>
           </div>
           <nav class="desktop-sidebar-nav" aria-label="Primary">
-            <div class="desktop-sidebar-item desktop-sidebar-item--active" id="desktopNavDashboard">Dashboard</div>
-            <div class="desktop-sidebar-item" id="desktopNavJobs">Jobs</div>
-            <div class="desktop-sidebar-item" id="desktopNavCalendar">Calendar</div>
-            <div class="desktop-sidebar-item" id="desktopNavLocations">Locations</div>
-            <div class="desktop-sidebar-item" id="desktopNavReports">Reports</div>
-            <div class="desktop-sidebar-item" id="desktopNavSettings">Settings</div>
+            <div class="desktop-nav-row desktop-sidebar-item desktop-sidebar-item--active" data-desktop-nav>
+              <span class="desktop-nav-ic" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 10.5L12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1v-9.5z"/></svg>
+              </span>
+              <span id="desktopNavDashboard">Dashboard</span>
+            </div>
+            <div class="desktop-nav-row desktop-sidebar-item" data-desktop-nav>
+              <span class="desktop-nav-ic" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+              </span>
+              <span id="desktopNavJobs">Jobs</span>
+            </div>
+            <div class="desktop-nav-row desktop-sidebar-item" data-desktop-nav>
+              <span class="desktop-nav-ic" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg>
+              </span>
+              <span id="desktopNavCalendar">Calendar</span>
+            </div>
+            <div class="desktop-nav-row desktop-sidebar-item" data-desktop-nav>
+              <span class="desktop-nav-ic" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.3 7.7L12 12l8.7-4.3M12 22V12"/></svg>
+              </span>
+              <span id="desktopNavAssets">Assets</span>
+            </div>
+            <div class="desktop-nav-row desktop-sidebar-item" data-desktop-nav>
+              <span class="desktop-nav-ic" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V10M9 20V4M14 20v-6M19 20V8"/></svg>
+              </span>
+              <span id="desktopNavReports">Reports</span>
+            </div>
+            <div class="desktop-nav-row desktop-sidebar-item" data-desktop-nav>
+              <span class="desktop-nav-ic" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              </span>
+              <span id="desktopNavUsers">Users</span>
+            </div>
+            <div class="desktop-nav-row desktop-sidebar-item" data-desktop-nav>
+              <span class="desktop-nav-ic desktop-nav-ic--text" aria-hidden="true">⚙</span>
+              <span id="desktopNavSettings">Settings</span>
+            </div>
           </nav>
           <div class="desktop-sidebar__spacer" aria-hidden="true"></div>
           <div class="desktop-sidebar__user" id="desktopSidebarUser">
-            <div class="desktop-sidebar__user-line" id="desktopSidebarUserName">—</div>
-            <div class="desktop-sidebar__user-sub" id="desktopSidebarUserStatus">Active</div>
+            <div class="desktop-user-avatar" id="desktopUserAvatar" aria-hidden="true">—</div>
+            <div class="desktop-sidebar__user-text">
+              <div class="desktop-sidebar__user-line" id="desktopSidebarUserName">—</div>
+              <div class="desktop-sidebar__user-sub" id="desktopSidebarUserStatus">—</div>
+            </div>
           </div>
         </aside>
         <div class="desktop-main">
@@ -4432,8 +4894,17 @@
             </div>
             <div class="desktop-topbar__actions">
               <button type="button" class="desktop-btn desktop-btn--primary" id="btnDesktopNewJob" onclick="openNewJobFromHeader()">+ New Job</button>
-              <button type="button" class="desktop-btn desktop-btn--ghost" id="btnDesktopOpenSettings" onclick="openJobsSettings()">Settings</button>
-              <button type="button" class="desktop-btn desktop-btn--ghost" id="btnDesktopChangeUser" onclick="showChangeUser()">Change user</button>
+              <div class="desktop-topbar__tools" role="toolbar" aria-label="Header tools">
+                <button type="button" class="desktop-icon-btn" id="btnDesktopNotify" onclick="desktopNotifyClick()" title="Notifications" aria-label="Notifications">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                </button>
+                <button type="button" class="desktop-icon-btn" id="btnDesktopSearch" onclick="desktopFocusJobSearch()" title="Search" aria-label="Search">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+                </button>
+                <button type="button" class="desktop-icon-btn desktop-icon-btn--avatar" id="btnDesktopProfile" onclick="showChangeUser()" title="Account" aria-label="Change user">
+                  <span id="desktopTopbarAvatar">U</span>
+                </button>
+              </div>
             </div>
           </div>
           <div class="desktop-kpi-grid" id="desktopKpiGrid" role="region" aria-label="Job counts">
@@ -4442,6 +4913,7 @@
               <div class="desktop-kpi__body">
                 <span class="desktop-kpi__value" id="desktopKpiNew">0</span>
                 <span class="desktop-kpi__label" id="desktopLabelNew">New</span>
+                <span class="desktop-kpi__sub" id="desktopKpiSubNew"></span>
               </div>
             </div>
             <div class="desktop-kpi desktop-kpi--progress">
@@ -4449,6 +4921,7 @@
               <div class="desktop-kpi__body">
                 <span class="desktop-kpi__value" id="desktopKpiInProgress">0</span>
                 <span class="desktop-kpi__label" id="desktopLabelInProgress">In progress</span>
+                <span class="desktop-kpi__sub" id="desktopKpiSubInProgress"></span>
               </div>
             </div>
             <div class="desktop-kpi desktop-kpi--pending">
@@ -4456,13 +4929,7 @@
               <div class="desktop-kpi__body">
                 <span class="desktop-kpi__value" id="desktopKpiPending">0</span>
                 <span class="desktop-kpi__label" id="desktopLabelPending">Pending</span>
-              </div>
-            </div>
-            <div class="desktop-kpi desktop-kpi--overdue">
-              <div class="desktop-kpi__icon" aria-hidden="true"></div>
-              <div class="desktop-kpi__body">
-                <span class="desktop-kpi__value" id="desktopKpiOverdue">0</span>
-                <span class="desktop-kpi__label" id="desktopLabelOverdue">Overdue</span>
+                <span class="desktop-kpi__sub" id="desktopKpiSubPending"></span>
               </div>
             </div>
             <div class="desktop-kpi desktop-kpi--done">
@@ -4470,56 +4937,75 @@
               <div class="desktop-kpi__body">
                 <span class="desktop-kpi__value" id="desktopKpiDoneToday">0</span>
                 <span class="desktop-kpi__label" id="desktopLabelDoneToday">Done today</span>
+                <span class="desktop-kpi__sub" id="desktopKpiSubDone"></span>
               </div>
             </div>
-            <div class="desktop-kpi desktop-kpi--deleted">
+            <div class="desktop-kpi desktop-kpi--overdue">
               <div class="desktop-kpi__icon" aria-hidden="true"></div>
               <div class="desktop-kpi__body">
-                <span class="desktop-kpi__value" id="desktopKpiDeleted">0</span>
-                <span class="desktop-kpi__label" id="desktopLabelDeleted">Deleted</span>
+                <span class="desktop-kpi__value" id="desktopKpiOverdue">0</span>
+                <span class="desktop-kpi__label" id="desktopLabelOverdue">Overdue</span>
+                <span class="desktop-kpi__sub" id="desktopKpiSubOverdue"></span>
               </div>
             </div>
           </div>
           <div class="desktop-content-grid">
-            <section class="desktop-recent-card" aria-label="Recent jobs">
-              <div class="desktop-card__hdrow">
-                <h2 class="desktop-card__hd" id="desktopRecentJobsTitle">Recent Jobs</h2>
-              </div>
-              <div class="desktop-table-wrap">
-                <table class="desktop-jobs-table">
-                  <thead>
-                    <tr>
-                      <th id="desktopThJobRoom">Job / Room</th>
-                      <th id="desktopThDescription">Description</th>
-                      <th id="desktopThPriority">Priority</th>
-                      <th id="desktopThAssigned">Assigned</th>
-                      <th id="desktopThStatus">Status</th>
-                      <th id="desktopThUpdated">Updated</th>
-                      <th class="desktop-jobs-table__action" id="desktopThAction">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody id="desktopRecentJobsBody">
-                  </tbody>
-                </table>
-              </div>
-            </section>
+            <div class="desktop-left-col">
+              <section class="desktop-recent-card" aria-label="Recent jobs">
+                <div class="desktop-card__hdrow">
+                  <h2 class="desktop-card__hd" id="desktopRecentJobsTitle">Recent jobs</h2>
+                </div>
+                <div class="desktop-table-wrap">
+                  <table class="desktop-jobs-table">
+                    <thead>
+                      <tr>
+                        <th id="desktopThJob">Job</th>
+                        <th id="desktopThRoom">Room</th>
+                        <th id="desktopThPriority">Priority</th>
+                        <th id="desktopThEngineer">Engineer</th>
+                        <th id="desktopThStatus">Status</th>
+                        <th id="desktopThUpdated">Updated</th>
+                        <th class="desktop-jobs-table__action" id="desktopThAction">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody id="desktopRecentJobsBody">
+                    </tbody>
+                  </table>
+                </div>
+                <div class="desktop-view-all-wrap">
+                  <button type="button" class="desktop-view-all-btn" id="desktopViewAllJobs" onclick="desktopViewAllJobs()">View all jobs</button>
+                </div>
+              </section>
+              <section class="desktop-upcoming-card" aria-labelledby="desktopUpcomingTitle">
+                <h3 class="desktop-upcoming-card__title" id="desktopUpcomingTitle">Upcoming (7 days)</h3>
+                <div class="desktop-upcoming__strip" id="desktopUpcomingStrip" role="list"></div>
+              </section>
+            </div>
             <div class="desktop-right-panel" id="desktopRightPanel">
-              <div class="desktop-side-card">
+              <div class="desktop-side-card desktop-donut-card">
                 <h3 class="desktop-side-card__title" id="desktopPriTitle">Jobs by priority</h3>
-                <ul class="desktop-priority-list">
-                  <li><span id="desktopPriLabelCritical">Critical</span><strong id="desktopPriCritical">0</strong></li>
-                  <li><span id="desktopPriLabelHigh">High</span><strong id="desktopPriHigh">0</strong></li>
-                  <li><span id="desktopPriLabelMedium">Medium</span><strong id="desktopPriMedium">0</strong></li>
-                  <li><span id="desktopPriLabelLow">Low</span><strong id="desktopPriLow">0</strong></li>
-                </ul>
+                <div class="desktop-donut-row">
+                  <div class="desktop-donut-visual" aria-hidden="true">
+                    <div class="desktop-donut-ring" id="desktopDonutChart"></div>
+                    <div class="desktop-donut-total" aria-hidden="true">
+                      <span class="desktop-donut-total__num" id="desktopDonutTotal">0</span>
+                      <span class="desktop-donut-total__lbl" id="desktopDonutTotalLbl">Total</span>
+                    </div>
+                  </div>
+                  <ul class="desktop-donut-legend">
+                    <li><span class="desktop-donut-dot desktop-donut-dot--c"></span> <span id="desktopPriLabelCritical">Critical</span> <strong id="desktopDonutPctCritical">0%</strong> <span class="desktop-donut-count" id="desktopPriCritical">0</span></li>
+                    <li><span class="desktop-donut-dot desktop-donut-dot--h"></span> <span id="desktopPriLabelHigh">High</span> <strong id="desktopDonutPctHigh">0%</strong> <span class="desktop-donut-count" id="desktopPriHigh">0</span></li>
+                    <li><span class="desktop-donut-dot desktop-donut-dot--m"></span> <span id="desktopPriLabelMedium">Medium</span> <strong id="desktopDonutPctMedium">0%</strong> <span class="desktop-donut-count" id="desktopPriMedium">0</span></li>
+                    <li><span class="desktop-donut-dot desktop-donut-dot--l"></span> <span id="desktopPriLabelLow">Low</span> <strong id="desktopDonutPctLow">0%</strong> <span class="desktop-donut-count" id="desktopPriLow">0</span></li>
+                  </ul>
+                </div>
               </div>
               <div class="desktop-side-card">
                 <h3 class="desktop-side-card__title" id="desktopQaTitle">Quick actions</h3>
                 <div class="desktop-quick-actions">
                   <button type="button" class="desktop-qa" id="desktopQaCreate" onclick="openNewJobFromHeader()">Create new job</button>
-                  <button type="button" class="desktop-qa" id="desktopQaExport" onclick="exportJobsBackup()">Export JSON</button>
-                  <button type="button" class="desktop-qa" id="desktopQaImport" onclick="triggerImportBackup()">Import JSON</button>
-                  <button type="button" class="desktop-qa" id="desktopQaSettings" onclick="openJobsSettings()">Settings</button>
+                  <button type="button" class="desktop-qa" id="desktopQaAssign" onclick="desktopQuickAssign()">Assign engineer</button>
+                  <button type="button" class="desktop-qa" id="desktopQaCalendar" onclick="desktopQuickCalendar()">View calendar</button>
                 </div>
               </div>
             </div>
