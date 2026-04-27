@@ -169,6 +169,8 @@ const MAINPRO_I18N = {
     desktopCalendarMsg: "Calendar is coming in a later update.",
     desktopQaSearchHint: "Search jobs",
     desktopDonutTotalLabel: "Total",
+    jobCreatedToast: "Job created",
+    reportCancel: "Cancel",
   },
   ru: {
     appTitle: "MainPro — заявки",
@@ -282,6 +284,8 @@ const MAINPRO_I18N = {
     desktopCalendarMsg: "Календарь появится в следующем обновлении.",
     desktopQaSearchHint: "Поиск",
     desktopDonutTotalLabel: "Всего",
+    jobCreatedToast: "Заявка создана",
+    reportCancel: "Отмена",
   },
 };
 
@@ -317,6 +321,8 @@ function applyMainproI18n() {
   const titleEl = document.getElementById("appHeaderTitle");
   if (titleEl) titleEl.textContent = t("appTitle");
   el("reportFormTitle", t("reportTitle"));
+  tx("mobileReportSheetTitle", t("reportTitle"));
+  tx("mobileReportCancelBtn", t("reportCancel"));
   const loc = document.getElementById("location");
   if (loc) loc.setAttribute("placeholder", t("roomPh"));
   const prob = document.getElementById("problem");
@@ -2783,20 +2789,20 @@ function renderEngineerNotesForModal(j) {
   );
   let engineerBlock = "";
   if (!engineerList.length) {
-    engineerBlock = `<h4 class="log-title section-title">Engineer notes</h4><div class="notes-container"><div class="comment-log comment-log--empty job-log--timeline ${tone}">No notes yet</div></div>`;
+    engineerBlock = `<h4 class="log-title section-title">Engineer notes</h4><div class="notes-container engineer-notes-list notes-list job-notes-list"><div class="comment-log comment-log--empty job-log--timeline ${tone}">No notes yet</div></div>`;
   } else {
-    engineerBlock = `<h4 class="log-title section-title">Engineer notes</h4><div class="notes-container"><div class="comment-log job-log--timeline job-log--engineer-notes job-log--modal ${tone} expanded" role="list">${engineerList
+    engineerBlock = `<h4 class="log-title section-title">Engineer notes</h4><div class="notes-container engineer-notes-list notes-list job-notes-list"><div class="comment-log job-log--timeline job-log--engineer-notes job-log--modal ${tone} expanded" role="list">${engineerList
       .map((c) => renderEngineerLogItemHtml(c))
       .join("")}</div></div>`;
   }
   let activityBlock = "";
   if (sortedActivity.length) {
-    activityBlock = `<h4 class="log-title section-title system">Activity</h4><div class="activity-timeline expanded" role="list">${sortedActivity
+    activityBlock = `<h4 class="log-title section-title system">Activity</h4><div class="activity-timeline activity-list job-activity-list expanded" role="list">${sortedActivity
       .map((c) => renderSystemLogItemHtml(c))
       .join("")}</div>`;
   }
   if (!list.length) {
-    return `<div class="job-log-stack job-log-stack--modal"><h4 class="log-title section-title">Engineer notes</h4><div class="comment-log--empty">No notes or activity</div></div>`;
+    return `<div class="job-log-stack job-log-stack--modal"><h4 class="log-title section-title">Engineer notes</h4><div class="notes-container engineer-notes-list notes-list job-notes-list"><div class="comment-log--empty">No notes or activity</div></div></div>`;
   }
   return `<div class="job-log-stack job-log-stack--modal">${engineerBlock}${activityBlock}</div>`;
 }
@@ -2808,18 +2814,56 @@ function getLatestSystemCommentObject(j) {
   return list[0] || null;
 }
 
-function renderCompactLineActivity(c) {
-  if (!c) return "";
-  const d = getCommentDisplayFields(c);
-  const msg = String(d.text == null ? "" : d.text).trim();
-  if (!msg) return "";
-  const label = getActivityDisplayLabel(msg);
-  const time = formatTimeOnly(d.time || d.date || d.createdAt) || "—";
-  return `<div class="job-compact-line job-compact-line--activity"><span class="job-compact-k">Activity</span> <span class="job-compact-activity-lbl"><strong>${escapeHtml(
-    label
-  )}</strong></span> <span class="job-compact-time">${escapeHtml(
-    time
-  )}</span></div>`;
+/** Mobile list: one-line priority, assignee, due / hold / overdue (no reporter/timestamps). */
+function getJobListDueShortText(j) {
+  if (j.deleted) return "";
+  if (j.status === "Done") {
+    return formatDateClean(j.completedAt) || "";
+  }
+  if (j.status === "Pending") {
+    if (j.isOverdue) return "Overdue";
+    const u = (j.pendingUntil && String(j.pendingUntil).trim()) || "";
+    if (u) {
+      const t = new Date(u).getTime();
+      if (isNaN(t)) return "On hold";
+      const now = Date.now();
+      if (t <= now) return "On hold";
+      const { h, m } = formatDurationHMFromMs(t - now);
+      return "Hold " + h + "h" + (m > 0 ? " " + m + "m" : "");
+    }
+    return "On hold";
+  }
+  const d = (j.dueAt == null ? "" : String(j.dueAt)).trim();
+  if (!d) return "";
+  const dueT = new Date(d).getTime();
+  if (isNaN(dueT)) return "";
+  if (j.status === "In Progress" || j.status === "New") {
+    if (isSlaOverdue(j)) {
+      const { h, m } = formatDurationHMFromMs(Math.max(0, Date.now() - dueT));
+      return "Overdue " + h + "h" + (m > 0 ? " " + m + "m" : "");
+    }
+  }
+  const now = Date.now();
+  const diff = dueT - now;
+  const { h, m } = formatDurationHMFromMs(Math.abs(diff));
+  if (diff < 0) return "Overdue " + h + "h" + (m > 0 ? " " + m + "m" : "");
+  return "Due " + h + "h" + (m > 0 ? " " + m + "m" : "");
+}
+
+function renderJobListMetaCompact(j) {
+  const p = normalizePriorityValue(j.priority);
+  const slug = p.toLowerCase();
+  const pill = `<span class="job-priority-pill job-priority-pill--${slug}">${escapeHtml(
+    p
+  )}</span>`;
+  const eng = escapeHtml(normalizeAssignedTo(j));
+  const dueText = getJobListDueShortText(j);
+  const se = '<span class="job-list-meta-sep" aria-hidden="true">·</span>';
+  const bits = [pill, se, `<span class="job-list-meta-eng">${eng}</span>`];
+  if (dueText) {
+    bits.push(se, `<span class="job-list-meta-due">${escapeHtml(dueText)}</span>`);
+  }
+  return `<div class="job-list-meta-line">${bits.join("")}</div>`;
 }
 
 function renderActiveCardCompact(j) {
@@ -2829,125 +2873,88 @@ function renderActiveCardCompact(j) {
   const safePhoto =
     j.photo && String(j.photo).indexOf("data:image/") === 0 ? j.photo : "";
   const photoBlock = safePhoto
-    ? `<div class="job-photo-wrap job-photo-wrap--compact"><img class="job-photo-thumb" src="${safePhoto}" alt="Fault photo" tabindex="0" role="button"></div>`
+    ? `<div class="job-list-photo" aria-hidden="true"><img class="job-photo-thumb job-list-photo__img" src="${safePhoto}" alt="Fault photo" tabindex="0" role="button" /></div>`
     : "";
   const sInProgress = JSON.stringify("In Progress");
   const sDone = JSON.stringify("Done");
-  const progressBtnNew =
-    st === "New"
-      ? `<button type="button" class="btn-sec" onclick='setStatus(${qid}, ${sInProgress})'>In Progress</button>`
+  const progressBtn =
+    st === "New" || st === "Pending"
+      ? `<button type="button" class="btn-sec" onclick="event.stopPropagation(); setStatus(${qid}, ${sInProgress})">In Progress</button>`
       : "";
-  const progressBtnPending =
-    st === "Pending"
-      ? `<button type="button" class="btn-sec" onclick='setStatus(${qid}, ${sInProgress})'>In Progress</button>`
-      : "";
-  const parkBtn =
-    st === "New" || st === "In Progress"
-      ? `<button type="button" class="btn-park" onclick='openParkDialog(${qid})'>Park</button>`
-      : "";
+  const doneBtn = `<button type="button" class="btn-done" onclick="event.stopPropagation(); setStatus(${qid}, ${sDone})">Done</button>`;
   const idForAttr = jobIdForDomAttr(j.id);
-  const pr = (j.pendingReason || "").trim();
   const isParkOverDueAttr = st === "Pending" && j.isOverdue;
   const slaO = isSlaOverdue(j) ? "1" : "0";
-  let statusInfoBlock = "";
-  if (st === "Pending") {
-    const ptext = (pr && pr.trim()) || "—";
-    const rShort = ptext.length > 80 ? ptext.slice(0, 78) + "…" : ptext;
-    const si = [];
-    si.push(
-      `<div class="pending-reason-line pending-reason-line--compact">On hold: ${escapeHtml(
-        rShort
-      )}</div>`
-    );
-    const timerUntil = getPendingTimerUntilLine(j);
-    if (timerUntil) si.push(timerUntil);
-    statusInfoBlock = `<div class="job-status-info job-status-info--compact">${si.join(
-      ""
-    )}</div>`;
-  }
-  const lastAct = getLatestSystemCommentObject(j);
-  const preAct = renderCompactLineActivity(lastAct);
-  const previews = preAct
-    ? `<div class="job-compact-previews">${preAct}</div>`
-    : "";
-  const ph = '<div class="job-action-placeholder" aria-hidden="true"></div>';
-  const progressHtml = progressBtnNew || progressBtnPending || ph;
-  const parkHtml = parkBtn || ph;
+  const onlyDone = !progressBtn;
+  const actCls = "job-actions job-actions--compact mobile-card-actions";
+  const actionRow = progressBtn
+    ? `<div class="${actCls}"><div class="job-action-cell">${progressBtn}</div><div class="job-action-cell">${doneBtn}</div></div>`
+    : `<div class="${actCls} mobile-card-actions--one"><div class="job-action-cell job-action-cell--ghost" aria-hidden="true"></div><div class="job-action-cell">${doneBtn}</div></div>`;
   return `
-      <div class="job job-card job-card--list-compact ${vis.cardClass}" data-job-id="${idForAttr}" data-status="${escapeHtml(
+      <div class="job job-card job-card--list-compact mobile-job-card ${vis.cardClass}" data-job-id="${idForAttr}" data-status="${escapeHtml(
     st
   )}" data-sla-overdue="${slaO}" data-park-overdue="${
     isParkOverDueAttr ? "1" : "0"
   }">
-        <span class="job-status-badge job-status-badge--${vis.badgeMod}">${vis.badgeText}</span>
         <div class="job-card-tap" role="button" tabindex="0" aria-label="Open full job">
-        ${photoBlock}
-        <div class="job-body job-meta">
-          <div class="job-title"><strong>${hl(
-            j.location
-          )}</strong></div>
-          <div class="job-problem job-problem--compact">${hl(
-            j.problem
-          )}</div>
-          ${renderJobMetaRow(j)}
-          ${renderJobPrioritySlaBlock(j)}
-          ${statusInfoBlock}
-          ${previews}
+          <div class="job-list-card__row-head">
+            <div class="job-list-card__room job-title mobile-job-title"><strong>${hl(
+              j.location
+            )}</strong></div>
+            <span class="job-status-badge job-status-badge--${
+              vis.badgeMod
+            }">${vis.badgeText}</span>
+          </div>
+          <div class="job-list-card__row-problem">
+            <div class="job-problem job-problem--compact job-problem--list-clamp mobile-job-problem">${hl(
+              j.problem
+            )}</div>
+            ${photoBlock}
+          </div>
+          ${renderJobListMetaCompact(j).replace(
+            'class="job-list-meta-line"',
+            'class="job-list-meta-line mobile-job-meta"'
+          )}
         </div>
-        </div>
-        ${renderJobAssignBlock(j, { compact: true, disabled: false })}
-        <div class="job-actions job-actions--compact job-actions--grid2">
-          <div class="job-action-cell">${progressHtml}</div>
-          <div class="job-action-cell">${parkHtml}</div>
-          <div class="job-action-cell"><button type="button" class="btn-done" onclick='setStatus(${qid}, ${sDone})'>Done</button></div>
-          <div class="job-action-cell"><button type="button" class="btn-del" onclick='deleteJob(${qid})'>Delete</button></div>
-        </div>
+        ${actionRow}
       </div>
     `;
 }
 
 function renderHistoryCardCompact(j) {
   const vis = getJobCardStatusVisual(j);
-  const qid = idAttr(j.id);
   const safePhoto =
     j.photo && String(j.photo).indexOf("data:image/") === 0 ? j.photo : "";
   const photoBlock = safePhoto
-    ? `<div class="job-photo-wrap job-photo-wrap--compact"><img class="job-photo-thumb" src="${safePhoto}" alt="Fault photo" tabindex="0" role="button"></div>`
+    ? `<div class="job-list-photo" aria-hidden="true"><img class="job-photo-thumb job-list-photo__img" src="${safePhoto}" alt="Fault photo" tabindex="0" role="button" /></div>`
     : "";
   const when = formatDateClean(j.completedAt);
-  const lastAct = getLatestSystemCommentObject(j);
-  const preAct = renderCompactLineActivity(lastAct);
-  const previews = preAct
-    ? `<div class="job-compact-previews">${preAct}</div>`
-    : "";
-  const ph = '<div class="job-action-placeholder" aria-hidden="true"></div>';
+  const p = normalizePriorityValue(j.priority);
+  const slug = p.toLowerCase();
+  const pill = `<span class="job-priority-pill job-priority-pill--${slug}">${escapeHtml(
+    p
+  )}</span>`;
+  const eng = escapeHtml(normalizeAssignedTo(j));
+  const se = '<span class="job-list-meta-sep" aria-hidden="true">·</span>';
+  const whenEsc = when ? escapeHtml(when) : "—";
+  const metaLine = `<div class="job-list-meta-line mobile-job-meta">${pill}${se}<span class="job-list-meta-eng">${eng}</span>${se}<span class="job-list-meta-due">${whenEsc}</span></div>`;
   return `
-      <div class="job job-card job-card--list-compact done job-history ${vis.cardClass
+      <div class="job job-card job-card--list-compact mobile-job-card done job-history ${vis.cardClass
     }" data-job-id="${jobIdForDomAttr(j.id)}" data-status="Done">
-        <span class="job-status-badge job-status-badge--${vis.badgeMod}">${vis.badgeText}</span>
         <div class="job-card-tap" role="button" tabindex="0" aria-label="Open full job">
-        ${photoBlock}
-        <div class="job-body job-meta">
-          <div class="job-title"><strong>${hl(
-            j.location
-          )}</strong></div>
-          <div class="job-problem job-problem--compact">${hl(
-            j.problem
-          )}</div>
-          ${renderJobMetaRow(j)}
-          ${renderJobPrioritySlaBlock(j)}
-          <div class="job-status-info job-status-info--compact"><div class="completed-line">Completed: ${escapeHtml(
-            when || "—"
-          )}</div></div>
-          ${previews}
-        </div>
-        </div>
-        ${renderJobAssignBlock(j, { compact: true, disabled: true })}
-        <div class="job-actions job-actions--compact job-actions--grid2">
-          <div class="job-action-cell">${ph}</div>
-          <div class="job-action-cell">${ph}</div>
-          <div class="job-action-cell">${ph}</div>
-          <div class="job-action-cell"><button type="button" class="btn-del" onclick='deleteJob(${qid})'>Delete</button></div>
+          <div class="job-list-card__row-head">
+            <div class="job-list-card__room job-title mobile-job-title"><strong>${hl(
+              j.location
+            )}</strong></div>
+            <span class="job-status-badge job-status-badge--${vis.badgeMod}">${vis.badgeText}</span>
+          </div>
+          <div class="job-list-card__row-problem">
+            <div class="job-problem job-problem--compact job-problem--list-clamp mobile-job-problem">${hl(
+              j.problem
+            )}</div>
+            ${photoBlock}
+          </div>
+          ${metaLine}
         </div>
       </div>
     `;
@@ -2959,42 +2966,36 @@ function renderDeletedCardCompact(j) {
   const safePhoto =
     j.photo && String(j.photo).indexOf("data:image/") === 0 ? j.photo : "";
   const photoBlock = safePhoto
-    ? `<div class="job-photo-wrap job-photo-wrap--compact"><img class="job-photo-thumb" src="${safePhoto}" alt="Fault photo" tabindex="0" role="button"></div>`
+    ? `<div class="job-list-photo" aria-hidden="true"><img class="job-photo-thumb job-list-photo__img" src="${safePhoto}" alt="Fault photo" tabindex="0" role="button" /></div>`
     : "";
   const delWhen = formatDateClean(j.deletedAt) || "—";
-  const prev = (j.previousStatus && String(j.previousStatus).trim()) || "—";
-  const lastAct = getLatestSystemCommentObject(j);
-  const preAct = renderCompactLineActivity(lastAct);
-  const previews = preAct
-    ? `<div class="job-compact-previews">${preAct}</div>`
-    : "";
+  const p = normalizePriorityValue(j.priority);
+  const slug = p.toLowerCase();
+  const pill = `<span class="job-priority-pill job-priority-pill--${slug}">${escapeHtml(
+    p
+  )}</span>`;
+  const eng = escapeHtml(normalizeAssignedTo(j));
+  const se = '<span class="job-list-meta-sep" aria-hidden="true">·</span>';
+  const metaLine = `<div class="job-list-meta-line mobile-job-meta">${pill}${se}<span class="job-list-meta-eng">${eng}</span>${se}<span class="job-list-meta-due">Del ${escapeHtml(
+    delWhen
+  )}</span></div>`;
   return `
-      <div class="job job-card job-card--list-compact deleted ${visClass
+      <div class="job job-card job-card--list-compact mobile-job-card deleted ${visClass
     }" data-job-id="${idForAttr}" data-status="Deleted">
-        <span class="job-status-badge job-status-badge--deleted">DELETED</span>
         <div class="job-card-tap" role="button" tabindex="0" aria-label="Open full job">
-        ${photoBlock}
-        <div class="job-body job-meta">
-          <div class="job-title"><strong>${hl(
-            j.location
-          )}</strong></div>
-          <div class="job-problem job-problem--compact">${hl(
-            j.problem
-          )}</div>
-          ${renderJobMetaRow(j)}
-          ${renderJobPrioritySlaBlock(j)}
-          <div class="job-status-info job-status-info--compact"><div class="deleted-meta-line">Deleted: ${escapeHtml(
-            delWhen
-          )}</div><div class="deleted-meta-line">Prev: ${escapeHtml(
-    prev
-  )}</div></div>
-          ${previews}
-        </div>
-        </div>
-        ${renderJobAssignBlock(j, { compact: true, disabled: true })}
-        <div class="job-actions job-actions--compact job-actions-deleted">
-          <button type="button" class="btn-restore">Restore</button>
-          <button type="button" class="btn-permanent-delete">Delete permanently</button>
+          <div class="job-list-card__row-head">
+            <div class="job-list-card__room job-title mobile-job-title"><strong>${hl(
+              j.location
+            )}</strong></div>
+            <span class="job-status-badge job-status-badge--deleted">DELETED</span>
+          </div>
+          <div class="job-list-card__row-problem">
+            <div class="job-problem job-problem--compact job-problem--list-clamp mobile-job-problem">${hl(
+              j.problem
+            )}</div>
+            ${photoBlock}
+          </div>
+          ${metaLine}
         </div>
       </div>
     `;
@@ -3310,6 +3311,7 @@ function getJobsOpenLayers() {
   const jobsTipsModal = document.getElementById("jobsTipsModal");
   const jobsSettingsModal = document.getElementById("jobsSettingsModal");
   const onboardingModal = document.getElementById("onboardingModal");
+  const mobileReportModal = document.getElementById("mobileReportJobModal");
   return {
     jobDetail: !!(jobDetailModal && !jobDetailModal.hidden),
     park: !!(parkModal && !parkModal.hidden),
@@ -3317,12 +3319,21 @@ function getJobsOpenLayers() {
     tips: !!(jobsTipsModal && !jobsTipsModal.hidden),
     settings: !!(jobsSettingsModal && !jobsSettingsModal.hidden),
     onboarding: !!(onboardingModal && !onboardingModal.hidden),
+    newJobSheet: !!(
+      mobileReportModal &&
+      !mobileReportModal.hidden &&
+      isNarrowLayout()
+    ),
   };
 }
 
 function syncAppBodyScrollLock() {
   const L = getJobsOpenLayers();
   if (L.jobDetail) {
+    document.body.style.overflow = "hidden";
+    return;
+  }
+  if (L.newJobSheet) {
     document.body.style.overflow = "hidden";
     return;
   }
@@ -3356,6 +3367,7 @@ function updateMobileFormFab() {
   const formOpen = form && !form.classList.contains("report-job-form--collapsed");
   const hide =
     formOpen ||
+    L.newJobSheet ||
     L.jobDetail ||
     L.tips ||
     L.settings ||
@@ -3403,7 +3415,7 @@ function updateMobileScrollTopBtn() {
     return;
   }
   const L = getJobsOpenLayers();
-  if (L.jobDetail || L.park || L.photo || L.tips || L.settings || L.onboarding) {
+  if (L.jobDetail || L.newJobSheet || L.park || L.photo || L.tips || L.settings || L.onboarding) {
     btn.classList.add("btn-scroll-top--hidden");
     btn.setAttribute("aria-hidden", "true");
     return;
@@ -3456,7 +3468,7 @@ function onMobileFabScroll() {
   const form = document.getElementById("reportJobForm");
   const L = getJobsOpenLayers();
   const formOpen = form && !form.classList.contains("report-job-form--collapsed");
-  if (formOpen || L.jobDetail || L.tips || L.settings) {
+  if (formOpen || L.newJobSheet || L.jobDetail || L.tips || L.settings) {
     mobileFabLastScrollY = y;
     updateMobileFormFab();
     updateMobileScrollTopBtn();
@@ -3899,18 +3911,27 @@ function addJob() {
     const prev = document.getElementById("jobPhotoPreview");
     if (prev) prev.innerHTML = "";
     setReportFormCollapsed(true);
+    if (typeof isNarrowLayout === "function" && isNarrowLayout()) {
+      if (typeof closeMobileReportJobModal === "function") {
+        closeMobileReportJobModal();
+      }
+      if (typeof showJobsToast === "function") {
+        showJobsToast(t("jobCreatedToast"));
+      }
+    } else {
+      setTimeout(function () {
+        const stack = document.querySelector(".app-jobs-stack");
+        if (stack) {
+          try {
+            stack.scrollIntoView({ behavior: "smooth", block: "start" });
+          } catch (e) {
+            stack.scrollIntoView(true);
+          }
+        }
+      }, 80);
+    }
     render();
     setTab("active");
-    setTimeout(function () {
-      const stack = document.querySelector(".app-jobs-stack");
-      if (stack) {
-        try {
-          stack.scrollIntoView({ behavior: "smooth", block: "start" });
-        } catch (e) {
-          stack.scrollIntoView(true);
-        }
-      }
-    }, 80);
   };
 
   if (file) {
@@ -4203,8 +4224,59 @@ function saveEngineerNote(btn) {
   }, 0);
 }
 
+function openMobileReportJobModal() {
+  if (!isNarrowLayout()) return;
+  const sheetBody = document.getElementById("mobileReportJobSheetBody");
+  const form = document.getElementById("reportJobForm");
+  const m = document.getElementById("mobileReportJobModal");
+  if (!form || !sheetBody || !m) return;
+  setReportFormCollapsed(false);
+  sheetBody.appendChild(form);
+  m.hidden = false;
+  m.classList.add("open");
+  m.setAttribute("aria-hidden", "false");
+  document.body.style.overflow = "hidden";
+  updateMobileFormFab();
+  updateMobileScrollTopBtn();
+  setTimeout(function () {
+    const loc = document.getElementById("location");
+    if (loc) {
+      try {
+        loc.focus({ preventScroll: true });
+      } catch (err) {
+        loc.focus();
+      }
+    }
+  }, 80);
+}
+
+function closeMobileReportJobModal() {
+  const sheetBody = document.getElementById("mobileReportJobSheetBody");
+  const anchor = document.getElementById("reportJobFormAnchor");
+  const form = document.getElementById("reportJobForm");
+  const m = document.getElementById("mobileReportJobModal");
+  if (form && sheetBody && anchor && form.parentNode === sheetBody) {
+    anchor.appendChild(form);
+  }
+  if (m) {
+    m.hidden = true;
+    m.classList.remove("open");
+    m.setAttribute("aria-hidden", "true");
+  }
+  setReportFormCollapsed(true);
+  syncAppBodyScrollLock();
+  updateMobileFormFab();
+  updateMobileScrollTopBtn();
+}
+
+window.closeMobileReportJobModal = closeMobileReportJobModal;
+
 function scrollToReportJob() {
   setReportFormCollapsed(false);
+  if (isNarrowLayout()) {
+    openMobileReportJobModal();
+    return;
+  }
   const form = document.getElementById("reportJobForm");
   if (form) {
     try {
@@ -4586,6 +4658,12 @@ document.addEventListener("keydown", function (e) {
     const jdm = document.getElementById("jobDetailModal");
     if (jdm && !jdm.hidden) {
       closeJobDetailModal();
+      return;
+    }
+    const nrm = document.getElementById("mobileReportJobModal");
+    if (nrm && !nrm.hidden && isNarrowLayout()) {
+      e.preventDefault();
+      closeMobileReportJobModal();
       return;
     }
     const parkM = document.getElementById("parkModal");
