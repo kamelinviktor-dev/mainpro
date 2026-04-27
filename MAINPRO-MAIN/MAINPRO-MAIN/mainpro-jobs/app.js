@@ -2476,6 +2476,7 @@ function render() {
   updateDashboard();
   syncEngineerFilterUi();
   updateJobDetailModal();
+  syncMobileJobListActiveHighlight();
   updateMobileFormFab();
   updateMobileScrollTopBtn();
   updateClearFiltersButton();
@@ -2789,9 +2790,9 @@ function renderEngineerNotesForModal(j) {
   );
   let engineerBlock = "";
   if (!engineerList.length) {
-    engineerBlock = `<h4 class="log-title section-title">Engineer notes</h4><div class="engineer-notes-wrapper notes-wrapper"><div class="notes-container engineer-notes engineer-notes-list notes-list job-notes-list job-notes"><div class="comment-log comment-log--empty job-log--timeline no-notes ${tone}">No notes yet</div></div></div>`;
+    engineerBlock = `<h4 class="log-title section-title">Engineer notes</h4><div class="engineer-notes-wrapper notes-wrapper"><div class="notes-container engineer-notes engineer-notes-list notes-list job-notes-list job-notes notes"><div class="comment-log comment-log--empty job-log--timeline no-notes ${tone}">No notes yet</div></div></div>`;
   } else {
-    engineerBlock = `<h4 class="log-title section-title">Engineer notes</h4><div class="engineer-notes-wrapper notes-wrapper"><div class="notes-container engineer-notes engineer-notes-list notes-list job-notes-list job-notes"><div class="comment-log job-log--timeline job-log--engineer-notes job-log--modal ${tone} expanded" role="list">${engineerList
+    engineerBlock = `<h4 class="log-title section-title">Engineer notes</h4><div class="engineer-notes-wrapper notes-wrapper"><div class="notes-container engineer-notes engineer-notes-list notes-list job-notes-list job-notes notes"><div class="comment-log job-log--timeline job-log--engineer-notes job-log--modal ${tone} expanded" role="list">${engineerList
       .map((c) => renderEngineerLogItemHtml(c))
       .join("")}</div></div></div>`;
   }
@@ -2802,7 +2803,7 @@ function renderEngineerNotesForModal(j) {
       .join("")}</div></div>`;
   }
   if (!list.length) {
-    return `<div class="job-log-stack job-log-stack--modal"><h4 class="log-title section-title">Engineer notes</h4><div class="engineer-notes-wrapper notes-wrapper"><div class="notes-container engineer-notes engineer-notes-list notes-list job-notes-list job-notes"><div class="comment-log--empty no-notes">No notes or activity</div></div></div></div>`;
+    return `<div class="job-log-stack job-log-stack--modal"><h4 class="log-title section-title">Engineer notes</h4><div class="engineer-notes-wrapper notes-wrapper"><div class="notes-container engineer-notes engineer-notes-list notes-list job-notes-list job-notes notes"><div class="comment-log--empty no-notes">No notes or activity</div></div></div></div>`;
   }
   return `<div class="job-log-stack job-log-stack--modal">${engineerBlock}${activityBlock}</div>`;
 }
@@ -2858,12 +2859,14 @@ function renderJobListMetaCompact(j) {
   )}</span>`;
   const eng = escapeHtml(normalizeAssignedTo(j));
   const dueText = getJobListDueShortText(j);
-  const se = '<span class="job-list-meta-sep" aria-hidden="true">·</span>';
-  const bits = [pill, se, `<span class="job-list-meta-eng">${eng}</span>`];
+  const bits = [
+    pill,
+    `<span class="job-list-meta-eng">${eng}</span>`,
+  ];
   if (dueText) {
-    bits.push(se, `<span class="job-list-meta-due">${escapeHtml(dueText)}</span>`);
+    bits.push(`<span class="job-list-meta-due">${escapeHtml(dueText)}</span>`);
   }
-  return `<div class="job-list-meta-line">${bits.join("")}</div>`;
+  return `<div class="job-list-meta-line meta job-card-meta">${bits.join("")}</div>`;
 }
 
 function renderActiveCardCompact(j) {
@@ -2899,8 +2902,8 @@ function renderActiveCardCompact(j) {
             ${photoBlock}
           </div>
           ${renderJobListMetaCompact(j).replace(
-            'class="job-list-meta-line"',
-            'class="job-list-meta-line mobile-job-meta job-card-meta"'
+            'class="job-list-meta-line meta job-card-meta"',
+            'class="job-list-meta-line meta job-card-meta mobile-job-meta"'
           )}
         </div>
       </div>
@@ -2921,9 +2924,8 @@ function renderHistoryCardCompact(j) {
     p
   )}</span>`;
   const eng = escapeHtml(normalizeAssignedTo(j));
-  const se = '<span class="job-list-meta-sep" aria-hidden="true">·</span>';
   const whenEsc = when ? escapeHtml(when) : "—";
-  const metaLine = `<div class="job-list-meta-line mobile-job-meta job-card-meta">${pill}${se}<span class="job-list-meta-eng">${eng}</span>${se}<span class="job-list-meta-due">${whenEsc}</span></div>`;
+  const metaLine = `<div class="job-list-meta-line meta job-card-meta mobile-job-meta">${pill}<span class="job-list-meta-eng">${eng}</span><span class="job-list-meta-due">${whenEsc}</span></div>`;
   return `
       <div class="job job-card job-card--list-compact mobile-job-card done job-history ${vis.cardClass
     }" data-job-id="${jobIdForDomAttr(j.id)}" data-status="Done">
@@ -2961,8 +2963,7 @@ function renderDeletedCardCompact(j) {
     p
   )}</span>`;
   const eng = escapeHtml(normalizeAssignedTo(j));
-  const se = '<span class="job-list-meta-sep" aria-hidden="true">·</span>';
-  const metaLine = `<div class="job-list-meta-line mobile-job-meta job-card-meta">${pill}${se}<span class="job-list-meta-eng">${eng}</span>${se}<span class="job-list-meta-due">Del ${escapeHtml(
+  const metaLine = `<div class="job-list-meta-line meta job-card-meta mobile-job-meta">${pill}<span class="job-list-meta-eng">${eng}</span><span class="job-list-meta-due">Del ${escapeHtml(
     delWhen
   )}</span></div>`;
   return `
@@ -3083,13 +3084,7 @@ function renderActiveCardFull(j, forModal) {
   const notesBlock = forModal
     ? renderEngineerNotesForModal(j)
     : renderEngineerNotesSavedSection(j);
-  return `
-      <div class="job job-card ${vis.cardClass}${logClass}" data-job-id="${idForAttr}" data-status="${escapeHtml(
-    st
-  )}" data-sla-overdue="${slaO}" data-park-overdue="${
-    isParkOverDueAttr ? "1" : "0"
-  }">
-        <span class="job-status-badge job-status-badge--${vis.badgeMod}">${vis.badgeText}</span>
+  const detailScrollBody = `
         ${photoBlock}
         <div class="job-body job-meta">
           <div class="job-title"><strong>${hl(
@@ -3107,14 +3102,27 @@ function renderActiveCardFull(j, forModal) {
         <div class="comment-save-row">
           <button type="button" class="btn-save-note" onclick="saveEngineerNote(this)">Save note</button>
           <span class="comment-saved-hint" data-saved-hint="1" hidden>Saved</span>
-        </div>
-        <div class="job-actions">
+        </div>`;
+  const actionsInner = `
+        <div class="job-actions${forModal ? " job-detail-actions" : ""}">
           ${progressBtnNew}
           ${progressBtnPending}
           ${parkBtn}
           <button type="button" class="btn-done" onclick='setStatus(${qid}, ${sDone})'>Done</button>
           <button type="button" class="btn-del" onclick='deleteJob(${qid})'>Delete</button>
-        </div>
+        </div>`;
+  const modalMain =
+    forModal
+      ? `<div class="job-detail-content">${detailScrollBody}</div>${actionsInner}`
+      : `${detailScrollBody}${actionsInner}`;
+  return `
+      <div class="job job-card ${vis.cardClass}${logClass}" data-job-id="${idForAttr}" data-status="${escapeHtml(
+    st
+  )}" data-sla-overdue="${slaO}" data-park-overdue="${
+    isParkOverDueAttr ? "1" : "0"
+  }">
+        <span class="job-status-badge job-status-badge--${vis.badgeMod}">${vis.badgeText}</span>
+        ${modalMain}
       </div>
     `;
 }
@@ -3139,11 +3147,7 @@ function renderHistoryCardFull(j, forModal) {
   const notesBlock = forModal
     ? renderEngineerNotesForModal(j)
     : renderEngineerNotesSavedSection(j);
-  return `
-      <div class="job job-card done job-history ${vis.cardClass}${logClass}" data-job-id="${jobIdForDomAttr(
-    j.id
-  )}" data-status="Done">
-        <span class="job-status-badge job-status-badge--${vis.badgeMod}">${vis.badgeText}</span>
+  const detailScrollBody = `
         ${photoBlock}
         <div class="job-body job-meta">
           <div class="job-title"><strong>${hl(
@@ -3157,10 +3161,21 @@ function renderHistoryCardFull(j, forModal) {
             when || "—"
           )}</div></div>
         </div>
-        ${notesBlock}
-        <div class="job-actions job-actions-single">
+        ${notesBlock}`;
+  const actionsInner = `
+        <div class="job-actions job-actions-single${forModal ? " job-detail-actions" : ""}">
           <button type="button" class="btn-del" onclick='deleteJob(${qid})'>Delete</button>
-        </div>
+        </div>`;
+  const modalMain =
+    forModal
+      ? `<div class="job-detail-content">${detailScrollBody}</div>${actionsInner}`
+      : `${detailScrollBody}${actionsInner}`;
+  return `
+      <div class="job job-card done job-history ${vis.cardClass}${logClass}" data-job-id="${jobIdForDomAttr(
+    j.id
+  )}" data-status="Done">
+        <span class="job-status-badge job-status-badge--${vis.badgeMod}">${vis.badgeText}</span>
+        ${modalMain}
       </div>
     `;
 }
@@ -3185,9 +3200,7 @@ function renderDeletedCardFull(j, forModal) {
   const notesBlock = forModal
     ? renderEngineerNotesForModal(j)
     : renderEngineerNotesSavedSection(j);
-  return `
-      <div class="job job-card deleted job-card-shell${logClass}" data-job-id="${idForAttr}" data-status="Deleted">
-        <span class="job-status-badge job-status-badge--deleted">DELETED</span>
+  const detailScrollBody = `
         ${photoBlock}
         <div class="job-body job-meta">
           <div class="job-title"><strong>${hl(
@@ -3203,11 +3216,20 @@ function renderDeletedCardFull(j, forModal) {
     prev
   )}</div></div>
         </div>
-        ${notesBlock}
-        <div class="job-actions job-actions-deleted">
+        ${notesBlock}`;
+  const actionsInner = `
+        <div class="job-actions job-actions-deleted${forModal ? " job-detail-actions" : ""}">
           <button type="button" class="btn-restore">Restore</button>
           <button type="button" class="btn-permanent-delete">Delete permanently</button>
-        </div>
+        </div>`;
+  const modalMain =
+    forModal
+      ? `<div class="job-detail-content">${detailScrollBody}</div>${actionsInner}`
+      : `${detailScrollBody}${actionsInner}`;
+  return `
+      <div class="job job-card deleted job-card-shell${logClass}" data-job-id="${idForAttr}" data-status="Deleted">
+        <span class="job-status-badge job-status-badge--deleted">DELETED</span>
+        ${modalMain}
       </div>
     `;
 }
@@ -3502,6 +3524,25 @@ function onJobCardTapOpen(e) {
     0;
   mobileJobDetailId = String(id);
   render();
+}
+
+function syncMobileJobListActiveHighlight() {
+  const root = document.getElementById("mobileApp");
+  if (!root || !root.querySelectorAll) return;
+  const cards = root.querySelectorAll(".mobile-job-card.job-card--list-compact");
+  const activeId =
+    mobileJobDetailId != null && mobileJobDetailId !== ""
+      ? String(mobileJobDetailId)
+      : "";
+  cards.forEach(function (el) {
+    const raw = el.getAttribute("data-job-id");
+    let jid = "";
+    if (raw != null && raw !== "") {
+      const parsed = jobIdFromDomAttr(raw);
+      jid = parsed != null ? String(parsed) : "";
+    }
+    el.classList.toggle("active", activeId !== "" && jid !== "" && jid === activeId);
+  });
 }
 
 function closeJobDetailModal() {
@@ -3856,6 +3897,10 @@ function addJob() {
 
   const file = fileInput && fileInput.files && fileInput.files[0];
   const done = (photo) => {
+    const scrollY =
+      typeof window !== "undefined"
+        ? window.scrollY || window.pageYOffset || 0
+        : 0;
     const assignedTo = getNewJobAssignedToValue();
     const pNorm = normalizePriorityValue(priority);
     const createdAt = new Date().toISOString();
@@ -3918,6 +3963,15 @@ function addJob() {
     }
     render();
     setTab("active");
+    if (typeof isNarrowLayout === "function" && isNarrowLayout()) {
+      requestAnimationFrame(function () {
+        try {
+          window.scrollTo({ top: scrollY, behavior: "auto" });
+        } catch (e) {
+          window.scrollTo(0, scrollY);
+        }
+      });
+    }
   };
 
   if (file) {

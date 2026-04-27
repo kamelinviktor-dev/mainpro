@@ -1661,6 +1661,41 @@
       max-width: 100%;
     }
 
+    /* Modal body scrolls inside content; primary actions stay visible at bottom */
+    #jobDetailModal .job-detail-modal__body {
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    #jobDetailModal .job-detail-modal__body > .job.job-card.job-detail {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      height: 100%;
+    }
+
+    #jobDetailModal .job-detail-content {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-x: hidden;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    #jobDetailModal .job-detail-actions {
+      flex-shrink: 0;
+      position: sticky;
+      bottom: 0;
+      background: #fff;
+      padding-top: 10px;
+      z-index: 2;
+      box-shadow: 0 -8px 20px rgba(255, 255, 255, 0.92);
+    }
+
     .job-detail-modal__body .job--modal-detail > .job-status-badge {
       display: none !important;
     }
@@ -3732,20 +3767,29 @@
         padding: 10px 0 8px;
       }
 
-      /* Mobile closed list rows: tap opens detail only — no inline actions */
+      /* Mobile closed list: tap opens detail — compact strip, SaaS polish */
       #appMain .mobile-job-card.job-card--list-compact {
         cursor: pointer;
         display: flex;
         flex-direction: column;
-        justify-content: space-between;
-        min-height: 110px;
-        max-height: 140px;
-        overflow: hidden;
-        transition: none !important;
+        justify-content: center;
         box-sizing: border-box;
-        padding: 12px 12px !important;
-        border-radius: 18px !important;
+        padding: 14px 16px !important;
+        min-height: 95px;
+        max-height: 110px;
+        overflow: hidden;
+        border-radius: 14px !important;
         margin-bottom: 8px !important;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+        transition: transform 0.1s ease;
+      }
+
+      #appMain .mobile-job-card.job-card--list-compact.active {
+        background: #fef7ed !important;
+      }
+
+      #appMain .mobile-job-card.job-card--list-compact:active {
+        transform: scale(0.98);
       }
 
       #appMain .mobile-job-card.job-card--list-compact .job-card-tap {
@@ -3754,11 +3798,13 @@
         overflow: hidden;
         display: flex;
         flex-direction: column;
+        justify-content: center;
         cursor: pointer;
       }
 
       #appMain .mobile-job-card.job-card--list-compact .mobile-card-actions,
       #appMain .mobile-job-card.job-card--list-compact .job-actions,
+      #appMain .mobile-job-card.job-card--list-compact .actions,
       #appMain .mobile-job-card.job-card--list-compact .job-notes,
       #appMain .mobile-job-card.job-card--list-compact .job-activity,
       #appMain .mobile-job-card.job-card--list-compact button,
@@ -3774,28 +3820,72 @@
         gap: 8px;
       }
 
-      #appMain .mobile-job-card.job-card--list-compact .job-card-meta,
-      #appMain .mobile-job-card.job-card--list-compact .job-list-meta-line {
-        font-size: 13px;
-        opacity: 0.7;
-      }
-
+      #appMain .mobile-job-card.job-card--list-compact .title,
       #appMain .mobile-job-card.job-card--list-compact .job-title,
       #appMain .mobile-job-card.job-card--list-compact .mobile-job-title,
-      #appMain .mobile-job-card.job-card--list-compact .job-problem,
-      #appMain .mobile-job-card.job-card--list-compact .mobile-job-problem {
+      #appMain .mobile-job-card.job-card--list-compact .job-list-card__room,
+      #appMain .mobile-job-card.job-card--list-compact h3 {
+        font-size: 16px;
+        font-weight: 600;
         display: -webkit-box;
-        -webkit-line-clamp: 2;
-        line-clamp: 2;
+        -webkit-line-clamp: 1;
+        line-clamp: 1;
         -webkit-box-orient: vertical;
         overflow: hidden;
         word-break: break-word;
-        overflow-wrap: break-word;
+        line-height: 1.25;
+        margin-bottom: 0;
+      }
+
+      #appMain .mobile-job-card.job-card--list-compact .job-card-meta,
+      #appMain .mobile-job-card.job-card--list-compact .job-list-meta-line.meta,
+      #appMain .mobile-job-card.job-card--list-compact .meta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+        row-gap: 4px;
+        font-size: 13px;
+        opacity: 0.75;
+        margin-top: 4px;
+        overflow: visible;
+      }
+
+      #appMain .mobile-job-card.job-card--list-compact .meta > span::after {
+        content: "•";
+        margin: 0 4px;
+        opacity: 0.5;
+      }
+
+      #appMain .mobile-job-card.job-card--list-compact .meta > span:last-child::after {
+        content: "";
+        margin: 0;
+      }
+
+      #appMain .mobile-job-card.job-card--list-compact .job-problem,
+      #appMain .mobile-job-card.job-card--list-compact .mobile-job-problem,
+      #appMain .mobile-job-card.job-card--list-compact .description {
+        font-size: 13px;
+        font-weight: 400;
+        display: -webkit-box;
+        -webkit-line-clamp: 1;
+        line-clamp: 1;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        word-break: break-word;
+        line-height: 1.3;
       }
 
       #appMain .mobile-job-card.job-card--list-compact .job-list-card__row-problem {
         margin-top: 2px;
         min-height: 0;
+      }
+
+      #appMain .mobile-job-card.job-card--list-compact .status,
+      #appMain .mobile-job-card.job-card--list-compact .job-status-badge {
+        font-size: 11px;
+        padding: 4px 10px;
+        border-radius: 999px;
       }
 
       #appMain .mobile-job-card.job-card--list-compact .job-list-photo {
@@ -3817,11 +3907,11 @@
 
       .mobile-job-title {
         line-height: 1.25;
-        margin-bottom: 2px;
+        margin-bottom: 0;
       }
 
       .mobile-job-problem {
-        line-height: 1.35;
+        line-height: 1.3;
       }
 
       /* Mobile full detail: notes/activity — catch-all + card clip (no endless grow) */
@@ -3855,6 +3945,23 @@
         padding-right: 6px;
         -webkit-overflow-scrolling: touch;
         box-sizing: border-box;
+      }
+
+      /* Open job: engineer notes stack — fixed height + scrollbar */
+      #jobDetailModal .job.job-card.job-detail .notes-container.notes {
+        max-height: 180px !important;
+        overflow-y: auto !important;
+        padding-right: 4px !important;
+        scrollbar-width: thin;
+      }
+
+      #jobDetailModal .job-detail .notes::-webkit-scrollbar {
+        width: 4px;
+      }
+
+      #jobDetailModal .job-detail .notes::-webkit-scrollbar-thumb {
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 10px;
       }
 
       #appMain .job-card,
@@ -3932,7 +4039,11 @@
       }
 
       .job-detail-modal__body .job--modal-detail .comment-field {
-        min-height: 48px;
+        height: 90px !important;
+        max-height: 90px !important;
+        min-height: 90px !important;
+        resize: none !important;
+        box-sizing: border-box;
       }
 
       .job-detail-modal__body .job--modal-detail .job-actions {
@@ -3975,6 +4086,12 @@
     @media (prefers-reduced-motion: reduce) {
       .mobile-job-sheet {
         animation: none !important;
+      }
+      #appMain .mobile-job-card.job-card--list-compact {
+        transition: none !important;
+      }
+      #appMain .mobile-job-card.job-card--list-compact:active {
+        transform: none !important;
       }
       .job-dashboard-card--click {
         transition: none !important;
