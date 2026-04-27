@@ -3201,6 +3201,11 @@
 
     /* —— Mobile: phone-optimized layout (≤600px) —— */
     @media (max-width: 600px) {
+      html,
+      body {
+        scroll-behavior: auto !important;
+      }
+
       html {
         overflow-x: hidden;
         max-width: 100%;
@@ -3528,7 +3533,7 @@
         justify-content: center;
         position: fixed;
         left: 14px;
-        bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+        bottom: calc(80px + env(safe-area-inset-bottom, 0px)) !important;
         z-index: 100;
         width: 48px;
         height: 48px;
@@ -3567,7 +3572,7 @@
         justify-content: center;
         position: fixed;
         right: 14px;
-        bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+        bottom: calc(80px + env(safe-area-inset-bottom, 0px)) !important;
         z-index: 100;
         width: 56px;
         height: 56px;
@@ -3613,16 +3618,29 @@
       }
 
       /* + New Job: bottom sheet (form moved into sheet on open; desktop hides .mobile-job-modal) */
-      .mobile-job-modal:not([hidden]) {
-        display: flex !important;
+      @keyframes mp-slide-up-sheet {
+        from {
+          transform: translateY(100%);
+        }
+        to {
+          transform: translateY(0);
+        }
+      }
+
+      .mobile-job-modal {
+        display: none;
         position: fixed;
         inset: 0;
         z-index: 9999;
+        background: rgba(0, 0, 0, 0.35);
+        box-sizing: border-box;
+      }
+
+      .mobile-job-modal.open {
+        display: flex !important;
         align-items: flex-end;
         justify-content: stretch;
         flex-direction: column;
-        background: rgba(15, 23, 42, 0.45);
-        box-sizing: border-box;
       }
 
       .mobile-job-modal__backdrop {
@@ -3638,16 +3656,20 @@
       .mobile-job-sheet {
         position: relative;
         width: 100%;
-        max-height: 92vh;
-        overflow: hidden;
+        max-height: 85vh;
+        overflow-x: hidden;
+        overflow-y: auto;
         display: flex;
         flex-direction: column;
         background: #fff;
-        border-radius: 24px 24px 0 0;
-        padding: 0;
+        border-radius: 18px 18px 0 0;
+        padding: 16px;
+        padding-bottom: 16px;
         box-shadow: 0 -20px 50px rgba(0, 0, 0, 0.22);
         z-index: 1;
         box-sizing: border-box;
+        -webkit-overflow-scrolling: touch;
+        animation: mp-slide-up-sheet 0.2s ease-out;
       }
 
       .mobile-job-sheet__head {
@@ -3698,8 +3720,7 @@
       .mobile-job-sheet__body {
         flex: 1 1 auto;
         min-height: 0;
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
+        overflow: visible;
         padding: 0;
       }
 
@@ -3708,53 +3729,182 @@
         border-radius: 0;
         border: none;
         box-shadow: none;
-        padding: 14px 16px 22px;
+        padding: 10px 0 8px;
       }
 
-      #appMain .job.job-card.mobile-job-card {
-        padding: 14px !important;
+      /* Mobile closed list rows: tap opens detail only — no inline actions */
+      #appMain .mobile-job-card.job-card--list-compact {
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        min-height: 110px;
+        max-height: 140px;
+        overflow: hidden;
+        transition: none !important;
+        box-sizing: border-box;
+        padding: 12px 12px !important;
         border-radius: 18px !important;
         margin-bottom: 8px !important;
       }
 
+      #appMain .mobile-job-card.job-card--list-compact .job-card-tap {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        cursor: pointer;
+      }
+
+      #appMain .mobile-job-card.job-card--list-compact .mobile-card-actions,
+      #appMain .mobile-job-card.job-card--list-compact .job-actions,
+      #appMain .mobile-job-card.job-card--list-compact .job-notes,
+      #appMain .mobile-job-card.job-card--list-compact .job-activity,
+      #appMain .mobile-job-card.job-card--list-compact button,
+      #appMain .mobile-job-card.job-card--list-compact .btn {
+        display: none !important;
+      }
+
+      #appMain .mobile-job-card.job-card--list-compact .job-card-top,
+      #appMain .mobile-job-card.job-card--list-compact .job-list-card__row-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+      }
+
+      #appMain .mobile-job-card.job-card--list-compact .job-card-meta,
+      #appMain .mobile-job-card.job-card--list-compact .job-list-meta-line {
+        font-size: 13px;
+        opacity: 0.7;
+      }
+
+      #appMain .mobile-job-card.job-card--list-compact .job-title,
+      #appMain .mobile-job-card.job-card--list-compact .mobile-job-title,
+      #appMain .mobile-job-card.job-card--list-compact .job-problem,
+      #appMain .mobile-job-card.job-card--list-compact .mobile-job-problem {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        word-break: break-word;
+        overflow-wrap: break-word;
+      }
+
+      #appMain .mobile-job-card.job-card--list-compact .job-list-card__row-problem {
+        margin-top: 2px;
+        min-height: 0;
+      }
+
+      #appMain .mobile-job-card.job-card--list-compact .job-list-photo {
+        flex: 0 0 48px;
+        width: 48px;
+        height: 48px;
+        border-radius: 10px;
+      }
+
+      #appMain .mobile-job-card.job-card--list-compact .job-list-photo__img,
+      #appMain .mobile-job-card.job-card--list-compact .job-list-photo .job-photo-thumb {
+        width: 48px;
+        height: 48px;
+        max-width: 48px;
+        max-height: 48px;
+        object-fit: cover;
+        border-radius: 10px;
+      }
+
       .mobile-job-title {
         line-height: 1.25;
-        margin-bottom: 4px;
+        margin-bottom: 2px;
       }
 
       .mobile-job-problem {
         line-height: 1.35;
       }
 
-      /* Mobile full detail: notes/activity scroll inside container (no endless grow) */
-      .job-detail-modal__body .engineer-notes-list,
-      .job-detail-modal__body .notes-list,
-      .job-detail-modal__body .job-notes-list,
-      .job-detail-modal__body .mobile-notes-list,
-      .job-detail-modal__body .notes-container,
-      .job-detail-modal__body .engineer-notes,
-      .job-detail-modal__body .job--modal-detail .engineer-notes-list,
-      .job-detail-modal__body .job--modal-detail .notes-list,
-      .job-detail-modal__body .job--modal-detail .job-notes-list {
-        max-height: 180px !important;
+      /* Mobile full detail: notes/activity — catch-all + card clip (no endless grow) */
+      .job-detail-modal__body .engineer-notes-wrapper,
+      .job-detail-modal__body .notes-wrapper {
+        overflow: hidden;
+      }
+
+      #appMain [class*="note"]:not(button):not(textarea):not(input):not(select):not(.note-card):not(.note-date):not(.note-author):not(.note-text):not(.activity-item):not(.activity-row):not(.activity-line-text):not(.activity-time),
+      #jobDetailModal [class*="note"]:not(button):not(textarea):not(input):not(select):not(.note-card):not(.note-date):not(.note-author):not(.note-text):not(.activity-item):not(.activity-row):not(.activity-line-text):not(.activity-time),
+      #appMain [class*="Note"]:not(button):not(.note-card),
+      #jobDetailModal [class*="Note"]:not(button):not(.note-card),
+      #appMain [class*="notes"]:not(button):not(.note-card),
+      #jobDetailModal [class*="notes"]:not(button):not(.note-card),
+      #appMain [class*="Notes"]:not(button):not(.note-card),
+      #jobDetailModal [class*="Notes"]:not(button):not(.note-card) {
+        max-height: 160px !important;
+        overflow-y: auto !important;
+        display: block !important;
+        padding-right: 6px;
+        -webkit-overflow-scrolling: touch;
+        box-sizing: border-box;
+      }
+
+      #appMain [class*="activity"]:not(button):not(.activity-item):not(.activity-row):not(.activity-line-text):not(.activity-time),
+      #jobDetailModal [class*="activity"]:not(button):not(.activity-item):not(.activity-row):not(.activity-line-text):not(.activity-time),
+      #appMain [class*="Activity"]:not(button),
+      #jobDetailModal [class*="Activity"]:not(button) {
+        max-height: 120px !important;
         overflow-y: auto !important;
         padding-right: 6px;
         -webkit-overflow-scrolling: touch;
         box-sizing: border-box;
       }
 
-      .job-detail-modal__body .activity-list,
-      .job-detail-modal__body .job-activity-list,
-      .job-detail-modal__body .mobile-activity-list,
-      .job-detail-modal__body .activity-timeline,
-      .job-detail-modal__body .job--modal-detail .activity-list,
-      .job-detail-modal__body .job--modal-detail .job-activity-list,
-      .job-detail-modal__body .job--modal-detail .activity-timeline {
-        max-height: 140px !important;
-        overflow-y: auto !important;
-        padding-right: 6px;
-        -webkit-overflow-scrolling: touch;
-        box-sizing: border-box;
+      #appMain .job-card,
+      #jobDetailModal .job-detail,
+      #appMain .job-expanded,
+      #jobDetailModal .job-expanded,
+      #appMain .job-view,
+      #jobDetailModal .job-view {
+        overflow: hidden !important;
+      }
+
+      #appMain .note-card,
+      #jobDetailModal .note-card,
+      #appMain .engineer-note,
+      #jobDetailModal .engineer-note {
+        padding: 10px;
+        margin-bottom: 8px;
+        border-radius: 12px;
+        background: #f8fafc;
+        font-size: 14px;
+      }
+
+      #appMain .no-notes,
+      #jobDetailModal .no-notes {
+        opacity: 0.6;
+        font-style: italic;
+      }
+
+      .job-detail-modal__body .engineer-notes > *,
+      .job-detail-modal__body .notes-list > * {
+        margin-bottom: 8px;
+      }
+
+      .job-detail-modal__body .job--modal-detail,
+      .job-detail-modal__body .job-detail {
+        padding: 12px;
+      }
+
+      .job-detail-modal__body .job--modal-detail .job-title {
+        font-size: 18px;
+        margin-bottom: 4px;
+      }
+
+      .job-detail-modal__body .job--modal-detail .job-title strong {
+        font-weight: 700;
+      }
+
+      .job-detail-modal__body .job--modal-detail .job-meta-row {
+        font-size: 13px;
+        opacity: 0.8;
       }
 
       .job-detail-modal__body .job--modal-detail .job-assign-block--modal {
@@ -3786,8 +3936,8 @@
       }
 
       .job-detail-modal__body .job--modal-detail .job-actions {
-        display: flex;
-        flex-wrap: wrap;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
         gap: 8px;
         margin-top: 8px;
       }
@@ -3796,16 +3946,18 @@
       .job-detail-modal__body .job--modal-detail .job-actions .btn-park,
       .job-detail-modal__body .job--modal-detail .job-actions .btn-done,
       .job-detail-modal__body .job--modal-detail .job-actions .btn-del {
-        flex: 1 1 calc(50% - 4px);
-        min-width: min(120px, 46%);
+        width: 100%;
+        min-width: 0;
         min-height: 42px;
-        font-size: 13px;
+        height: 42px;
+        font-size: 14px;
       }
 
       .job-detail-modal__body .job--modal-detail .job-actions-deleted .btn-restore,
       .job-detail-modal__body .job--modal-detail .job-actions-deleted .btn-permanent-delete {
-        flex: 1 1 calc(50% - 4px);
         min-height: 42px;
+        height: 42px;
+        font-size: 14px;
       }
 
       .job-detail-modal__body .job--modal-detail .job-log--timeline .note-card {
@@ -3821,6 +3973,9 @@
     }
 
     @media (prefers-reduced-motion: reduce) {
+      .mobile-job-sheet {
+        animation: none !important;
+      }
       .job-dashboard-card--click {
         transition: none !important;
       }
@@ -5110,7 +5265,7 @@
     <header class="app-header app-header--bar">
       <h1 class="app-title" id="appHeaderTitle">MainPro Jobs</h1>
       <div class="header-actions">
-        <button type="button" class="btn-header-primary" id="btnNewJob" onclick="openNewJobFromHeader()">+ New Job</button>
+        <button type="button" class="btn-header-primary" id="btnNewJob" data-add-job>+ New Job</button>
         <button type="button" class="btn-header-settings" id="btnOpenSettings" onclick="openJobsSettings()"><span id="settingsBtnText">Settings</span><span class="app-settings-gear" aria-hidden="true">⚙</span></button>
         <button type="button" class="btn-change-user" id="btnChangeUser" onclick="showChangeUser()">Change user</button>
       </div>
@@ -5433,7 +5588,7 @@
     </div>
 
     <button type="button" class="btn-scroll-top btn-scroll-top--hidden" id="btnScrollTop" onclick="scrollToListTop()" title="Back to top" aria-label="Back to top">↑</button>
-    <button type="button" class="fab-new-job" id="fabNewJob" onclick="scrollToReportJob()" aria-label="Report a new job">+ Job</button>
+    <button type="button" class="fab-new-job" id="fabNewJob" data-add-job aria-label="Report a new job">+ Job</button>
   </div>
 
   <div id="jobDetailModal" class="job-detail-modal" hidden role="dialog" aria-modal="true" aria-label="Job details">
