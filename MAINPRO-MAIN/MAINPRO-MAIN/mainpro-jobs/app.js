@@ -2871,6 +2871,21 @@ function updateMobileFormFab() {
 /**
  * NARROW: кнопка «наверх» слева внизу (не пересекает + Job справа).
  */
+function updateJobsStickyScrollClass() {
+  const el = document.querySelector(".jobs-sticky");
+  if (!el) return;
+  if (typeof isNarrowLayout === "function" && !isNarrowLayout()) {
+    el.classList.remove("jobs-sticky--scrolled");
+    return;
+  }
+  const y =
+    window.scrollY ||
+    window.pageYOffset ||
+    (document.documentElement && document.documentElement.scrollTop) ||
+    0;
+  el.classList.toggle("jobs-sticky--scrolled", y > 10);
+}
+
 function updateMobileScrollTopBtn() {
   const btn = document.getElementById("btnScrollTop");
   if (!btn) return;
@@ -2926,6 +2941,7 @@ function scrollToListTop() {
  */
 function onMobileFabScroll() {
   if (typeof window === "undefined") return;
+  updateJobsStickyScrollClass();
   if (!isNarrowLayout()) return;
   if (!hasMainproLogin()) return;
   const am = document.getElementById("appMain");
