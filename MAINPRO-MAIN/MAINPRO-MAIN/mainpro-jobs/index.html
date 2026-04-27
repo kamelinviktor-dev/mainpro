@@ -672,31 +672,39 @@
       line-height: normal;
     }
 
-    /* Compact inline brand — same MP gradient language as splash */
-    #mobileApp .mp-header-brand {
+    /* Mobile header — premium polish (#mobileApp only; desktop unchanged) */
+    #mobileApp header.app-header.app-header--bar {
+      background: linear-gradient(180deg, #f8fffb, #f3faf7) !important;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.07) !important;
+    }
+
+    #mobileApp .mp-header-brand,
+    #mobileApp .mp-mobile-brand {
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 10px 16px 6px;
+      padding: 6px 14px 2px !important;
+      gap: 9px !important;
       box-sizing: border-box;
     }
 
-    #mobileApp .mp-logo-small {
+    #mobileApp .mp-logo-small,
+    #mobileApp .mp-logo-badge {
       width: 34px;
       height: 34px;
       border-radius: 10px;
-      background: linear-gradient(145deg, #03120e, #0f3d2e);
+      background: linear-gradient(145deg, #02110d, #0a2e22) !important;
+      color: #34d399 !important;
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 16px;
       font-weight: 900;
-      color: #34d399;
       letter-spacing: -1px;
       flex-shrink: 0;
       box-shadow:
-        inset 0 0 10px rgba(52, 211, 153, 0.15),
-        0 4px 12px rgba(0, 0, 0, 0.2);
+        inset 0 0 6px rgba(52, 211, 153, 0.1),
+        0 2px 8px rgba(0, 0, 0, 0.2) !important;
+      border: 1px solid rgba(52, 211, 153, 0.22) !important;
     }
 
     #mobileApp .mp-header-text {
@@ -707,17 +715,21 @@
       min-width: 0;
     }
 
-    #mobileApp .mp-header-main {
-      font-size: 20px;
-      font-weight: 900;
-      color: #111827;
-      letter-spacing: -0.03em;
+    #mobileApp .mp-header-main,
+    #mobileApp .mp-brand-main {
+      font-size: 19px !important;
+      font-weight: 850 !important;
+      color: #101827 !important;
+      letter-spacing: -0.4px !important;
     }
 
-    #mobileApp .mp-header-sub {
-      font-size: 20px;
-      font-weight: 700;
-      color: #34d399;
+    #mobileApp .mp-header-sub,
+    #mobileApp .mp-brand-sub {
+      font-size: 17px !important;
+      font-weight: 700 !important;
+      color: #0f9d68 !important;
+      opacity: 0.9 !important;
+      letter-spacing: -0.2px !important;
     }
 
     #mobileApp .mobile-header-actions {
@@ -725,61 +737,66 @@
       flex-wrap: wrap;
       align-items: center;
       justify-content: flex-start;
-      gap: 10px;
       flex: 1 1 100%;
       min-width: 0;
       width: 100%;
       box-sizing: border-box;
-      padding: 6px 16px 12px;
+      padding: 7px 14px 10px !important;
+      gap: 8px !important;
     }
 
     #mobileApp .mobile-header-actions button {
-      height: 44px;
-      min-height: 44px;
-      border-radius: 14px;
-      font-weight: 800;
+      height: 40px !important;
+      min-height: 40px !important;
+      border-radius: 14px !important;
+      font-size: 13px !important;
+      font-weight: 800 !important;
+      padding: 0 12px !important;
+    }
+
+    #mobileApp .mobile-header-actions button:last-child {
+      opacity: 0.88 !important;
     }
 
     #mobileApp .mobile-header-actions .btn-header-primary {
-      padding-left: 14px;
-      padding-right: 14px;
-    }
-
-    #mobileApp .mobile-header-actions .btn-header-settings {
-      border-radius: 14px;
-    }
-
-    #mobileApp .mobile-header-actions .btn-change-user {
-      border-radius: 14px;
+      padding-left: 12px !important;
+      padding-right: 12px !important;
     }
 
     @media (max-width: 380px) {
       #mobileApp .mp-header-main,
-      #mobileApp .mp-header-sub {
-        font-size: 18px;
+      #mobileApp .mp-brand-main {
+        font-size: 17px !important;
       }
 
-      #mobileApp .mp-logo-small {
+      #mobileApp .mp-header-sub,
+      #mobileApp .mp-brand-sub {
+        font-size: 16px !important;
+      }
+
+      #mobileApp .mp-logo-small,
+      #mobileApp .mp-logo-badge {
         width: 32px;
         height: 32px;
         font-size: 14px;
       }
 
-      #mobileApp .mobile-header-actions {
-        gap: 8px;
-        padding-left: 12px;
-        padding-right: 12px;
-      }
-
       #mobileApp .mobile-header-actions button {
-        font-size: 14px;
-        padding-left: 10px;
-        padding-right: 10px;
+        height: 38px !important;
+        min-height: 38px !important;
+        font-size: 12.5px !important;
+        padding: 0 9px !important;
       }
 
-      #mobileApp .mp-header-brand {
-        padding-left: 12px;
-        padding-right: 12px;
+      #mobileApp .mp-header-brand,
+      #mobileApp .mp-mobile-brand {
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+      }
+
+      #mobileApp .mobile-header-actions {
+        padding-left: 12px !important;
+        padding-right: 12px !important;
       }
     }
 
