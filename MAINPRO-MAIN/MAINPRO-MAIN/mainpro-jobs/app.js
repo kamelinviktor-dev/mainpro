@@ -3400,6 +3400,35 @@ function updateMobileFormFab() {
   }
 }
 
+/** Mobile shell: sticky header shadow when window scrolls (narrow viewport only). */
+function updateMobileHeaderScrollShadow() {
+  const header =
+    document.querySelector("#mobileApp header.app-header.app-header--bar") ||
+    document.querySelector("#mobileApp .mobile-header") ||
+    document.querySelector("#mobileApp .mp-mobile-header");
+  if (!header) return;
+  if (typeof isNarrowLayout !== "function" || !isNarrowLayout()) {
+    header.classList.remove("is-scrolled");
+    return;
+  }
+  const appMain = document.getElementById("appMain");
+  const mobileRoot = document.getElementById("mobileApp");
+  if (
+    !mobileRoot ||
+    mobileRoot.hidden ||
+    (appMain && appMain.hidden)
+  ) {
+    header.classList.remove("is-scrolled");
+    return;
+  }
+  const y =
+    window.scrollY ||
+    window.pageYOffset ||
+    (document.documentElement && document.documentElement.scrollTop) ||
+    0;
+  header.classList.toggle("is-scrolled", y > 8);
+}
+
 /**
  * NARROW: кнопка «наверх» слева внизу (не пересекает + Job справа).
  */
@@ -3474,6 +3503,7 @@ function scrollToListTop() {
 function onMobileFabScroll() {
   if (typeof window === "undefined") return;
   updateJobsStickyScrollClass();
+  updateMobileHeaderScrollShadow();
   if (!isNarrowLayout()) return;
   if (!hasMainproLogin()) return;
   const am = document.getElementById("appMain");
@@ -4824,6 +4854,7 @@ window.addEventListener("resize", function () {
   } else {
     updateMobileFormFab();
     updateMobileScrollTopBtn();
+    updateMobileHeaderScrollShadow();
   }
 });
 
@@ -4831,6 +4862,7 @@ window.addEventListener("resize", function () {
   if (typeof window === "undefined" || window._mainproFabScrollBound) return;
   window._mainproFabScrollBound = true;
   window.addEventListener("scroll", onMobileFabScroll, { passive: true });
+  updateMobileHeaderScrollShadow();
 })();
 
 /**
