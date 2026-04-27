@@ -34,7 +34,7 @@ const ASSIGNED_ENGINEER_OPTIONS = [
   "Manager",
 ];
 
-/** Set when a job is open in full-screen detail (narrow layout only). */
+/** Set when a job is open in full-screen detail (narrow ≤600px or desktop ≥900px). */
 let mobileJobDetailId = null;
 /** Preserved list scroll so closing overlay restores it. */
 let mobileJobsListScrollY = 0;
@@ -122,6 +122,33 @@ const MAINPRO_I18N = {
     swUpdateRefresh: "Refresh",
     swUpdateDismiss: "Dismiss",
     backupRestored: "Browser backup applied",
+    desktopPageTitle: "Dashboard",
+    desktopPageSubtitle: "Welcome back — here's today's job overview.",
+    desktopTagline: "Intelligent Hotel Operations",
+    desktopNavDashboard: "Dashboard",
+    desktopNavJobs: "Jobs",
+    desktopNavCalendar: "Calendar",
+    desktopNavLocations: "Locations",
+    desktopNavReports: "Reports",
+    desktopNavSettings: "Settings",
+    desktopRecentJobs: "Recent jobs",
+    desktopThJobRoom: "Job / room",
+    desktopThDescription: "Description",
+    desktopThPriority: "Priority",
+    desktopThAssigned: "Assigned",
+    desktopThStatus: "Status",
+    desktopThUpdated: "Updated",
+    desktopThAction: "Action",
+    desktopPriBy: "Jobs by priority",
+    desktopLabelPriCritical: "Critical",
+    desktopLabelPriHigh: "High",
+    desktopLabelPriMedium: "Medium",
+    desktopLabelPriLow: "Low",
+    desktopQaTitle: "Quick actions",
+    desktopQaCreate: "Create new job",
+    desktopQaView: "View",
+    desktopNoRecent: "No jobs yet.",
+    desktopActive: "Active",
   },
   ru: {
     appTitle: "MainPro — заявки",
@@ -188,6 +215,33 @@ const MAINPRO_I18N = {
     swUpdateRefresh: "Обновить",
     swUpdateDismiss: "Скрыть",
     backupRestored: "Копия из браузера применена",
+    desktopPageTitle: "Панель",
+    desktopPageSubtitle: "С возвращением — обзор заявок на сегодня.",
+    desktopTagline: "Интеллектуальные операции отеля",
+    desktopNavDashboard: "Панель",
+    desktopNavJobs: "Заявки",
+    desktopNavCalendar: "Календарь",
+    desktopNavLocations: "Локации",
+    desktopNavReports: "Отчёты",
+    desktopNavSettings: "Настройки",
+    desktopRecentJobs: "Недавние заявки",
+    desktopThJobRoom: "Заявка / зона",
+    desktopThDescription: "Описание",
+    desktopThPriority: "Приоритет",
+    desktopThAssigned: "Назначено",
+    desktopThStatus: "Статус",
+    desktopThUpdated: "Обновлено",
+    desktopThAction: "Действие",
+    desktopPriBy: "По приоритету",
+    desktopLabelPriCritical: "Критично",
+    desktopLabelPriHigh: "Высокий",
+    desktopLabelPriMedium: "Средний",
+    desktopLabelPriLow: "Низкий",
+    desktopQaTitle: "Быстрые действия",
+    desktopQaCreate: "Новая заявка",
+    desktopQaView: "Смотреть",
+    desktopNoRecent: "Пока нет заявок.",
+    desktopActive: "Активен",
   },
 };
 
@@ -271,6 +325,49 @@ function applyMainproI18n() {
   tx("dashLabelOverdue", t("kpiOverdue"));
   tx("dashLabelDoneToday", t("kpiDoneToday"));
   tx("dashLabelDeleted", t("kpiDeleted"));
+  tx("desktopLabelNew", t("kpiNew"));
+  tx("desktopLabelInProgress", t("kpiInProgress"));
+  tx("desktopLabelPending", t("kpiPending"));
+  tx("desktopLabelOverdue", t("kpiOverdue"));
+  tx("desktopLabelDoneToday", t("kpiDoneToday"));
+  tx("desktopLabelDeleted", t("kpiDeleted"));
+  tx("desktopPageTitle", t("desktopPageTitle"));
+  tx("desktopPageSubtitle", t("desktopPageSubtitle"));
+  tx("desktopTagline", t("desktopTagline"));
+  tx("desktopNavDashboard", t("desktopNavDashboard"));
+  tx("desktopNavJobs", t("desktopNavJobs"));
+  tx("desktopNavCalendar", t("desktopNavCalendar"));
+  tx("desktopNavLocations", t("desktopNavLocations"));
+  tx("desktopNavReports", t("desktopNavReports"));
+  tx("desktopNavSettings", t("desktopNavSettings"));
+  tx("desktopRecentJobsTitle", t("desktopRecentJobs"));
+  tx("desktopThJobRoom", t("desktopThJobRoom"));
+  tx("desktopThDescription", t("desktopThDescription"));
+  tx("desktopThPriority", t("desktopThPriority"));
+  tx("desktopThAssigned", t("desktopThAssigned"));
+  tx("desktopThStatus", t("desktopThStatus"));
+  tx("desktopThUpdated", t("desktopThUpdated"));
+  tx("desktopThAction", t("desktopThAction"));
+  tx("desktopPriTitle", t("desktopPriBy"));
+  tx("desktopPriLabelCritical", t("desktopLabelPriCritical"));
+  tx("desktopPriLabelHigh", t("desktopLabelPriHigh"));
+  tx("desktopPriLabelMedium", t("desktopLabelPriMedium"));
+  tx("desktopPriLabelLow", t("desktopLabelPriLow"));
+  tx("desktopQaTitle", t("desktopQaTitle"));
+  const bDNew = document.getElementById("btnDesktopNewJob");
+  if (bDNew) bDNew.textContent = t("newJob");
+  const bDSt = document.getElementById("btnDesktopOpenSettings");
+  if (bDSt) bDSt.textContent = t("settings");
+  const bDCh = document.getElementById("btnDesktopChangeUser");
+  if (bDCh) bDCh.textContent = t("changeUser");
+  const bQaC = document.getElementById("desktopQaCreate");
+  if (bQaC) bQaC.textContent = t("desktopQaCreate");
+  const bQaE = document.getElementById("desktopQaExport");
+  if (bQaE) bQaE.textContent = t("exportJson");
+  const bQaI = document.getElementById("desktopQaImport");
+  if (bQaI) bQaI.textContent = t("importJson");
+  const bQaS = document.getElementById("desktopQaSettings");
+  if (bQaS) bQaS.textContent = t("settings");
   const bClear = document.getElementById("btnClearListFilters");
   if (bClear) {
     bClear.textContent = t("clearFiltersShort");
@@ -349,6 +446,17 @@ function isNarrowLayout() {
     return false;
   }
   return window.matchMedia("(max-width: 600px)").matches;
+}
+
+function isMainproDesktopLayout() {
+  if (typeof window === "undefined" || !window.matchMedia) {
+    return false;
+  }
+  return window.matchMedia("(min-width: 900px)").matches;
+}
+
+function jobDetailModalHostActive() {
+  return isNarrowLayout() || isMainproDesktopLayout();
 }
 
 /** Короткая вибрация на телефоне (если API есть). */
@@ -1199,6 +1307,104 @@ function getDashboardCounts() {
   };
 }
 
+function getJobPriorityBreakdown() {
+  const o = { critical: 0, high: 0, medium: 0, low: 0 };
+  for (let i = 0; i < jobs.length; i++) {
+    const j = jobs[i];
+    if (!j || j.deleted) continue;
+    const p = normalizePriorityValue(j.priority);
+    if (p === "Critical") o.critical++;
+    else if (p === "High") o.high++;
+    else if (p === "Medium") o.medium++;
+    else o.low++;
+  }
+  return o;
+}
+
+function updateDesktopSidebarAndPanels() {
+  const pr = getJobPriorityBreakdown();
+  const set = (id, v) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = String(v);
+  };
+  set("desktopPriCritical", pr.critical);
+  set("desktopPriHigh", pr.high);
+  set("desktopPriMedium", pr.medium);
+  set("desktopPriLow", pr.low);
+  const un = document.getElementById("desktopSidebarUserName");
+  if (un) un.textContent = getMainproUser() || "—";
+  const us = document.getElementById("desktopSidebarUserStatus");
+  if (us) us.textContent = t("desktopActive");
+}
+
+function renderDesktopRecentJobsTable() {
+  const tb = document.getElementById("desktopRecentJobsBody");
+  if (!tb) return;
+  const list = jobs
+    .slice()
+    .sort((a, b) => getJobLastActivityMs(b) - getJobLastActivityMs(a))
+    .slice(0, 10);
+  if (!list.length) {
+    tb.innerHTML =
+      '<tr><td colspan="7" class="desktop-jobs-table__empty">' +
+      escapeHtml(t("desktopNoRecent")) +
+      "</td></tr>";
+    return;
+  }
+  const prClass = { Critical: "critical", High: "high", Medium: "medium", Low: "low" };
+  tb.innerHTML = list
+    .map(function (j) {
+      const vis = getJobDetailHeaderBadgeVisual(j);
+      const pNorm = normalizePriorityValue(j.priority);
+      const prSlug = prClass[pNorm] || "low";
+      const ms = getJobLastActivityMs(j);
+      const updated =
+        ms > 0
+          ? formatDateClean(new Date(ms).toISOString()) || "—"
+          : "—";
+      const room = escapeHtml(String(j.location != null ? j.location : "").trim() || "—");
+      const rawProblem = String(j.problem != null ? j.problem : "").trim();
+      const descEsc = escapeHtml(rawProblem);
+      const descShort =
+        rawProblem.length > 120 ? escapeHtml(rawProblem.slice(0, 117)) + "…" : descEsc;
+      const assign = escapeHtml(normalizeAssignedTo(j));
+      const stHtml =
+        '<span class="job-status-badge job-status-badge--' +
+        vis.badgeMod +
+        ' desktop-status-pill">' +
+        escapeHtml(vis.badgeText) +
+        "</span>";
+      const prHtml =
+        '<span class="job-priority-pill job-priority-pill--' +
+        prSlug +
+        '">' +
+        escapeHtml(pNorm) +
+        "</span>";
+      return (
+        "<tr><td>" +
+        room +
+        '</td><td title="' +
+        descEsc +
+        '">' +
+        (descShort || "—") +
+        "</td><td>" +
+        prHtml +
+        "</td><td>" +
+        assign +
+        "</td><td>" +
+        stHtml +
+        "</td><td>" +
+        escapeHtml(updated) +
+        '</td><td class="desktop-jobs-table__action"><button type="button" class="desktop-view-btn" data-jid="' +
+        jobIdForDomAttr(j.id) +
+        '" onclick="openDesktopJobFromTableFromButton(this)">' +
+        escapeHtml(t("desktopQaView")) +
+        "</button></td></tr>"
+      );
+    })
+    .join("");
+}
+
 function updateDashboard() {
   const c = getDashboardCounts();
   const set = (id, v) => {
@@ -1212,6 +1418,14 @@ function updateDashboard() {
   set("dashCountOverdue", c.nOverdue);
   set("dashCountDoneToday", c.nDoneToday);
   set("dashCountDeleted", c.nDeleted);
+  set("desktopKpiNew", c.nNew);
+  set("desktopKpiInProgress", c.nInProgress);
+  set("desktopKpiPending", c.nPending);
+  set("desktopKpiOverdue", c.nOverdue);
+  set("desktopKpiDoneToday", c.nDoneToday);
+  set("desktopKpiDeleted", c.nDeleted);
+  updateDesktopSidebarAndPanels();
+  renderDesktopRecentJobsTable();
   updateDashboardCardHighlight();
 }
 
@@ -2097,6 +2311,33 @@ function getCommentSortTimeMs(c) {
   return t;
 }
 
+function jobIsoTimeMs(s) {
+  if (s == null || s === "") return 0;
+  const t = new Date(String(s).trim()).getTime();
+  return t > 0 && !isNaN(t) ? t : 0;
+}
+
+/**
+ * Newest “touch” for desktop table: created/completed/deleted, pending until, due, latest comment.
+ */
+function getJobLastActivityMs(j) {
+  if (!j) return 0;
+  let m = 0;
+  m = Math.max(m, jobIsoTimeMs(j.createdAt));
+  m = Math.max(m, jobIsoTimeMs(j.completedAt));
+  m = Math.max(m, jobIsoTimeMs(j.deletedAt));
+  m = Math.max(m, jobIsoTimeMs(j.pendingUntil));
+  m = Math.max(m, jobIsoTimeMs(j.dueAt));
+  const list = j.comments;
+  if (Array.isArray(list)) {
+    for (let i = 0; i < list.length; i++) {
+      const cm = getCommentSortTimeMs(list[i]);
+      if (!isNaN(cm) && cm > 0) m = Math.max(m, cm);
+    }
+  }
+  return m || jobIsoTimeMs(j.createdAt);
+}
+
 function getCommentsSortedNewestFirst(j) {
   const arr = (Array.isArray(j.comments) ? j.comments : [])
     .filter((c) => c && String(c.text || "").trim());
@@ -2761,8 +3002,8 @@ function updateJobDetailModal() {
   const modal = document.getElementById("jobDetailModal");
   const content = document.getElementById("jobDetailModalBody");
   if (!modal || !content) return;
-  if (!isNarrowLayout() || !mobileJobDetailId) {
-    if (!isNarrowLayout()) {
+  if (!jobDetailModalHostActive() || !mobileJobDetailId) {
+    if (!jobDetailModalHostActive()) {
       mobileJobDetailId = null;
     }
     modal.hidden = true;
@@ -3030,6 +3271,26 @@ function closeJobDetailModal() {
     updateMobileFormFab();
     updateMobileScrollTopBtn();
   });
+}
+
+function openDesktopJobFromTable(id) {
+  if (id == null) return;
+  mobileJobsListScrollY =
+    window.scrollY ||
+    window.pageYOffset ||
+    (document.documentElement && document.documentElement.scrollTop) ||
+    0;
+  mobileJobDetailId = String(id);
+  render();
+}
+
+function openDesktopJobFromTableFromButton(btn) {
+  if (!btn || !btn.getAttribute) return;
+  const raw = btn.getAttribute("data-jid");
+  if (raw == null || raw === "") return;
+  const parsed = jobIdFromDomAttr(raw);
+  if (parsed == null) return;
+  openDesktopJobFromTable(parsed);
 }
 
 function showJobsToast(msg) {
@@ -3566,6 +3827,8 @@ window.closeJobsTipsDialog = closeJobsTipsDialog;
 window.openJobsSettings = openJobsSettings;
 window.closeJobsSettings = closeJobsSettings;
 window.openNewJobFromHeader = openNewJobFromHeader;
+window.openDesktopJobFromTable = openDesktopJobFromTable;
+window.openDesktopJobFromTableFromButton = openDesktopJobFromTableFromButton;
 
 function flashCommentSaved(id) {
   const want = String(id);
@@ -4073,7 +4336,7 @@ document.addEventListener("keydown", function (e) {
 });
 
 window.addEventListener("resize", function () {
-  if (!isNarrowLayout() && mobileJobDetailId) {
+  if (!jobDetailModalHostActive() && mobileJobDetailId) {
     mobileJobDetailId = null;
     const m = document.getElementById("jobDetailModal");
     if (m) m.hidden = true;
