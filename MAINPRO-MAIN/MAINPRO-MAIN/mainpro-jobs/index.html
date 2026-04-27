@@ -46,6 +46,66 @@
       line-height: 1.45;
     }
 
+    /* Premium splash — matches compact MP badge styling */
+    #mp-splash {
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle at top, #071612, #000);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 29990;
+      opacity: 1;
+      transition: opacity 0.4s ease;
+      pointer-events: auto;
+    }
+
+    #mp-splash.mp-splash--gone {
+      pointer-events: none;
+    }
+
+    .mp-splash-inner {
+      text-align: center;
+    }
+
+    .mp-logo-premium {
+      margin: 0 auto;
+      width: 90px;
+      height: 90px;
+      border-radius: 24px;
+      background: linear-gradient(145deg, #03120e, #0f3d2e);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 38px;
+      font-weight: 900;
+      color: #34d399;
+      letter-spacing: -2px;
+      box-shadow:
+        inset 0 0 25px rgba(52, 211, 153, 0.15),
+        0 10px 30px rgba(0, 0, 0, 0.6);
+    }
+
+    .mp-splash-title {
+      margin-top: 18px;
+      font-size: 30px;
+      font-weight: 800;
+      color: #ffffff;
+    }
+
+    .mp-splash-sub {
+      margin-top: 6px;
+      font-size: 20px;
+      color: #34d399;
+      font-weight: 700;
+    }
+
+    @media (min-width: 900px) {
+      #mp-splash {
+        display: none !important;
+      }
+    }
+
     .offline-bar {
       position: fixed;
       top: 0;
@@ -585,6 +645,142 @@
 
     .btn-change-user:active {
       transform: scale(0.98);
+    }
+
+    /* Mobile shell (#mobileApp): branded header — desktop column unchanged */
+    #mobileApp .mp-header-sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    #mobileApp .app-title.app-title--mobile-brand {
+      margin: 0;
+      flex: 1 1 100%;
+      min-width: 0;
+      width: 100%;
+      font-size: inherit;
+      font-weight: inherit;
+      letter-spacing: normal;
+      color: inherit;
+      line-height: normal;
+    }
+
+    /* Compact inline brand — same MP gradient language as splash */
+    #mobileApp .mp-header-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px 6px;
+      box-sizing: border-box;
+    }
+
+    #mobileApp .mp-logo-small {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: linear-gradient(145deg, #03120e, #0f3d2e);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 900;
+      color: #34d399;
+      letter-spacing: -1px;
+      flex-shrink: 0;
+      box-shadow:
+        inset 0 0 10px rgba(52, 211, 153, 0.15),
+        0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    #mobileApp .mp-header-text {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      flex-wrap: wrap;
+      min-width: 0;
+    }
+
+    #mobileApp .mp-header-main {
+      font-size: 20px;
+      font-weight: 900;
+      color: #111827;
+      letter-spacing: -0.03em;
+    }
+
+    #mobileApp .mp-header-sub {
+      font-size: 20px;
+      font-weight: 700;
+      color: #34d399;
+    }
+
+    #mobileApp .mobile-header-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 10px;
+      flex: 1 1 100%;
+      min-width: 0;
+      width: 100%;
+      box-sizing: border-box;
+      padding: 6px 16px 12px;
+    }
+
+    #mobileApp .mobile-header-actions button {
+      height: 44px;
+      min-height: 44px;
+      border-radius: 14px;
+      font-weight: 800;
+    }
+
+    #mobileApp .mobile-header-actions .btn-header-primary {
+      padding-left: 14px;
+      padding-right: 14px;
+    }
+
+    #mobileApp .mobile-header-actions .btn-header-settings {
+      border-radius: 14px;
+    }
+
+    #mobileApp .mobile-header-actions .btn-change-user {
+      border-radius: 14px;
+    }
+
+    @media (max-width: 380px) {
+      #mobileApp .mp-header-main,
+      #mobileApp .mp-header-sub {
+        font-size: 18px;
+      }
+
+      #mobileApp .mp-logo-small {
+        width: 32px;
+        height: 32px;
+        font-size: 14px;
+      }
+
+      #mobileApp .mobile-header-actions {
+        gap: 8px;
+        padding-left: 12px;
+        padding-right: 12px;
+      }
+
+      #mobileApp .mobile-header-actions button {
+        font-size: 14px;
+        padding-left: 10px;
+        padding-right: 10px;
+      }
+
+      #mobileApp .mp-header-brand {
+        padding-left: 12px;
+        padding-right: 12px;
+      }
     }
 
     .reporting-as-line {
@@ -5190,8 +5386,8 @@
       box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08), 0 6px 12px rgba(0, 0, 0, 0.06);
     }
 
-    /* Gold wordmark: optional <span> in .app-title; desktop brand already #d4af37 */
-    .app-title span {
+    /* Gold wordmark: optional <span> in .app-title; exclude mobile compact brand spans */
+    .app-title span:not(.mp-header-main):not(.mp-header-sub):not(.mp-header-sr-only) {
       color: #d4af37;
     }
 
@@ -5235,6 +5431,15 @@
   </style>
 </head>
 <body>
+
+  <!-- Premium splash — mobile + logged-in session load only (removed by JS otherwise) -->
+  <div id="mp-splash" aria-hidden="true">
+    <div class="mp-splash-inner">
+      <div class="mp-logo-premium">MP</div>
+      <div class="mp-splash-title" id="mpSplashBrandMain">MainPro</div>
+      <div class="mp-splash-sub" id="mpSplashBrandSub">Jobs</div>
+    </div>
+  </div>
 
   <div id="offlineBar" class="offline-bar" hidden role="status" aria-live="polite" aria-atomic="true"></div>
   <div id="swUpdateBar" class="sw-update-bar" hidden role="region" aria-label="App update">
@@ -5365,8 +5570,17 @@
   <div id="appMain" class="app-wrap" hidden>
     <div id="mobileApp" class="mobile-app">
     <header class="app-header app-header--bar">
-      <h1 class="app-title" id="appHeaderTitle">MainPro Jobs</h1>
-      <div class="header-actions">
+      <h1 class="app-title app-title--mobile-brand" id="appHeaderTitle">
+        <span class="mp-header-sr-only" id="appHeaderTitleSrOnly">MainPro Jobs</span>
+        <div class="mp-header-brand">
+          <div class="mp-logo-small" aria-hidden="true">MP</div>
+          <div class="mp-header-text">
+            <span class="mp-header-main" id="appHeaderBrandMain">MainPro</span>
+            <span class="mp-header-sub" id="appHeaderBrandSub">Jobs</span>
+          </div>
+        </div>
+      </h1>
+      <div class="header-actions mobile-header-actions">
         <button type="button" class="btn-header-primary" id="btnNewJob" data-add-job>+ New Job</button>
         <button type="button" class="btn-header-settings" id="btnOpenSettings" onclick="openJobsSettings()"><span id="settingsBtnText">Settings</span><span class="app-settings-gear" aria-hidden="true">⚙</span></button>
         <button type="button" class="btn-change-user" id="btnChangeUser" onclick="showChangeUser()">Change user</button>

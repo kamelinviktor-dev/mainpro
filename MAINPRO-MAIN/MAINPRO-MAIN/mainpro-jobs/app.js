@@ -60,6 +60,8 @@ const AUTO_BACKUP_INTERVAL_MS = 4 * 60 * 60 * 1000;
 const MAINPRO_I18N = {
   en: {
     appTitle: "MainPro Jobs",
+    brandMain: "MainPro",
+    brandSub: "Jobs",
     loginTitle: "Select your role",
     loginSub: "Who is using this device right now?",
     reportTitle: "Report a Job",
@@ -174,6 +176,8 @@ const MAINPRO_I18N = {
   },
   ru: {
     appTitle: "MainPro — заявки",
+    brandMain: "MainPro",
+    brandSub: "Заявки",
     loginTitle: "Выберите роль",
     loginSub: "Кто сейчас с этой страницей работает?",
     reportTitle: "Сообщить о заявке",
@@ -318,8 +322,23 @@ function applyMainproI18n() {
   };
   el("loginTitle", t("loginTitle"));
   el("loginSub", t("loginSub"));
-  const titleEl = document.getElementById("appHeaderTitle");
-  if (titleEl) titleEl.textContent = t("appTitle");
+  const brandMainEl = document.getElementById("appHeaderBrandMain");
+  const brandSubEl = document.getElementById("appHeaderBrandSub");
+  const titleSrEl = document.getElementById("appHeaderTitleSrOnly");
+  if (brandMainEl && brandSubEl) {
+    brandMainEl.textContent = t("brandMain");
+    brandSubEl.textContent = t("brandSub");
+    if (titleSrEl) titleSrEl.textContent = t("appTitle");
+  } else {
+    const titleEl = document.getElementById("appHeaderTitle");
+    if (titleEl) titleEl.textContent = t("appTitle");
+  }
+  const splashMainEl = document.getElementById("mpSplashBrandMain");
+  const splashSubEl = document.getElementById("mpSplashBrandSub");
+  if (splashMainEl && splashSubEl) {
+    splashMainEl.textContent = t("brandMain");
+    splashSubEl.textContent = t("brandSub");
+  }
   el("reportFormTitle", t("reportTitle"));
   tx("mobileReportSheetTitle", t("reportTitle"));
   tx("mobileReportCancelBtn", t("reportCancel"));
@@ -4959,5 +4978,50 @@ function onOnlineStatusEvent() {
   updateOnlineStatusBar();
 })();
 
+/** Mobile splash: brief branded overlay once per tab session when main shell loads visible (not login). */
+function initMainproPremiumSplash() {
+  const splash = document.getElementById("mp-splash");
+  if (!splash) return;
+  const login = document.getElementById("loginScreen");
+  if (login && !login.hidden) {
+    splash.remove();
+    return;
+  }
+  let narrow = true;
+  try {
+    narrow = window.matchMedia("(max-width: 899px)").matches;
+  } catch (e) {
+    narrow = true;
+  }
+  if (!narrow) {
+    splash.remove();
+    return;
+  }
+  try {
+    if (sessionStorage.getItem("mainpro_mp_splash_seen") === "1") {
+      splash.remove();
+      return;
+    }
+  } catch (e2) {
+    /* ignore */
+  }
+  window.addEventListener("load", function onSplashLoad() {
+    window.removeEventListener("load", onSplashLoad);
+    setTimeout(function () {
+      splash.classList.add("mp-splash--gone");
+      splash.style.opacity = "0";
+      setTimeout(function () {
+        if (splash.parentNode) splash.remove();
+        try {
+          sessionStorage.setItem("mainpro_mp_splash_seen", "1");
+        } catch (e3) {
+          /* ignore */
+        }
+      }, 400);
+    }, 900);
+  });
+}
+
 applyAuthUi();
 wireMobileAddJobButtons();
+initMainproPremiumSplash();
