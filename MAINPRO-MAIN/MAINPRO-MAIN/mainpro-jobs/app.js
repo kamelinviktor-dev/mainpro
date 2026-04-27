@@ -3104,17 +3104,14 @@ function renderActiveCardFull(j, forModal) {
           <span class="comment-saved-hint" data-saved-hint="1" hidden>Saved</span>
         </div>`;
   const actionsInner = `
-        <div class="job-actions${forModal ? " job-detail-actions" : ""}">
+        <div class="job-actions">
           ${progressBtnNew}
           ${progressBtnPending}
           ${parkBtn}
           <button type="button" class="btn-done" onclick='setStatus(${qid}, ${sDone})'>Done</button>
           <button type="button" class="btn-del" onclick='deleteJob(${qid})'>Delete</button>
         </div>`;
-  const modalMain =
-    forModal
-      ? `<div class="job-detail-content">${detailScrollBody}</div>${actionsInner}`
-      : `${detailScrollBody}${actionsInner}`;
+  const modalMain = `${detailScrollBody}${actionsInner}`;
   return `
       <div class="job job-card ${vis.cardClass}${logClass}" data-job-id="${idForAttr}" data-status="${escapeHtml(
     st
@@ -3163,13 +3160,10 @@ function renderHistoryCardFull(j, forModal) {
         </div>
         ${notesBlock}`;
   const actionsInner = `
-        <div class="job-actions job-actions-single${forModal ? " job-detail-actions" : ""}">
+        <div class="job-actions job-actions-single">
           <button type="button" class="btn-del" onclick='deleteJob(${qid})'>Delete</button>
         </div>`;
-  const modalMain =
-    forModal
-      ? `<div class="job-detail-content">${detailScrollBody}</div>${actionsInner}`
-      : `${detailScrollBody}${actionsInner}`;
+  const modalMain = `${detailScrollBody}${actionsInner}`;
   return `
       <div class="job job-card done job-history ${vis.cardClass}${logClass}" data-job-id="${jobIdForDomAttr(
     j.id
@@ -3218,14 +3212,11 @@ function renderDeletedCardFull(j, forModal) {
         </div>
         ${notesBlock}`;
   const actionsInner = `
-        <div class="job-actions job-actions-deleted${forModal ? " job-detail-actions" : ""}">
+        <div class="job-actions job-actions-deleted">
           <button type="button" class="btn-restore">Restore</button>
           <button type="button" class="btn-permanent-delete">Delete permanently</button>
         </div>`;
-  const modalMain =
-    forModal
-      ? `<div class="job-detail-content">${detailScrollBody}</div>${actionsInner}`
-      : `${detailScrollBody}${actionsInner}`;
+  const modalMain = `${detailScrollBody}${actionsInner}`;
   return `
       <div class="job job-card deleted job-card-shell${logClass}" data-job-id="${idForAttr}" data-status="Deleted">
         <span class="job-status-badge job-status-badge--deleted">DELETED</span>

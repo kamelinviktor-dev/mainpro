@@ -1661,39 +1661,13 @@
       max-width: 100%;
     }
 
-    /* Modal body scrolls inside content; primary actions stay visible at bottom */
-    #jobDetailModal .job-detail-modal__body {
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      min-height: 0;
-    }
-
-    #jobDetailModal .job-detail-modal__body > .job.job-card.job-detail {
-      flex: 1 1 auto;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      height: 100%;
-    }
-
-    #jobDetailModal .job-detail-content {
-      flex: 1 1 auto;
-      min-height: 0;
-      overflow-x: hidden;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    #jobDetailModal .job-detail-actions {
-      flex-shrink: 0;
-      position: sticky;
-      bottom: 0;
-      background: #fff;
-      padding-top: 10px;
-      z-index: 2;
-      box-shadow: 0 -8px 20px rgba(255, 255, 255, 0.92);
+    /* Full detail scrolls with modal body — no nested scroll trap on the card */
+    #jobDetailModal .job-detail.job-card,
+    #jobDetailModal .job-expanded,
+    #jobDetailModal .job-view {
+      max-height: none !important;
+      height: auto !important;
+      overflow: visible !important;
     }
 
     .job-detail-modal__body .job--modal-detail > .job-status-badge {
@@ -3767,6 +3741,13 @@
         padding: 10px 0 8px;
       }
 
+      /* Closed list rows — compact strip only (full detail uses .job-detail in modal, not here) */
+      #appMain .job-card:not(.job-detail) {
+        min-height: 95px;
+        max-height: 115px;
+        overflow: hidden !important;
+      }
+
       /* Mobile closed list: tap opens detail — compact strip, SaaS polish */
       #appMain .mobile-job-card.job-card--list-compact {
         cursor: pointer;
@@ -3776,7 +3757,7 @@
         box-sizing: border-box;
         padding: 14px 16px !important;
         min-height: 95px;
-        max-height: 110px;
+        max-height: 115px;
         overflow: hidden;
         border-radius: 14px !important;
         margin-bottom: 8px !important;
@@ -3914,20 +3895,11 @@
         line-height: 1.3;
       }
 
-      /* Mobile full detail: notes/activity — catch-all + card clip (no endless grow) */
-      .job-detail-modal__body .engineer-notes-wrapper,
-      .job-detail-modal__body .notes-wrapper {
-        overflow: hidden;
-      }
-
+      /* Main app list only: nuclear note/activity caps (detail drawer uses explicit rules below) */
       #appMain [class*="note"]:not(button):not(textarea):not(input):not(select):not(.note-card):not(.note-date):not(.note-author):not(.note-text):not(.activity-item):not(.activity-row):not(.activity-line-text):not(.activity-time),
-      #jobDetailModal [class*="note"]:not(button):not(textarea):not(input):not(select):not(.note-card):not(.note-date):not(.note-author):not(.note-text):not(.activity-item):not(.activity-row):not(.activity-line-text):not(.activity-time),
       #appMain [class*="Note"]:not(button):not(.note-card),
-      #jobDetailModal [class*="Note"]:not(button):not(.note-card),
       #appMain [class*="notes"]:not(button):not(.note-card),
-      #jobDetailModal [class*="notes"]:not(button):not(.note-card),
-      #appMain [class*="Notes"]:not(button):not(.note-card),
-      #jobDetailModal [class*="Notes"]:not(button):not(.note-card) {
+      #appMain [class*="Notes"]:not(button):not(.note-card) {
         max-height: 160px !important;
         overflow-y: auto !important;
         display: block !important;
@@ -3937,9 +3909,7 @@
       }
 
       #appMain [class*="activity"]:not(button):not(.activity-item):not(.activity-row):not(.activity-line-text):not(.activity-time),
-      #jobDetailModal [class*="activity"]:not(button):not(.activity-item):not(.activity-row):not(.activity-line-text):not(.activity-time),
-      #appMain [class*="Activity"]:not(button),
-      #jobDetailModal [class*="Activity"]:not(button) {
+      #appMain [class*="Activity"]:not(button) {
         max-height: 120px !important;
         overflow-y: auto !important;
         padding-right: 6px;
@@ -3947,12 +3917,25 @@
         box-sizing: border-box;
       }
 
-      /* Open job: engineer notes stack — fixed height + scrollbar */
-      #jobDetailModal .job.job-card.job-detail .notes-container.notes {
-        max-height: 180px !important;
+      /* Job detail drawer: only notes/activity lists scroll; whole card follows modal body scroll */
+      #jobDetailModal .job-detail .notes,
+      #jobDetailModal .job-detail .notes-container.notes,
+      #jobDetailModal .job-detail .engineer-notes-list,
+      #jobDetailModal .job-detail .notes-list {
+        max-height: 220px !important;
         overflow-y: auto !important;
         padding-right: 4px !important;
         scrollbar-width: thin;
+        box-sizing: border-box;
+      }
+
+      #jobDetailModal .job-detail .activity-list,
+      #jobDetailModal .job-detail .activity-timeline {
+        max-height: 160px !important;
+        overflow-y: auto !important;
+        padding-right: 6px;
+        -webkit-overflow-scrolling: touch;
+        box-sizing: border-box;
       }
 
       #jobDetailModal .job-detail .notes::-webkit-scrollbar {
@@ -3964,13 +3947,15 @@
         border-radius: 10px;
       }
 
-      #appMain .job-card,
-      #jobDetailModal .job-detail,
       #appMain .job-expanded,
-      #jobDetailModal .job-expanded,
-      #appMain .job-view,
-      #jobDetailModal .job-view {
+      #appMain .job-view {
         overflow: hidden !important;
+      }
+
+      #jobDetailModal .job-detail,
+      #jobDetailModal .job-expanded,
+      #jobDetailModal .job-view {
+        overflow: visible !important;
       }
 
       #appMain .note-card,
