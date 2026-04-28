@@ -3,8 +3,8 @@
   "short_name": "MainPro",
   "start_url": "/mainpro/",
   "display": "standalone",
-  "background_color": "#0b2f2b",
-  "theme_color": "#0b2f2b",
+  "background_color": "#0b1a16",
+  "theme_color": "#0b1a16",
   "icons": [
     {
       "src": "/mainpro/icon-192.png",

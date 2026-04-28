@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <link rel="manifest" href="/mainpro/manifest.json">
-  <meta name="theme-color" content="#0b2f2b">
+  <meta name="theme-color" content="#0b1a16">
   <meta name="color-scheme" content="dark">
   <title>MainPro Jobs</title>
   <style>
@@ -12,7 +12,7 @@
     html, body { height: 100%; }
     body {
       font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-      background: #02110d;
+      background: #0b1a16;
       color: #f8fafc;
       -webkit-font-smoothing: antialiased;
     }
@@ -23,7 +23,7 @@
       align-items: center;
       justify-content: center;
       padding: max(24px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(32px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
-      background: linear-gradient(165deg, #02110d 0%, #0b1f18 38%, #0a2e22 72%, #071a14 100%);
+      background: linear-gradient(165deg, #0f2420 0%, #0b1a16 45%, #081410 100%);
     }
     .splash-inner {
       width: 100%;
@@ -50,23 +50,16 @@
         transform: none;
       }
     }
-    .logo-wrap {
-      width: 5.5rem;
-      height: 5.5rem;
+    .splash-icon {
+      width: 5.75rem;
+      height: 5.75rem;
       margin: 0 auto 1.5rem;
       border-radius: 1.35rem;
-      background: linear-gradient(145deg, #03120e, #0f3d2e);
-      border: 1px solid rgba(52, 211, 153, 0.28);
+      object-fit: cover;
+      display: block;
       box-shadow:
-        inset 0 0 14px rgba(52, 211, 153, 0.12),
-        0 10px 28px rgba(0, 0, 0, 0.45);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .logo-mp {
-      width: 3.25rem;
-      height: auto;
+        0 4px 24px rgba(0, 0, 0, 0.5),
+        0 0 0 1px rgba(80, 227, 164, 0.2);
     }
     h1 {
       font-size: clamp(1.5rem, 5vw, 1.85rem);
@@ -79,7 +72,7 @@
     .sub {
       font-size: clamp(0.95rem, 3.2vw, 1.05rem);
       font-weight: 500;
-      color: rgba(52, 211, 153, 0.92);
+      color: rgba(80, 227, 164, 0.9);
       letter-spacing: 0.02em;
       margin-bottom: 1.75rem;
     }
@@ -92,15 +85,15 @@
       font-size: 0.95rem;
       font-weight: 700;
       letter-spacing: 0.02em;
-      color: #02110d;
+      color: #0b1a16;
       text-decoration: none;
       border: none;
       border-radius: 0.875rem;
       cursor: pointer;
-      background: linear-gradient(180deg, #34d399 0%, #10b981 48%, #059669 100%);
+      background: linear-gradient(180deg, #6aedbd 0%, #50e3a4 40%, #3ecf94 100%);
       box-shadow:
-        0 1px 0 rgba(255, 255, 255, 0.28) inset,
-        0 4px 20px rgba(16, 185, 129, 0.45);
+        0 1px 0 rgba(255, 255, 255, 0.35) inset,
+        0 4px 22px rgba(80, 227, 164, 0.35);
       -webkit-tap-highlight-color: transparent;
       transition: transform 0.15s ease, box-shadow 0.15s ease;
     }
@@ -110,8 +103,8 @@
     @media (hover: hover) {
       .btn:hover {
         box-shadow:
-          0 1px 0 rgba(255, 255, 255, 0.32) inset,
-          0 6px 28px rgba(16, 185, 129, 0.55);
+          0 1px 0 rgba(255, 255, 255, 0.38) inset,
+          0 6px 28px rgba(80, 227, 164, 0.45);
       }
     }
   </style>
@@ -119,13 +112,7 @@
 <body>
   <main class="splash">
     <div class="splash-inner">
-      <div class="logo-wrap" aria-hidden="true">
-        <svg class="logo-mp" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 64" focusable="false">
-          <text x="8" y="48" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="44" letter-spacing="-6">
-            <tspan fill="#34d399">M</tspan><tspan fill="#d4af37">P</tspan>
-          </text>
-        </svg>
-      </div>
+      <img class="splash-icon" src="icon-192.png" width="92" height="92" alt="" decoding="async">
       <h1>MainPro Jobs</h1>
       <p class="sub">Intelligent Hotel Operations</p>
       <a class="btn" href="MAINPRO-MAIN/MAINPRO-MAIN/mainpro-jobs/">Enter App</a>
