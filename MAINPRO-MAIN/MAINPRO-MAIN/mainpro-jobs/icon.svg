@@ -1,14 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="MainPro Jobs">
-  <!-- Match index.html :root --mp-header-mp-* (header MP tile / PWA icon). -->
+  <!-- Pixel recipe = #mobileApp .mp-logo-small in index.html (:root --mp-header-mp-*, 145deg, rx 10/32 of 512). -->
   <defs>
     <linearGradient id="mpTile" gradientUnits="userSpaceOnUse" x1="512" y1="0" x2="0" y2="512">
       <stop offset="0%" stop-color="#02110d"/>
       <stop offset="100%" stop-color="#0a2e22"/>
     </linearGradient>
   </defs>
-  <!-- rx ≈ 10px corner on 32px tile → 160 @ 512 -->
   <rect width="512" height="512" rx="160" ry="160" fill="url(#mpTile)" stroke="rgba(52,211,153,0.22)" stroke-width="16"/>
   <text x="256" y="332" text-anchor="middle"
     font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="900"
-    font-size="196" letter-spacing="-14" fill="#34d399">MP</text>
+    font-size="192" letter-spacing="-16" fill="#34d399">MP</text>
 </svg>
