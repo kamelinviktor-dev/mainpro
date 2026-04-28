@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#0b1a16">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="MainPro Jobs">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="format-detection" content="telephone=no">
   <meta name="description" content="Local-first hotel maintenance and job tracking. Assign, status, notes, export backup, works offline in the browser.">
   <link rel="manifest" href="./manifest.webmanifest">
@@ -27,7 +27,10 @@
       --mp-dark-2: #0b1220;
       --mp-green: #0f9d68;
       --mp-green-soft: #eaf7f1;
-      --mp-gold: #d4af37;
+      --mp-mint: #00c97a;
+      --mp-mark-grad-from: #00ff9c;
+      --mp-mark-grad-to: #00c97a;
+      --mp-jobs-word: #00c97a;
       --mp-bg: #f4f6f8;
       --mp-card: #ffffff;
       --mp-text: #101827;
@@ -41,7 +44,7 @@
       min-height: 100vh;
       overflow-x: hidden;
       background: radial-gradient(circle at top right, rgba(15, 157, 104, 0.05), transparent 55%),
-        radial-gradient(circle at bottom left, rgba(212, 175, 55, 0.05), transparent 50%),
+        radial-gradient(circle at bottom left, rgba(80, 227, 164, 0.06), transparent 50%),
         #f4f6f8;
       background-attachment: fixed;
       color: #1a1a1a;
@@ -81,10 +84,10 @@
       justify-content: center;
       font-size: 38px;
       font-weight: 900;
-      color: #34d399;
+      color: var(--mp-mint);
       letter-spacing: -2px;
       box-shadow:
-        inset 0 0 25px rgba(52, 211, 153, 0.15),
+        inset 0 0 25px rgba(80, 227, 164, 0.15),
         0 10px 30px rgba(0, 0, 0, 0.6);
     }
 
@@ -98,13 +101,38 @@
     .mp-splash-sub {
       margin-top: 6px;
       font-size: 20px;
-      color: #34d399;
+      color: var(--mp-mint);
       font-weight: 700;
     }
 
     @media (min-width: 900px) {
       #mp-splash {
         display: none !important;
+      }
+    }
+
+    /* Phone / narrow tablet: splash tile matches home-screen icon scale */
+    @media (max-width: 899px) {
+      .mp-logo-premium {
+        width: min(52vw, 220px);
+        height: min(52vw, 220px);
+        border-radius: min(13vw, 58px);
+        font-size: min(22vw, 92px);
+        font-weight: 900;
+        letter-spacing: -0.05em;
+      }
+
+      .mp-splash-title {
+        margin-top: 22px;
+        font-size: clamp(1.5rem, 6vw, 2rem);
+      }
+
+      .mp-splash-sub {
+        font-size: clamp(1rem, 4vw, 1.35rem);
+      }
+
+      #mp-splash {
+        background: radial-gradient(ellipse 100% 70% at 50% 18%, #0f2e22 0%, #051a11 42%, #020806 100%);
       }
     }
 
@@ -692,8 +720,9 @@
       min-height: 48px !important;
       box-sizing: border-box !important;
       width: 100% !important;
-      background: linear-gradient(180deg, #f8fffb, #f3faf7) !important;
-      border-bottom: 1px solid rgba(15, 23, 42, 0.08) !important;
+      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.1) !important;
+      box-shadow: none !important;
     }
 
     @media (max-width: 899px) {
@@ -745,7 +774,7 @@
       #mobileApp header.app-header.app-header--bar.is-scrolled,
       #mobileApp .mobile-header.is-scrolled,
       #mobileApp .mp-mobile-header.is-scrolled {
-        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.1) !important;
+        box-shadow: 0 6px 20px rgba(15, 23, 42, 0.08) !important;
       }
 
       /* Inner row height — markup uses .mp-header-brand / .app-title--mobile-brand */
@@ -779,29 +808,44 @@
     #mobileApp .mp-logo-small,
     #mobileApp .mp-logo,
     #mobileApp .mp-logo-badge {
-      width: 32px !important;
-      height: 32px !important;
-      min-width: 32px !important;
-      border-radius: 10px !important;
-      font-size: 12px !important;
-      background: linear-gradient(145deg, #02110d, #0a2e22) !important;
-      color: #34d399 !important;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      width: 38px !important;
+      height: 38px !important;
+      min-width: 38px !important;
+      border-radius: 11px !important;
+      font-size: 0 !important;
+      line-height: 0 !important;
+      background: linear-gradient(145deg, #03120e 0%, #0a3024 55%, #051a11 100%) !important;
+      color: transparent !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
       font-weight: 900;
-      letter-spacing: -1px;
+      letter-spacing: -0.06em;
       flex-shrink: 0;
       box-shadow:
-        inset 0 0 6px rgba(52, 211, 153, 0.1),
-        0 2px 8px rgba(0, 0, 0, 0.2) !important;
-      border: 1px solid rgba(52, 211, 153, 0.22) !important;
+        inset 0 1px 0 rgba(255, 255, 255, 0.06),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.35),
+        0 2px 8px rgba(0, 0, 0, 0.12) !important;
+      border: 1px solid rgba(0, 201, 122, 0.22) !important;
+    }
+
+    #mobileApp .mp-logo-small-letters,
+    #mobileApp .mp-logo-letters {
+      display: block !important;
+      font-size: 14px !important;
+      line-height: 1 !important;
+      font-weight: 900 !important;
+      letter-spacing: -0.06em !important;
+      background: linear-gradient(180deg, var(--mp-mark-grad-from) 0%, var(--mp-mark-grad-to) 100%) !important;
+      -webkit-background-clip: text !important;
+      background-clip: text !important;
+      color: transparent !important;
     }
 
     #mobileApp .mp-header-text,
     #mobileApp .mp-brand-text {
       display: flex !important;
-      align-items: baseline !important;
+      align-items: center !important;
       gap: 0 !important;
       flex-wrap: nowrap !important;
       min-width: 0;
@@ -813,7 +857,7 @@
       font-size: 16px !important;
       line-height: 1 !important;
       font-weight: 800 !important;
-      color: #101827 !important;
+      color: #0f172a !important;
       white-space: nowrap !important;
     }
 
@@ -821,9 +865,9 @@
     #mobileApp .mp-brand-sub {
       font-size: 14px !important;
       font-weight: 600 !important;
-      color: #0f9d68 !important;
-      opacity: 0.8 !important;
-      margin-left: 4px !important;
+      color: var(--mp-jobs-word) !important;
+      opacity: 1 !important;
+      margin-left: 5px !important;
       white-space: nowrap !important;
     }
 
@@ -946,10 +990,14 @@
       #mobileApp .mp-logo-small,
       #mobileApp .mp-logo,
       #mobileApp .mp-logo-badge {
-        width: 30px !important;
-        height: 30px !important;
-        min-width: 30px !important;
-        font-size: 11px !important;
+        width: 36px !important;
+        height: 36px !important;
+        min-width: 36px !important;
+      }
+
+      #mobileApp .mp-logo-small-letters,
+      #mobileApp .mp-logo-letters {
+        font-size: 13px !important;
       }
 
       #mobileApp .mobile-header-actions .btn-header-primary {
@@ -4523,7 +4571,7 @@
       }
     }
 
-    /* —— Mobile vs desktop UI shells (breakpoint 900px). Mobile <900px unchanged. —— */
+    /* —— Mobile vs desktop UI shells (breakpoint 900px). —— */
     .mobile-app {
       display: block;
       width: 100%;
@@ -4539,6 +4587,59 @@
     }
 
     @media (max-width: 899px) {
+      html {
+        background-color: #051a11;
+      }
+
+      /* Full-bleed shell: no centered “picture frame”, no side gutters */
+      body {
+        background: linear-gradient(180deg, #071916 0%, #051a11 38%, #020d09 100%) !important;
+        background-attachment: fixed !important;
+      }
+
+      #appMain.app-wrap {
+        position: relative;
+        isolation: isolate;
+        max-width: none !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding-left: max(10px, env(safe-area-inset-left, 0px)) !important;
+        padding-right: max(10px, env(safe-area-inset-right, 0px)) !important;
+        padding-top: 8px !important;
+        padding-bottom: max(100px, calc(24px + env(safe-area-inset-bottom, 0px))) !important;
+        box-sizing: border-box !important;
+      }
+
+      #appMain.app-wrap > #mobileApp,
+      #appMain.app-wrap > #desktopApp,
+      #appMain.app-wrap > #reportJobFormAnchor {
+        position: relative;
+        z-index: 1;
+      }
+
+      #mobileApp {
+        min-height: 100vh;
+        min-height: 100dvh;
+      }
+
+      #mobileApp .mobile-header-actions button:not(.btn-header-primary) {
+        opacity: 1 !important;
+        background: rgba(15, 23, 42, 0.04) !important;
+        border: 1px solid rgba(15, 23, 42, 0.12) !important;
+        color: #0f172a !important;
+      }
+
+      .login-screen {
+        background: radial-gradient(ellipse 115% 85% at 50% 15%, #0f2e22 0%, #051a11 48%, #020806 100%) !important;
+        padding: max(20px, env(safe-area-inset-top, 0px)) 16px max(20px, env(safe-area-inset-bottom, 0px)) !important;
+      }
+
+      .login-screen .login-card {
+        position: relative;
+        z-index: 1;
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+      }
+
       #appMain .mobile-app,
       #mobileApp {
         display: block !important;
@@ -4626,7 +4727,7 @@
       background: linear-gradient(180deg, #071612 0%, #0b1220 100%);
       padding: 24px;
       box-sizing: border-box;
-      border-right: 1px solid rgba(212, 175, 55, 0.15);
+      border-right: 1px solid rgba(80, 227, 164, 0.18);
     }
 
     .desktop-sidebar__logo {
@@ -4647,9 +4748,11 @@
       font-weight: 800;
       font-size: 15px;
       letter-spacing: 0.04em;
-      color: #0b1220;
-      background: linear-gradient(145deg, var(--mp-gold) 0%, #b8922b 100%);
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+      color: var(--mp-mint);
+      background: linear-gradient(145deg, #03120e, #0f3d2e);
+      box-shadow:
+        inset 0 0 14px rgba(80, 227, 164, 0.12),
+        0 4px 14px rgba(0, 0, 0, 0.25);
     }
 
     .desktop-sidebar__wordmark {
@@ -4660,7 +4763,7 @@
       font-size: 26px;
       font-weight: 700;
       letter-spacing: 1px;
-      color: #d4af37;
+      color: var(--mp-mint);
       line-height: 1.15;
       margin-bottom: 0;
     }
@@ -4785,7 +4888,7 @@
         ),
         radial-gradient(
           circle at bottom left,
-          rgba(212, 175, 55, 0.05),
+          rgba(80, 227, 164, 0.06),
           transparent 50%
         ),
         #f4f6f8;
@@ -5553,7 +5656,7 @@
       }
     }
 
-    /* === MAINPRO PREMIUM UPGRADE (depth, gold, primary, table rows) === */
+    /* === MAINPRO PREMIUM UPGRADE (depth, primary, table rows) === */
     .onboarding-card,
     .login-card,
     .park-modal-card,
@@ -5588,9 +5691,9 @@
       box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08), 0 6px 12px rgba(0, 0, 0, 0.06);
     }
 
-    /* Gold wordmark: optional <span> in .app-title; exclude mobile compact brand spans */
+    /* Mint wordmark: optional <span> in .app-title; exclude mobile compact brand spans */
     .app-title span:not(.mp-header-main):not(.mp-header-sub):not(.mp-header-sr-only) {
-      color: #d4af37;
+      color: var(--mp-mint);
     }
 
     .btn-primary,
@@ -5775,7 +5878,7 @@
       <h1 class="app-title app-title--mobile-brand" id="appHeaderTitle">
         <span class="mp-header-sr-only" id="appHeaderTitleSrOnly">MainPro Jobs</span>
         <div class="mp-header-brand">
-          <div class="mp-logo-small" aria-hidden="true">MP</div>
+          <div class="mp-logo-small" aria-hidden="true"><span class="mp-logo-small-letters">MP</span></div>
           <div class="mp-header-text">
             <span class="mp-header-main" id="appHeaderBrandMain">MainPro</span>
             <span class="mp-header-sub" id="appHeaderBrandSub">Jobs</span>
