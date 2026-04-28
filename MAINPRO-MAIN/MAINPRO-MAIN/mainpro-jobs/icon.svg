@@ -1,9 +1,26 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="MainPro Jobs">
-  <rect width="512" height="512" fill="#059669" rx="108"/>
-  <rect x="112" y="120" width="288" height="64" fill="#fff" rx="20"/>
-  <rect x="112" y="220" width="220" height="64" fill="#ecfdf5" rx="20"/>
-  <rect x="112" y="320" width="256" height="64" fill="#d1fae5" rx="20"/>
-  <circle cx="152" cy="152" r="10" fill="#059669"/>
-  <circle cx="152" cy="252" r="10" fill="#047857"/>
-  <circle cx="152" cy="352" r="10" fill="#047857"/>
+  <defs>
+    <linearGradient id="mpIconBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#02110d"/>
+      <stop offset="55%" stop-color="#0a241c"/>
+      <stop offset="100%" stop-color="#0a2e22"/>
+    </linearGradient>
+    <linearGradient id="mpIconSheen" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="rgba(52,211,153,0.14)"/>
+      <stop offset="45%" stop-color="rgba(52,211,153,0.04)"/>
+      <stop offset="100%" stop-color="rgba(0,0,0,0)"/>
+    </linearGradient>
+    <filter id="mpIconDrop" x="-6%" y="-6%" width="112%" height="112%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="112" ry="112" fill="url(#mpIconBg)"/>
+  <rect width="512" height="512" rx="112" ry="112" fill="url(#mpIconSheen)"/>
+  <rect x="3" y="3" width="506" height="506" rx="109" ry="109" fill="none" stroke="rgba(52,211,153,0.28)" stroke-width="3"/>
+  <rect x="8" y="8" width="496" height="496" rx="104" ry="104" fill="none" stroke="rgba(212,175,55,0.12)" stroke-width="1"/>
+  <text x="256" y="328" text-anchor="middle" filter="url(#mpIconDrop)"
+    font-family="Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+    font-weight="900" font-size="200" letter-spacing="-24">
+    <tspan fill="#34d399">M</tspan><tspan fill="#d4af37">P</tspan>
+  </text>
 </svg>
