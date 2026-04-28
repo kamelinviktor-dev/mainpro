@@ -1,0 +1,9 @@
+{
+  "name": "MainPro Calendar",
+  "short_name": "MainPro",
+  "description": "Task and document management calendar",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#f59e0b",
+  "background_color": "#fef3c7"
+}

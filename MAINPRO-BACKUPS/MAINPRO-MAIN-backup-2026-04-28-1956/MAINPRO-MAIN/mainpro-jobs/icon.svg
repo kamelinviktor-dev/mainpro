@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="MainPro Jobs">
+  <rect width="512" height="512" fill="#059669" rx="108"/>
+  <rect x="112" y="120" width="288" height="64" fill="#fff" rx="20"/>
+  <rect x="112" y="220" width="220" height="64" fill="#ecfdf5" rx="20"/>
+  <rect x="112" y="320" width="256" height="64" fill="#d1fae5" rx="20"/>
+  <circle cx="152" cy="152" r="10" fill="#059669"/>
+  <circle cx="152" cy="252" r="10" fill="#047857"/>
+  <circle cx="152" cy="352" r="10" fill="#047857"/>
+</svg>

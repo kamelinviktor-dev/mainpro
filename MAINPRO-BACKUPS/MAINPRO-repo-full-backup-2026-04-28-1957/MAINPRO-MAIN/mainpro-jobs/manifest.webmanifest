@@ -1,0 +1,27 @@
+{
+  "name": "MainPro Jobs",
+  "short_name": "Jobs",
+  "description": "Hotel maintenance and job tracking — local-first, PWA.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f5f5",
+  "theme_color": "#059669",
+  "orientation": "portrait-primary",
+  "lang": "en",
+  "categories": ["productivity", "business"],
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
