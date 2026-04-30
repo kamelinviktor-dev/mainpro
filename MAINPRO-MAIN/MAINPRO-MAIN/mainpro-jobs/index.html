@@ -6197,35 +6197,6 @@
   <div id="jobsToast" class="jobs-toast" role="status" aria-live="polite" hidden></div>
 
   <script src="app.js"></script>
-  <script>
-    (function () {
-      if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
-        return;
-      }
-      window.addEventListener("load", function () {
-        navigator.serviceWorker
-          .register("sw.js", { scope: "./" })
-          .then(function (reg) {
-            reg.addEventListener("updatefound", function () {
-              var w = reg.installing;
-              if (!w) return;
-              w.addEventListener("statechange", function () {
-                if (w.state === "installed" && navigator.serviceWorker.controller) {
-                  if (typeof window.showSwUpdateBar === "function") {
-                    window.showSwUpdateBar();
-                  } else if (typeof window.showJobsToast === "function") {
-                    window.showJobsToast("Update available — refresh to use the latest version");
-                  }
-                }
-              });
-            });
-          })
-          .catch(function () {
-            /* file://, or registration blocked */
-          });
-      });
-    })();
-  </script>
 
 </body>
 </html>

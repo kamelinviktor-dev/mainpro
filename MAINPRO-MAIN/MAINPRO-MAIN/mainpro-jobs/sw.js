@@ -11,6 +11,12 @@ const PRECACHE = [
   "./icon.svg",
 ];
 
+self.addEventListener("message", function (e) {
+  if (e.data && e.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
+});
+
 self.addEventListener("install", function (e) {
   e.waitUntil(
     caches
@@ -18,11 +24,14 @@ self.addEventListener("install", function (e) {
       .then(function (cache) {
         return cache.addAll(PRECACHE);
       })
+      .then(function () {
+        return self.skipWaiting();
+      })
       .catch(function () {
         /* precache failed (offline build, 404) — app still works without SW */
+        return self.skipWaiting();
       })
   );
-  self.skipWaiting();
 });
 
 self.addEventListener("activate", function (e) {

@@ -5156,6 +5156,58 @@ function initMainproPremiumSplash() {
   });
 }
 
+(function setupMainproJobsServiceWorker() {
+  if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
+  if (window._mainproJobsSwSetup) return;
+  window._mainproJobsSwSetup = true;
+
+  var skipFirstControllerChange = !navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener("controllerchange", function () {
+    if (skipFirstControllerChange) {
+      skipFirstControllerChange = false;
+      return;
+    }
+    window.location.reload();
+  });
+
+  function pokeWaiting(reg) {
+    if (!reg || !reg.waiting) return;
+    try {
+      reg.waiting.postMessage({ type: "SKIP_WAITING" });
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  function wireRegistration(reg) {
+    if (!reg) return;
+    reg.addEventListener("updatefound", function () {
+      var w = reg.installing;
+      if (!w) return;
+      w.addEventListener("statechange", function () {
+        if (w.state !== "installed" || !navigator.serviceWorker.controller) return;
+        pokeWaiting(reg);
+      });
+    });
+    pokeWaiting(reg);
+  }
+
+  navigator.serviceWorker
+    .register("sw.js", { scope: "./" })
+    .then(function (reg) {
+      wireRegistration(reg);
+      return reg.update().then(function () {
+        return reg;
+      });
+    })
+    .then(function (reg) {
+      pokeWaiting(reg);
+    })
+    .catch(function () {
+      /* file://, blocked, or unsupported */
+    });
+})();
+
 applyAuthUi();
 wireMobileAddJobButtons();
 initMainproPremiumSplash();
