@@ -527,7 +527,57 @@ function isMainproDesktopLayout() {
 }
 
 function jobDetailModalHostActive() {
-  return isNarrowLayout() || isMainproDesktopLayout();
+  if (typeof window === "undefined" || !window.matchMedia) {
+    return isNarrowLayout() || isMainproDesktopLayout();
+  }
+  return (
+    window.matchMedia("(max-width: 899px)").matches || isMainproDesktopLayout()
+  );
+}
+
+let _jobDetailVvHandlers = null;
+
+function tearJobDetailVisualViewport() {
+  const vv = window.visualViewport;
+  if (_jobDetailVvHandlers && vv) {
+    vv.removeEventListener("resize", _jobDetailVvHandlers.onVv);
+    vv.removeEventListener("scroll", _jobDetailVvHandlers.onVv);
+  }
+  _jobDetailVvHandlers = null;
+  const modal = document.getElementById("jobDetailModal");
+  if (modal) {
+    modal.style.top = "";
+    modal.style.left = "";
+    modal.style.right = "";
+    modal.style.bottom = "";
+    modal.style.width = "";
+    modal.style.height = "";
+    modal.style.maxHeight = "";
+  }
+}
+
+function bindJobDetailVisualViewport() {
+  tearJobDetailVisualViewport();
+  const modal = document.getElementById("jobDetailModal");
+  const vv = window.visualViewport;
+  if (!modal || modal.hidden || !vv) return;
+
+  function applyJobDetailVisualViewport() {
+    if (!modal || modal.hidden) return;
+    modal.style.top = vv.offsetTop + "px";
+    modal.style.left = vv.offsetLeft + "px";
+    modal.style.right = "auto";
+    modal.style.bottom = "auto";
+    modal.style.width = vv.width + "px";
+    modal.style.height = vv.height + "px";
+    modal.style.maxHeight = vv.height + "px";
+  }
+
+  applyJobDetailVisualViewport();
+  _jobDetailVvHandlers = { onVv: applyJobDetailVisualViewport };
+  vv.addEventListener("resize", _jobDetailVvHandlers.onVv, { passive: true });
+  vv.addEventListener("scroll", _jobDetailVvHandlers.onVv, { passive: true });
+  requestAnimationFrame(applyJobDetailVisualViewport);
 }
 
 /** Короткая вибрация на телефоне (если API есть). */
@@ -2242,6 +2292,7 @@ function importJobsFromArrayAfterConfirm(arr, sourceLabel, toastMsg) {
     const still = jobs.some((x) => String(x.id) === String(mobileJobDetailId));
     if (!still) {
       mobileJobDetailId = null;
+      tearJobDetailVisualViewport();
       const m = document.getElementById("jobDetailModal");
       if (m) m.hidden = true;
       syncAppBodyScrollLock();
@@ -3286,6 +3337,7 @@ function updateJobDetailModal() {
     if (!jobDetailModalHostActive()) {
       mobileJobDetailId = null;
     }
+    tearJobDetailVisualViewport();
     modal.hidden = true;
     syncAppBodyScrollLock();
     updateMobileScrollTopBtn();
@@ -3294,6 +3346,7 @@ function updateJobDetailModal() {
   const j = jobs.find((x) => String(x.id) === String(mobileJobDetailId));
   if (!j) {
     mobileJobDetailId = null;
+    tearJobDetailVisualViewport();
     modal.hidden = true;
     const b = document.getElementById("jobDetailModalBadge");
     if (b) {
@@ -3316,7 +3369,20 @@ function updateJobDetailModal() {
   }
   modal.hidden = false;
   syncAppBodyScrollLock();
+  bindJobDetailVisualViewport();
   updateMobileScrollTopBtn();
+  requestAnimationFrame(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+
+    const container =
+      document.querySelector('.job-detail') ||
+      document.querySelector('#jobDetail') ||
+      document.querySelector('.modal');
+
+    if (container) {
+      container.scrollTop = 0;
+    }
+  });
 }
 
 /**
@@ -3587,6 +3653,7 @@ function syncMobileJobListActiveHighlight() {
 
 function closeJobDetailModal() {
   mobileJobDetailId = null;
+  tearJobDetailVisualViewport();
   const modal = document.getElementById("jobDetailModal");
   if (modal) modal.hidden = true;
   const badgeEl = document.getElementById("jobDetailModalBadge");
@@ -3890,6 +3957,7 @@ function importJobsMergeFromJsonText(text) {
     });
     if (!still) {
       mobileJobDetailId = null;
+      tearJobDetailVisualViewport();
       const m = document.getElementById("jobDetailModal");
       if (m) m.hidden = true;
       syncAppBodyScrollLock();
@@ -4839,6 +4907,7 @@ document.addEventListener("keydown", function (e) {
 
 window.addEventListener("resize", function () {
   if (!jobDetailModalHostActive() && mobileJobDetailId) {
+    tearJobDetailVisualViewport();
     mobileJobDetailId = null;
     const m = document.getElementById("jobDetailModal");
     if (m) m.hidden = true;
@@ -4857,6 +4926,39 @@ window.addEventListener("resize", function () {
     updateMobileHeaderScrollShadow();
   }
 });
+
+(function bindJobDetailCommentFocusScroll() {
+  if (typeof document === "undefined" || document.documentElement._mainproJobCommentFocusBound) {
+    return;
+  }
+  document.documentElement._mainproJobCommentFocusBound = true;
+  document.addEventListener(
+    "focusin",
+    function (e) {
+      const t = e.target;
+      if (!t || !t.classList || !t.classList.contains("comment-new")) return;
+      const modal = document.getElementById("jobDetailModal");
+      if (!modal || modal.hidden) return;
+      if (typeof t.closest !== "function" || !t.closest("#jobDetailModal")) return;
+      requestAnimationFrame(function () {
+        try {
+          t.scrollIntoView({
+            block: "nearest",
+            inline: "nearest",
+            behavior: "smooth",
+          });
+        } catch (err) {
+          try {
+            t.scrollIntoView(false);
+          } catch (e2) {
+            /* ignore */
+          }
+        }
+      });
+    },
+    true
+  );
+})();
 
 (function bindMobileFabScroll() {
   if (typeof window === "undefined" || window._mainproFabScrollBound) return;
@@ -5057,3 +5159,32 @@ function initMainproPremiumSplash() {
 applyAuthUi();
 wireMobileAddJobButtons();
 initMainproPremiumSplash();
+
+// === FIX: restore layout after keyboard close ===
+(function fixKeyboardResize() {
+  if (!window.visualViewport) return;
+
+  function resetLayout() {
+    document.documentElement.style.height = '';
+    document.body.style.height = '';
+    document.body.style.paddingBottom = '';
+  }
+
+  function updateLayout() {
+    const vv = window.visualViewport;
+
+    if (vv.height < window.innerHeight) {
+      document.body.style.paddingBottom =
+        (window.innerHeight - vv.height) + 'px';
+    } else {
+      resetLayout();
+    }
+  }
+
+  window.visualViewport.addEventListener('resize', updateLayout);
+  window.visualViewport.addEventListener('scroll', updateLayout);
+
+  window.addEventListener('focusout', () => {
+    setTimeout(resetLayout, 100);
+  });
+})();
