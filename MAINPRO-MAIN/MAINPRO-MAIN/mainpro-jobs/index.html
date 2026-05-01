@@ -6123,7 +6123,7 @@
       }
       window.addEventListener("load", function () {
         navigator.serviceWorker
-          .register("sw.js", { scope: "./" })
+          .register("sw.js", { scope: "/mainpro/" })
           .then(function (reg) {
             reg.addEventListener("updatefound", function () {
               var w = reg.installing;

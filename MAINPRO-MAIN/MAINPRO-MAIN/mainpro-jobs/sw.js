@@ -1,8 +1,8 @@
 /**
  * MainPro Jobs — offline cache for app shell.
- * Bump CACHE after changing precached files so clients refresh.
+ * Bump CACHE_NAME after changing precached files so clients refresh.
  */
-const CACHE = "mainpro-jobs-v2-3";
+const CACHE_NAME = "mainpro-jobs-pwa-3001";
 const PRECACHE = [
   "./",
   "./index.html",
@@ -14,7 +14,7 @@ const PRECACHE = [
 self.addEventListener("install", function (e) {
   e.waitUntil(
     caches
-      .open(CACHE)
+      .open(CACHE_NAME)
       .then(function (cache) {
         return cache.addAll(PRECACHE);
       })
@@ -32,7 +32,7 @@ self.addEventListener("activate", function (e) {
       .then(function (keys) {
         return Promise.all(
           keys.map(function (k) {
-            if (k !== CACHE) {
+            if (k !== CACHE_NAME) {
               return caches.delete(k);
             }
           })
@@ -55,7 +55,7 @@ self.addEventListener("fetch", function (e) {
             return res;
           }
           const copy = res.clone();
-          caches.open(CACHE).then(function (cache) {
+          caches.open(CACHE_NAME).then(function (cache) {
             try {
               cache.put(e.request, copy);
             } catch (err) {
