@@ -2935,20 +2935,20 @@ function renderEngineerNotesForModal(j) {
   );
   let engineerBlock = "";
   if (!engineerList.length) {
-    engineerBlock = `<h4 class="log-title section-title">Engineer notes</h4><div class="engineer-notes-wrapper notes-wrapper"><div class="notes-container engineer-notes engineer-notes-list notes-list job-notes-list job-notes notes"><div class="comment-log comment-log--empty job-log--timeline no-notes ${tone}">No notes yet</div></div></div>`;
+    engineerBlock = `<h4 class="log-title section-title">Engineer notes</h4><div class="engineer-notes-wrapper notes-wrapper"><div class="notes-container engineer-notes engineer-notes-list notes-list job-notes-list job-notes notes"><div class="job-notes-scroll"><div class="comment-log comment-log--empty job-log--timeline no-notes ${tone}">No notes yet</div></div></div></div>`;
   } else {
-    engineerBlock = `<h4 class="log-title section-title">Engineer notes</h4><div class="engineer-notes-wrapper notes-wrapper"><div class="notes-container engineer-notes engineer-notes-list notes-list job-notes-list job-notes notes"><div class="comment-log job-log--timeline job-log--engineer-notes job-log--modal ${tone} expanded" role="list">${engineerList
+    engineerBlock = `<h4 class="log-title section-title">Engineer notes</h4><div class="engineer-notes-wrapper notes-wrapper"><div class="notes-container engineer-notes engineer-notes-list notes-list job-notes-list job-notes notes"><div class="job-notes-scroll"><div class="comment-log job-log--timeline job-log--engineer-notes job-log--modal ${tone} expanded" role="list">${engineerList
       .map((c) => renderEngineerLogItemHtml(c))
-      .join("")}</div></div></div>`;
+      .join("")}</div></div></div></div>`;
   }
   let activityBlock = "";
   if (sortedActivity.length) {
-    activityBlock = `<h4 class="log-title section-title system">Activity</h4><div class="activity-wrapper notes-wrapper"><div class="activity-timeline activity activity-list job-activity-list job-activity expanded" role="list">${sortedActivity
+    activityBlock = `<h4 class="log-title section-title system">Activity</h4><div class="activity-wrapper notes-wrapper"><div class="job-activity-scroll activity-log"><div class="activity-timeline activity activity-list job-activity-list job-activity expanded" role="list">${sortedActivity
       .map((c) => renderSystemLogItemHtml(c))
-      .join("")}</div></div>`;
+      .join("")}</div></div></div>`;
   }
   if (!list.length) {
-    return `<div class="job-log-stack job-log-stack--modal"><h4 class="log-title section-title">Engineer notes</h4><div class="engineer-notes-wrapper notes-wrapper"><div class="notes-container engineer-notes engineer-notes-list notes-list job-notes-list job-notes notes"><div class="comment-log--empty no-notes">No notes or activity</div></div></div></div>`;
+    return `<div class="job-log-stack job-log-stack--modal"><h4 class="log-title section-title">Engineer notes</h4><div class="engineer-notes-wrapper notes-wrapper"><div class="notes-container engineer-notes engineer-notes-list notes-list job-notes-list job-notes notes"><div class="job-notes-scroll"><div class="comment-log--empty no-notes">No notes or activity</div></div></div></div></div>`;
   }
   return `<div class="job-log-stack job-log-stack--modal">${engineerBlock}${activityBlock}</div>`;
 }
@@ -3256,7 +3256,9 @@ function renderActiveCardFull(j, forModal) {
           <button type="button" class="btn-done" onclick='setStatus(${qid}, ${sDone})'>Done</button>
           <button type="button" class="btn-del" onclick='deleteJob(${qid})'>Delete</button>
         </div>`;
-  const modalMain = `${detailScrollBody}${actionsInner}`;
+  const modalMain = forModal
+    ? `<div class="job-detail-screen-main">${detailScrollBody}</div>${actionsInner}`
+    : `${detailScrollBody}${actionsInner}`;
   return `
       <div class="job job-card ${vis.cardClass}${logClass}" data-job-id="${idForAttr}" data-status="${escapeHtml(
     st
@@ -3308,7 +3310,9 @@ function renderHistoryCardFull(j, forModal) {
         <div class="job-actions job-actions-single">
           <button type="button" class="btn-del" onclick='deleteJob(${qid})'>Delete</button>
         </div>`;
-  const modalMain = `${detailScrollBody}${actionsInner}`;
+  const modalMain = forModal
+    ? `<div class="job-detail-screen-main">${detailScrollBody}</div>${actionsInner}`
+    : `${detailScrollBody}${actionsInner}`;
   return `
       <div class="job job-card done job-history ${vis.cardClass}${logClass}" data-job-id="${jobIdForDomAttr(
     j.id
@@ -3361,7 +3365,9 @@ function renderDeletedCardFull(j, forModal) {
           <button type="button" class="btn-restore">Restore</button>
           <button type="button" class="btn-permanent-delete">Delete permanently</button>
         </div>`;
-  const modalMain = `${detailScrollBody}${actionsInner}`;
+  const modalMain = forModal
+    ? `<div class="job-detail-screen-main">${detailScrollBody}</div>${actionsInner}`
+    : `${detailScrollBody}${actionsInner}`;
   return `
       <div class="job job-card deleted job-card-shell${logClass}" data-job-id="${idForAttr}" data-status="Deleted">
         <span class="job-status-badge job-status-badge--deleted">DELETED</span>

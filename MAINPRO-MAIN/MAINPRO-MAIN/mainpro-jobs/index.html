@@ -3131,6 +3131,25 @@
       color: #6b7280;
     }
 
+    /* Job detail modal: saved engineer notes scroll area (see renderEngineerNotesForModal) */
+    .job-notes-scroll {
+      max-height: 160px;
+      overflow-y: auto;
+      margin-top: 8px;
+    }
+
+    /* Activity log only: cap height so job detail card does not grow with many entries */
+    .job-activity-scroll,
+    .activity-log,
+    .job-activity-list {
+      max-height: 180px;
+      overflow-y: auto;
+    }
+
+    .job-activity-scroll {
+      margin-top: 8px;
+    }
+
     .job-log--timeline .comment-log-item--engineer.note-card,
     .job-log--timeline .note-card {
       margin-bottom: 6px;
@@ -4498,32 +4517,38 @@
         box-sizing: border-box;
       }
 
-      /* Job detail drawer: only notes/activity lists scroll; whole card follows modal body scroll */
-      #jobDetailModal .job-detail .notes,
-      #jobDetailModal .job-detail .notes-container.notes,
-      #jobDetailModal .job-detail .engineer-notes-list,
-      #jobDetailModal .job-detail .notes-list {
-        max-height: 220px !important;
-        overflow-y: auto !important;
-        padding-right: 4px !important;
+      /* Job detail drawer: scroll only inside .job-notes-scroll / .job-activity-scroll; parent containers do not grow */
+      #jobDetailModal .job-detail .notes-container.engineer-notes,
+      #jobDetailModal .job-detail .notes-container.notes {
+        max-height: none !important;
+        overflow: visible !important;
+      }
+
+      #jobDetailModal .job-detail .activity-timeline.job-activity {
+        max-height: none !important;
+        overflow: visible !important;
+      }
+
+      #jobDetailModal .job-detail .job-activity-scroll .activity-timeline.expanded {
+        max-height: none !important;
+        overflow: visible !important;
+      }
+
+      #jobDetailModal .job-detail .job-notes-scroll,
+      #jobDetailModal .job-detail .job-activity-scroll {
+        padding-right: 4px;
         scrollbar-width: thin;
         box-sizing: border-box;
-      }
-
-      #jobDetailModal .job-detail .activity-list,
-      #jobDetailModal .job-detail .activity-timeline {
-        max-height: 160px !important;
-        overflow-y: auto !important;
-        padding-right: 6px;
         -webkit-overflow-scrolling: touch;
-        box-sizing: border-box;
       }
 
-      #jobDetailModal .job-detail .notes::-webkit-scrollbar {
+      #jobDetailModal .job-detail .job-notes-scroll::-webkit-scrollbar,
+      #jobDetailModal .job-detail .job-activity-scroll::-webkit-scrollbar {
         width: 4px;
       }
 
-      #jobDetailModal .job-detail .notes::-webkit-scrollbar-thumb {
+      #jobDetailModal .job-detail .job-notes-scroll::-webkit-scrollbar-thumb,
+      #jobDetailModal .job-detail .job-activity-scroll::-webkit-scrollbar-thumb {
         background: rgba(0, 0, 0, 0.2);
         border-radius: 10px;
       }
@@ -4634,6 +4659,133 @@
       .job-detail-modal__body .job--modal-detail .job-log--timeline .note-card {
         background: #f8fafc;
         border-color: #e5e7eb;
+      }
+
+      /*
+       * Job detail: true full-screen mobile screen (no floating card).
+       * Utility classes mirror DOM hooks; #jobDetailModal rules apply without JS changes.
+       */
+      .job-detail-container {
+        position: fixed;
+        inset: 0;
+        height: 100dvh;
+        max-height: 100dvh;
+        min-height: 100dvh;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        background: #f8fafc;
+        z-index: 9999;
+      }
+
+      #jobDetailModal.job-detail-modal {
+        position: fixed;
+        inset: 0;
+        height: 100dvh;
+        max-height: 100dvh;
+        min-height: 100dvh;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        background: #f8fafc;
+        z-index: 18500;
+      }
+
+      .job-detail-header,
+      #jobDetailModal .job-detail-modal__bar {
+        flex: 0 0 auto;
+        background: #f8fafc;
+        padding-top: calc(10px + env(safe-area-inset-top, 0px));
+      }
+
+      #jobDetailModal .job-detail-modal__body {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: hidden !important;
+        display: flex;
+        flex-direction: column;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      /* Remove centered “card” chrome — screen fills width; padding lives in scroll body */
+      #jobDetailModal .job-detail-modal__body > .job.job--modal-detail.job-card,
+      #jobDetailModal .job-detail-modal__body > .job.job--modal-detail {
+        margin: 0 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        border: none !important;
+        background: transparent !important;
+        padding: 0 !important;
+        max-width: none !important;
+        width: 100% !important;
+      }
+
+      #jobDetailModal .job-detail-modal__body .job--modal-detail.job-detail,
+      #jobDetailModal .job-detail-modal__body .job-detail.job--modal-detail {
+        padding: 0 !important;
+      }
+
+      #jobDetailModal .job-detail-modal__body > .job.job--modal-detail {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden !important;
+      }
+
+      #jobDetailModal .job-detail-modal__body > .job.job--modal-detail > .job-status-badge {
+        flex: 0 0 auto;
+        margin: 16px 16px 0;
+        align-self: flex-start;
+      }
+
+      .job-detail-body,
+      #jobDetailModal .job-detail-modal__body .job-detail-screen-main {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding: 16px;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+      }
+
+      .job-detail-actions,
+      #jobDetailModal .job--modal-detail .job-actions,
+      #jobDetailModal .job--modal-detail .job-actions-single,
+      #jobDetailModal .job--modal-detail .job-actions-deleted {
+        flex: 0 0 auto;
+        position: sticky;
+        bottom: 0;
+        z-index: 2;
+        margin-top: 0 !important;
+        padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+        background: #f8fafc;
+        box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
+        border-top: 1px solid rgba(226, 232, 240, 0.85);
+      }
+
+      /* Wins over global #jobDetailModal .job-detail.job-card { height:auto; overflow:visible } */
+      #jobDetailModal .job-detail.job-card.job--modal-detail {
+        min-height: 0 !important;
+        height: 100% !important;
+        max-height: none !important;
+        overflow: hidden !important;
+      }
+
+      #jobDetailModal .job-notes-scroll {
+        max-height: 150px !important;
+        overflow-y: auto !important;
+      }
+
+      #jobDetailModal .job-activity-scroll,
+      #jobDetailModal .job-activity-scroll.activity-log,
+      #jobDetailModal .job-detail .job-activity-list {
+        max-height: 160px !important;
+        overflow-y: auto !important;
       }
 
       .job-photo-wrap img,
