@@ -333,12 +333,6 @@ function applyMainproI18n() {
     const titleEl = document.getElementById("appHeaderTitle");
     if (titleEl) titleEl.textContent = t("appTitle");
   }
-  const splashMainEl = document.getElementById("mpSplashBrandMain");
-  const splashSubEl = document.getElementById("mpSplashBrandSub");
-  if (splashMainEl && splashSubEl) {
-    splashMainEl.textContent = t("brandMain");
-    splashSubEl.textContent = t("brandSub");
-  }
   el("reportFormTitle", t("reportTitle"));
   tx("mobileReportSheetTitle", t("reportTitle"));
   tx("mobileReportCancelBtn", t("reportCancel"));
@@ -5010,50 +5004,19 @@ function onOnlineStatusEvent() {
   updateOnlineStatusBar();
 })();
 
-/** Mobile splash: brief branded overlay once per tab session when main shell loads visible (not login). */
-function initMainproPremiumSplash() {
-  const splash = document.getElementById("mp-splash");
-  if (!splash) return;
-  const login = document.getElementById("loginScreen");
-  if (login && !login.hidden) {
-    splash.remove();
-    return;
-  }
-  let narrow = true;
-  try {
-    narrow = window.matchMedia("(max-width: 899px)").matches;
-  } catch (e) {
-    narrow = true;
-  }
-  if (!narrow) {
-    splash.remove();
-    return;
-  }
-  try {
-    if (sessionStorage.getItem("mainpro_mp_splash_seen") === "1") {
-      splash.remove();
-      return;
-    }
-  } catch (e2) {
-    /* ignore */
-  }
-  window.addEventListener("load", function onSplashLoad() {
-    window.removeEventListener("load", onSplashLoad);
-    setTimeout(function () {
-      splash.classList.add("mp-splash--gone");
-      splash.style.opacity = "0";
-      setTimeout(function () {
-        if (splash.parentNode) splash.remove();
-        try {
-          sessionStorage.setItem("mainpro_mp_splash_seen", "1");
-        } catch (e3) {
-          /* ignore */
-        }
-      }, 400);
-    }, 900);
-  });
-}
-
 applyAuthUi();
 wireMobileAddJobButtons();
-initMainproPremiumSplash();
+
+window.addEventListener("load", () => {
+  const splash = document.getElementById("mp-splash");
+
+  if (!splash) return;
+
+  setTimeout(() => {
+    splash.classList.add("hidden");
+
+    setTimeout(() => {
+      splash.remove();
+    }, 300);
+  }, 800); // splash duration
+});

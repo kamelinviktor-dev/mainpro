@@ -53,69 +53,46 @@
       line-height: 1.45;
     }
 
-    /* Premium splash — matches compact MP badge styling */
-    #mp-splash {
+    /* App splash — single fade on load; removed from DOM after transition */
+    #mp-splash.mp-splash {
       position: fixed;
       inset: 0;
-      background: radial-gradient(circle at top, #071612, #000);
+      background: #0f172a;
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 29990;
-      opacity: 1;
-      transition: opacity 0.4s ease;
-      pointer-events: auto;
+      z-index: 9999;
+      transition: opacity 0.3s ease;
     }
 
-    #mp-splash.mp-splash--gone {
+    .mp-splash.hidden {
+      opacity: 0;
       pointer-events: none;
     }
 
-    .mp-splash-inner {
+    .mp-splash-content {
       text-align: center;
+      color: white;
     }
 
-    /* Splash MP tile: same visual recipe as #mobileApp .mp-logo-small, scaled × (90/32). */
-    .mp-logo-premium {
-      margin: 0 auto;
-      width: 90px;
-      height: 90px;
-      border-radius: calc(90px * 10 / 32);
-      box-sizing: border-box;
-      background: linear-gradient(145deg, var(--mp-header-mp-tile-1), var(--mp-header-mp-tile-2));
+    #mp-splash .mp-logo {
+      width: 64px;
+      height: 64px;
+      border-radius: 16px;
+      background: #10b981;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: calc(12px * 90 / 32);
-      font-weight: 900;
-      color: var(--mp-header-mp-letters);
-      letter-spacing: calc(-1px * 90 / 32);
-      box-shadow:
-        inset 0 0 calc(6px * 90 / 32) rgba(52, 211, 153, 0.1),
-        0 calc(2px * 90 / 32) calc(8px * 90 / 32) rgba(0, 0, 0, 0.2);
-      border: 1px solid var(--mp-header-mp-ring);
+      font-weight: bold;
+      font-size: 24px;
+      margin: 0 auto 12px;
     }
 
-    .mp-splash-title {
-      margin-top: 18px;
-      font-size: 30px;
+    #mp-splash .mp-splash-content h1 {
+      margin: 0;
+      font-size: 1.5rem;
       font-weight: 800;
-      color: #ffffff;
     }
-
-    .mp-splash-sub {
-      margin-top: 6px;
-      font-size: 20px;
-      color: var(--mp-header-mp-letters);
-      font-weight: 700;
-    }
-
-    @media (min-width: 900px) {
-      #mp-splash {
-        display: none !important;
-      }
-    }
-
     .offline-bar {
       position: fixed;
       top: 0;
@@ -5655,12 +5632,10 @@
 </head>
 <body>
 
-  <!-- Premium splash — mobile + logged-in session load only (removed by JS otherwise) -->
-  <div id="mp-splash" aria-hidden="true">
-    <div class="mp-splash-inner">
-      <div class="mp-logo-premium">MP</div>
-      <div class="mp-splash-title" id="mpSplashBrandMain">MainPro</div>
-      <div class="mp-splash-sub" id="mpSplashBrandSub">Jobs</div>
+  <div id="mp-splash" class="mp-splash" aria-hidden="true">
+    <div class="mp-splash-content">
+      <div class="mp-logo">MP</div>
+      <h1>MainPro Jobs</h1>
     </div>
   </div>
 
