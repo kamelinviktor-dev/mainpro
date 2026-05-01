@@ -1,9 +1,36 @@
 {
-  "name": "MainPro Calendar",
+  "name": "MainPro Jobs",
   "short_name": "MainPro",
-  "description": "Task and document management calendar",
-  "start_url": "/",
+  "description": "MainPro — enter app, role selection, jobs.",
+  "start_url": "/mainpro/?v=4000",
+  "scope": "/mainpro/",
   "display": "standalone",
   "theme_color": "#f59e0b",
-  "background_color": "#fef3c7"
+  "background_color": "#fef3c7",
+  "icons": [
+    {
+      "src": "MAINPRO-MAIN/mainpro-jobs/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "MAINPRO-MAIN/mainpro-jobs/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "MAINPRO-MAIN/mainpro-jobs/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "MAINPRO-MAIN/mainpro-jobs/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
 }

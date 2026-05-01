@@ -36,6 +36,8 @@ const ASSIGNED_ENGINEER_OPTIONS = [
 
 /** Set when a job is open in full-screen detail (narrow ≤600px or desktop ≥900px). */
 let mobileJobDetailId = null;
+/** Target job id while reassign bottom sheet is open (string). */
+let _reassignSheetJobId = null;
 /** Preserved list scroll so closing overlay restores it. */
 let mobileJobsListScrollY = 0;
 /** On narrow layout: hide + Job FAB when user has scrolled down the list. */
@@ -1255,6 +1257,39 @@ function renderJobAssignBlock(j, opts) {
   const disabled = opts.disabled === true;
   const idAttr2 = jobIdForDomAttr(j.id);
   const current = normalizeAssignedTo(j);
+  const cls =
+    "job-assign-block" +
+    (opts.compact ? " job-assign-block--compact" : "") +
+    (opts.modal ? " job-assign-block--modal" : "");
+
+  if (opts.modal) {
+    const currentEsc = escapeHtml(current);
+    if (disabled) {
+      return (
+        '<div class="' +
+        cls +
+        ' job-assign-block--readonly" data-stops-tap="1" onclick="onJobAssignBlockClick(event)">' +
+        '<div class="job-assign-detail-row">' +
+        '<span class="job-assign-summary">Assigned: <strong>' +
+        currentEsc +
+        "</strong></span></div></div>"
+      );
+    }
+    return (
+      '<div class="' +
+      cls +
+      '" data-stops-tap="1" onclick="onJobAssignBlockClick(event)">' +
+      '<div class="job-assign-detail-row">' +
+      '<span class="job-assign-summary">Assigned: <strong>' +
+      currentEsc +
+      '</strong></span>' +
+      '<button type="button" class="btn-reassign-change" data-job-id="' +
+      idAttr2 +
+      '" onclick="openReassignSheetFromEl(this)">Change</button>' +
+      "</div></div>"
+    );
+  }
+
   const optionsHtml = ASSIGNED_ENGINEER_OPTIONS.map(function (name) {
     return (
       '<option value="' +
@@ -1266,22 +1301,31 @@ function renderJobAssignBlock(j, opts) {
       "</option>"
     );
   }).join("");
-  const cls =
-    "job-assign-block" +
-    (opts.compact ? " job-assign-block--compact" : "") +
-    (opts.modal ? " job-assign-block--modal" : "");
+  const selOpen =
+    '<select class="job-assign-select" data-job-id="' +
+    idAttr2 +
+    '"' +
+    (disabled ? " disabled" : "") +
+    ' aria-label="Assign or reassign job">';
+  const selClose = "</select>";
+  const reassignBtn =
+    '<button type="button" class="btn-reassign-job"' +
+    (disabled ? " disabled" : "") +
+    ' onclick="onJobReassignApply(this)">Reassign</button>';
+  const controls =
+    '<div class="job-assign-controls">' +
+    selOpen +
+    optionsHtml +
+    selClose +
+    reassignBtn +
+    "</div>";
   return (
     '<div class="' +
     cls +
     '" data-stops-tap="1" onclick="onJobAssignBlockClick(event)">' +
     '<span class="job-assign-label">Assigned</span>' +
-    '<select class="job-assign-select" data-job-id="' +
-    idAttr2 +
-    '" onchange="onJobAssignFromUi(this)"' +
-    (disabled ? " disabled" : "") +
-    ' aria-label="Assign or reassign job">' +
-    optionsHtml +
-    "</select></div>"
+    controls +
+    "</div>"
   );
 }
 
@@ -1309,12 +1353,100 @@ function onJobAssignBlockClick(e) {
   }
 }
 
-function onJobAssignFromUi(selectEl) {
-  if (!selectEl) return;
+function onJobReassignApply(btn) {
+  if (!btn || !btn.closest) return;
+  const block = btn.closest(".job-assign-block");
+  if (!block) return;
+  const selectEl = block.querySelector(".job-assign-select");
+  if (!selectEl || selectEl.disabled || btn.disabled) return;
   const raw = selectEl.getAttribute("data-job-id");
   const id = jobIdFromDomAttr(raw);
   if (id == null) return;
-  setJobAssignment(id, selectEl.value);
+  const j = jobs.find((x) => String(x.id) === String(id));
+  if (!j) return;
+  const pick = String(selectEl.value || "").trim();
+  const selectedEngineer =
+    ASSIGNED_ENGINEER_OPTIONS.indexOf(pick) >= 0 ? pick : "Unassigned";
+  const prev = normalizeAssignedTo(j);
+  setJobAssignment(id, selectedEngineer);
+  if (prev !== selectedEngineer) {
+    showJobsToast("Job reassigned");
+  }
+}
+
+function openReassignSheetFromEl(btn) {
+  if (!btn || !btn.getAttribute) return;
+  const raw = btn.getAttribute("data-job-id");
+  const id = jobIdFromDomAttr(raw);
+  if (id == null) return;
+  openReassignSheet(id);
+}
+
+function openReassignSheet(jobId) {
+  const j = jobs.find((x) => String(x.id) === String(jobId));
+  if (!j || j.deleted || j.status === "Done") return;
+  const modal = document.getElementById("reassignSheetModal");
+  const host = document.getElementById("reassignSheetRadios");
+  if (!modal || !host) return;
+  _reassignSheetJobId = String(jobId);
+  const curRaw = normalizeAssignedTo(j);
+  const cur =
+    ASSIGNED_ENGINEER_OPTIONS.indexOf(curRaw) >= 0 ? curRaw : "Unassigned";
+  const radios = ASSIGNED_ENGINEER_OPTIONS.map(function (name, idx) {
+    const checked = name === cur ? " checked" : "";
+    return (
+      '<label class="reassign-sheet__label">' +
+      '<input type="radio" name="reassignSheetChoice" id="reassignRadio_' +
+      idx +
+      '" value="' +
+      escapeAttr(name) +
+      '"' +
+      checked +
+      ">" +
+      "<span>" +
+      escapeHtml(name) +
+      "</span></label>"
+    );
+  }).join("");
+  host.innerHTML =
+    '<div class="reassign-sheet__radio-list" role="radiogroup" aria-label="Assignee">' +
+    radios +
+    "</div>";
+  modal.hidden = false;
+  hapticNarrow();
+  syncAppBodyScrollLock();
+  updateMobileFormFab();
+  updateMobileScrollTopBtn();
+}
+
+function closeReassignSheet() {
+  _reassignSheetJobId = null;
+  const modal = document.getElementById("reassignSheetModal");
+  if (modal) modal.hidden = true;
+  syncAppBodyScrollLock();
+  updateMobileFormFab();
+  updateMobileScrollTopBtn();
+}
+
+function confirmReassignSheet() {
+  const modal = document.getElementById("reassignSheetModal");
+  if (!modal || modal.hidden) return;
+  const idHold = _reassignSheetJobId;
+  const picked = modal.querySelector('input[name="reassignSheetChoice"]:checked');
+  const rawVal = picked ? String(picked.value || "").trim() : "Unassigned";
+  const next =
+    ASSIGNED_ENGINEER_OPTIONS.indexOf(rawVal) >= 0 ? rawVal : "Unassigned";
+  const j =
+    idHold != null && idHold !== ""
+      ? jobs.find((x) => String(x.id) === String(idHold))
+      : null;
+  const prev = j ? normalizeAssignedTo(j) : "";
+  closeReassignSheet();
+  if (idHold == null || idHold === "") return;
+  setJobAssignment(idHold, next);
+  if (j && prev !== next) {
+    showJobsToast("Job reassigned");
+  }
 }
 
 /** Priority pill + SLA countdown (or due date on done/deleted). */
@@ -3324,8 +3456,10 @@ function getJobsOpenLayers() {
   const jobsSettingsModal = document.getElementById("jobsSettingsModal");
   const onboardingModal = document.getElementById("onboardingModal");
   const mobileReportModal = document.getElementById("mobileReportJobModal");
+  const reassignSheetModal = document.getElementById("reassignSheetModal");
   return {
     jobDetail: !!(jobDetailModal && !jobDetailModal.hidden),
+    reassignSheet: !!(reassignSheetModal && !reassignSheetModal.hidden),
     park: !!(parkModal && !parkModal.hidden),
     photo: !!(photoLightbox && !photoLightbox.hidden),
     tips: !!(jobsTipsModal && !jobsTipsModal.hidden),
@@ -3342,6 +3476,10 @@ function getJobsOpenLayers() {
 function syncAppBodyScrollLock() {
   const L = getJobsOpenLayers();
   if (L.jobDetail) {
+    document.body.style.overflow = "hidden";
+    return;
+  }
+  if (L.reassignSheet) {
     document.body.style.overflow = "hidden";
     return;
   }
@@ -3381,6 +3519,7 @@ function updateMobileFormFab() {
     formOpen ||
     L.newJobSheet ||
     L.jobDetail ||
+    L.reassignSheet ||
     L.tips ||
     L.settings ||
     L.onboarding ||
@@ -3456,7 +3595,16 @@ function updateMobileScrollTopBtn() {
     return;
   }
   const L = getJobsOpenLayers();
-  if (L.jobDetail || L.newJobSheet || L.park || L.photo || L.tips || L.settings || L.onboarding) {
+  if (
+    L.jobDetail ||
+    L.reassignSheet ||
+    L.newJobSheet ||
+    L.park ||
+    L.photo ||
+    L.tips ||
+    L.settings ||
+    L.onboarding
+  ) {
     btn.classList.add("btn-scroll-top--hidden");
     btn.setAttribute("aria-hidden", "true");
     return;
@@ -3510,7 +3658,14 @@ function onMobileFabScroll() {
   const form = document.getElementById("reportJobForm");
   const L = getJobsOpenLayers();
   const formOpen = form && !form.classList.contains("report-job-form--collapsed");
-  if (formOpen || L.newJobSheet || L.jobDetail || L.tips || L.settings) {
+  if (
+    formOpen ||
+    L.newJobSheet ||
+    L.jobDetail ||
+    L.reassignSheet ||
+    L.tips ||
+    L.settings
+  ) {
     mobileFabLastScrollY = y;
     updateMobileFormFab();
     updateMobileScrollTopBtn();
@@ -4405,7 +4560,10 @@ function scrollToReportJob(ev) {
 window.saveEngineerNote = saveEngineerNote;
 window.toggleJobLog = toggleJobLog;
 window.toggleMyJobsFilter = toggleMyJobsFilter;
-window.onJobAssignFromUi = onJobAssignFromUi;
+window.onJobReassignApply = onJobReassignApply;
+window.openReassignSheetFromEl = openReassignSheetFromEl;
+window.closeReassignSheet = closeReassignSheet;
+window.confirmReassignSheet = confirmReassignSheet;
 window.onJobAssignBlockClick = onJobAssignBlockClick;
 window.resetFiltersAndSearch = resetFiltersAndSearch;
 window.scrollToReportJob = scrollToReportJob;
@@ -4699,7 +4857,14 @@ document.addEventListener("keydown", function (e) {
       if (am && !am.hidden && hasMainproLogin()) {
         const L = getJobsOpenLayers();
         if (L.onboarding) return;
-        if (L.jobDetail || L.tips || L.settings || L.park || L.photo) {
+        if (
+          L.jobDetail ||
+          L.reassignSheet ||
+          L.tips ||
+          L.settings ||
+          L.park ||
+          L.photo
+        ) {
           return;
         }
         e.preventDefault();
@@ -4875,7 +5040,13 @@ window.addEventListener("resize", function () {
     if (!hasMainproLogin()) return true;
     const L = getJobsOpenLayers();
     return (
-      L.jobDetail || L.park || L.photo || L.tips || L.settings || L.onboarding
+      L.jobDetail ||
+      L.reassignSheet ||
+      L.park ||
+      L.photo ||
+      L.tips ||
+      L.settings ||
+      L.onboarding
     );
   }
   document.addEventListener(
