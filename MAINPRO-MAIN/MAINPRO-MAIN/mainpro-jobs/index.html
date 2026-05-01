@@ -4049,13 +4049,19 @@
         z-index: 9999;
         background: rgba(0, 0, 0, 0.35);
         box-sizing: border-box;
+        padding: 0;
+        margin: 0;
       }
 
       .mobile-job-modal.open {
         display: flex !important;
-        align-items: flex-end;
-        justify-content: stretch;
         flex-direction: column;
+        align-items: stretch;
+        justify-content: flex-start;
+        height: 100dvh;
+        min-height: 100dvh;
+        min-height: 100svh;
+        min-height: -webkit-fill-available;
       }
 
       .mobile-job-modal__backdrop {
@@ -4068,22 +4074,24 @@
         cursor: pointer;
       }
 
+      /* Full-viewport sheet: no 85vh gap; header fixed, form + Submit scroll in body */
       .mobile-job-sheet {
         position: relative;
         width: 100%;
-        max-height: 85vh;
-        overflow-x: hidden;
-        overflow-y: auto;
+        height: 100%;
+        flex: 1 1 auto;
+        min-height: 0;
+        max-height: none;
+        margin: 0;
+        overflow: hidden;
         display: flex;
         flex-direction: column;
         background: #fff;
-        border-radius: 18px 18px 0 0;
-        padding: 16px;
-        padding-bottom: 16px;
+        border-radius: 0;
+        padding: 0;
         box-shadow: 0 -20px 50px rgba(0, 0, 0, 0.22);
         z-index: 1;
         box-sizing: border-box;
-        -webkit-overflow-scrolling: touch;
         animation: mp-slide-up-sheet 0.2s ease-out;
       }
 
@@ -4093,7 +4101,7 @@
         align-items: center;
         justify-content: space-between;
         gap: 8px;
-        padding: 12px 14px 10px;
+        padding: calc(12px + env(safe-area-inset-top, 0px)) 14px 10px 14px;
         border-bottom: 1px solid #e5e7eb;
         flex: 0 0 auto;
       }
@@ -4135,8 +4143,13 @@
       .mobile-job-sheet__body {
         flex: 1 1 auto;
         min-height: 0;
-        overflow: visible;
-        padding: 0;
+        margin: 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+        padding: 0 16px;
+        padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
       }
 
       .mobile-job-sheet__body .report-job-form {
@@ -4144,7 +4157,7 @@
         border-radius: 0;
         border: none;
         box-shadow: none;
-        padding: 10px 0 8px;
+        padding: 12px 0 16px;
       }
 
       /* Closed list rows — compact strip only (full detail uses .job-detail in modal, not here) */
