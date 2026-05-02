@@ -2942,9 +2942,15 @@ function renderEngineerNotesForModal(j) {
         )}</div>`;
 
   const notesMoreLink =
-    engineerList.length > 1
-      ? `<button type="button" class="job-log-open-sheet" onclick="openJobNotesHistorySheet()" aria-label="View all notes">View all notes</button>`
-      : "";
+    engineerList.length === 0
+      ? ""
+      : isNarrowLayout()
+        ? engineerList.length === 1
+          ? `<button type="button" class="job-log-open-sheet" onclick="openJobNotesHistorySheet()" aria-label="View note">View note</button>`
+          : `<button type="button" class="job-log-open-sheet" onclick="openJobNotesHistorySheet()" aria-label="View all notes">View all notes</button>`
+        : engineerList.length > 1
+          ? `<button type="button" class="job-log-open-sheet" onclick="openJobNotesHistorySheet()" aria-label="View all notes">View all notes</button>`
+          : "";
 
   const engineerBlock = `<h4 class="log-title section-title">Engineer notes</h4><div class="engineer-notes-wrapper notes-wrapper"><div class="notes-container engineer-notes engineer-notes-list notes-list job-notes-list job-notes notes"><div class="job-notes-preview">${previewNotesInner}</div>${notesMoreLink}</div></div>`;
 
