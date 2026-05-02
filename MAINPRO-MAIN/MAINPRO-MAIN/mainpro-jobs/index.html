@@ -2234,7 +2234,7 @@
       padding: 0 18px;
       font-size: 13px;
       font-weight: 500;
-      color: #64748b;
+      color: #6b7280;
       line-height: 1.4;
     }
 
@@ -2252,6 +2252,7 @@
         margin: 6px auto 14px;
         border-radius: 999px;
         background: #d1d5db;
+        opacity: 0.7;
         flex-shrink: 0;
       }
 
@@ -2276,6 +2277,7 @@
       #jobNotesHistorySheet .reassign-sheet__subtitle,
       #jobActivityHistorySheet .reassign-sheet__subtitle {
         margin: 0 0 14px;
+        color: #6b7280;
       }
 
       #jobNotesHistorySheet .job-history-sheet__scroll,
@@ -2287,15 +2289,19 @@
       #jobNotesHistorySheet .job-log--timeline .comment-log-item--engineer.note-card,
       #jobNotesHistorySheet .job-log--timeline .note-card {
         border-left: 4px solid #10b981;
-        box-shadow:
-          0 8px 22px rgba(15, 23, 42, 0.08),
-          0 2px 8px rgba(15, 23, 42, 0.05);
-        margin-bottom: 12px !important;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+        margin-bottom: 16px !important;
       }
 
       #jobNotesHistorySheet .job-log--timeline .comment-log-item--engineer.note-card:last-child,
       #jobNotesHistorySheet .job-log--timeline .note-card:last-child {
         margin-bottom: 0 !important;
+      }
+
+      #jobNotesHistorySheet .comment-log-time,
+      #jobNotesHistorySheet .note-date {
+        font-size: 12px;
+        color: #9ca3af;
       }
 
       /* Activity sheet: full-height scroll (override global job-activity-list cap) */
@@ -2308,11 +2314,23 @@
 
       #jobActivityHistorySheet .activity-item {
         margin-bottom: 12px;
+      }
+
+      #jobActivityHistorySheet .activity-item:first-child {
         opacity: 1;
+      }
+
+      #jobActivityHistorySheet .activity-item:not(:first-child) {
+        opacity: 0.8;
       }
 
       #jobActivityHistorySheet .activity-item:last-child {
         margin-bottom: 0;
+      }
+
+      /* Timeline rail — slightly darker */
+      #jobActivityHistorySheet .activity-timeline::before {
+        background: #cbd5e1;
       }
 
       /* Latest activity row (first = newest) slightly stronger */
@@ -2333,10 +2351,9 @@
       /* Close — same placement, clearer chrome */
       #jobNotesHistorySheet .reassign-sheet__actions .reassign-sheet__btn--secondary,
       #jobActivityHistorySheet .reassign-sheet__actions .reassign-sheet__btn--secondary {
+        margin-bottom: 8px;
         border: 1px solid #cbd5e1;
-        box-shadow:
-          0 2px 8px rgba(15, 23, 42, 0.07),
-          0 1px 2px rgba(15, 23, 42, 0.05);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
       }
     }
 
