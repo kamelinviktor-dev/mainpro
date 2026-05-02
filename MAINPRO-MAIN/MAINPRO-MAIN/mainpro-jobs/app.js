@@ -2669,6 +2669,13 @@ function getCommentTypeBadgeLabel(type) {
   return { issue: "ISSUE", action: "ACTION", done: "DONE" }[type] || "";
 }
 
+/** Display-only label for engineer note cards (does not change stored comments). */
+function formatEngineerNoteAuthorForDisplay(author) {
+  const a = author == null ? "" : String(author).trim();
+  if (a === "Engineer") return "👷 Engineer";
+  return a;
+}
+
 function isSystemLogComment(c) {
   if (!c) return false;
   if (String(c.author == null ? "" : c.author).trim() === "System")
@@ -2837,7 +2844,9 @@ function renderEngineerLogItemHtml(c) {
       <div class="comment-log-time note-date">${escapeHtml(
         formatDateClean(d.time || d.date || d.createdAt) || "—"
       )}</div>
-      <div class="comment-log-author note-author">${escapeHtml(d.author)}</div>
+      <div class="comment-log-author note-author">${escapeHtml(
+        formatEngineerNoteAuthorForDisplay(d.author)
+      )}</div>
       ${badgeBlock}
       <div class="comment-log-text note-text">${escapeHtml(
         String(d.text == null ? "" : d.text).trim()
@@ -3321,7 +3330,7 @@ function renderActiveCardFull(j, forModal) {
     : renderEngineerNotesSavedSection(j);
   const composerModalBlock = `
         <label class="comment-label">Add a note <span class="comment-shortcut-hint" aria-hidden="true">· Ctrl/⌘+S</span></label>
-        <textarea class="comment-field comment-new" rows="2" placeholder="Type a note, then tap Save note" title="Ctrl+S or ⌘+S to save (desktop)"></textarea>
+        <textarea class="comment-field comment-new" rows="2" placeholder="Add a note..." title="Ctrl+S or ⌘+S to save (desktop)"></textarea>
         <div class="comment-save-row">
           <button type="button" class="btn-save-note" onclick="saveEngineerNote(this)">Save note</button>
           <span class="comment-saved-hint" data-saved-hint="1" hidden>Saved</span>

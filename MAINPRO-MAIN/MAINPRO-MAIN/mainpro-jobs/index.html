@@ -2394,6 +2394,7 @@
     /* Title / description / meta — typography only (single-line meta unchanged) */
     #jobDetailModal .job--modal-detail .job-title strong {
       font-weight: 800;
+      letter-spacing: -0.02em;
     }
 
     #jobDetailModal .job--modal-detail .job-problem {
@@ -2413,9 +2414,17 @@
     }
 
     #jobDetailModal .job--modal-detail .btn-save-note {
-      box-shadow:
-        0 2px 8px rgba(5, 150, 105, 0.16),
-        0 1px 3px rgba(15, 23, 42, 0.08);
+      background: #10b981;
+      color: #ffffff;
+      border: 1px solid #059669;
+      font-weight: 800;
+      box-shadow: 0 6px 14px rgba(16, 185, 129, 0.22);
+    }
+
+    #jobDetailModal .job--modal-detail .btn-save-note:hover {
+      background: #059669;
+      color: #ffffff;
+      border-color: #047857;
     }
 
     /* Main job detail scroll: thin scrollbar (WebKit + Firefox) — container unchanged */
