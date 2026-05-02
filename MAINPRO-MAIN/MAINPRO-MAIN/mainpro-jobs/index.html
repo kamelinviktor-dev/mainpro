@@ -2172,6 +2172,90 @@
       color: #fff;
     }
 
+    /* Notes / activity history bottom sheets (same shell as reassign) */
+    .reassign-sheet__panel--history {
+      display: flex;
+      flex-direction: column;
+      max-height: min(85vh, 560px);
+      overflow: hidden;
+      padding: 18px 0 0;
+      box-sizing: border-box;
+    }
+
+    .reassign-sheet__panel--history .reassign-sheet__title {
+      flex-shrink: 0;
+      margin: 0 0 12px;
+      padding: 0 18px;
+    }
+
+    .job-history-sheet__scroll {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-x: hidden;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 0 18px 8px;
+      box-sizing: border-box;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(148, 163, 184, 0.65) transparent;
+    }
+
+    .job-history-sheet__scroll::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    .job-history-sheet__scroll::-webkit-scrollbar-track {
+      background: transparent;
+      border-radius: 999px;
+    }
+
+    .job-history-sheet__scroll::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.55);
+      border-radius: 999px;
+    }
+
+    .reassign-sheet__panel--history .reassign-sheet__actions {
+      flex-shrink: 0;
+      margin-top: 0;
+      padding: 12px 18px calc(12px + env(safe-area-inset-bottom, 0px));
+      border-top: 1px solid #e5e7eb;
+      background: #fff;
+    }
+
+    .activity-history-empty {
+      padding: 16px 0;
+      font-size: 14px;
+      color: #64748b;
+      font-style: italic;
+    }
+
+    #jobDetailModal .job-log-open-sheet {
+      display: block;
+      width: 100%;
+      margin-top: 10px;
+      padding: 8px 0;
+      border: none;
+      background: none;
+      font-size: 14px;
+      font-weight: 600;
+      color: #0d9488;
+      text-align: left;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    #jobDetailModal .job-notes-preview,
+    #jobDetailModal .job-activity-preview {
+      overflow: visible;
+      max-height: none;
+    }
+
+    #jobDetailModal .job-activity-preview .activity-timeline {
+      margin-bottom: 0;
+    }
+
     @media (min-width: 640px) {
       .reassign-sheet {
         justify-content: center;
@@ -2183,6 +2267,10 @@
         max-width: 400px;
         max-height: min(80vh, 480px);
         animation: none;
+      }
+
+      .reassign-sheet__panel--history {
+        max-height: min(80vh, 520px);
       }
     }
 
@@ -4517,7 +4605,7 @@
         box-sizing: border-box;
       }
 
-      /* Job detail drawer: scroll only inside .job-notes-scroll / .job-activity-scroll; parent containers do not grow */
+      /* Job detail main: previews don’t use inner scroll; container clips naturally */
       #jobDetailModal .job-detail .notes-container.engineer-notes,
       #jobDetailModal .job-detail .notes-container.notes {
         max-height: none !important;
@@ -4527,30 +4615,6 @@
       #jobDetailModal .job-detail .activity-timeline.job-activity {
         max-height: none !important;
         overflow: visible !important;
-      }
-
-      #jobDetailModal .job-detail .job-activity-scroll .activity-timeline.expanded {
-        max-height: none !important;
-        overflow: visible !important;
-      }
-
-      #jobDetailModal .job-detail .job-notes-scroll,
-      #jobDetailModal .job-detail .job-activity-scroll {
-        padding-right: 4px;
-        scrollbar-width: thin;
-        box-sizing: border-box;
-        -webkit-overflow-scrolling: touch;
-      }
-
-      #jobDetailModal .job-detail .job-notes-scroll::-webkit-scrollbar,
-      #jobDetailModal .job-detail .job-activity-scroll::-webkit-scrollbar {
-        width: 4px;
-      }
-
-      #jobDetailModal .job-detail .job-notes-scroll::-webkit-scrollbar-thumb,
-      #jobDetailModal .job-detail .job-activity-scroll::-webkit-scrollbar-thumb {
-        background: rgba(0, 0, 0, 0.2);
-        border-radius: 10px;
       }
 
       #appMain .job-expanded,
@@ -4662,8 +4726,8 @@
       }
 
       /*
-       * Job detail: true full-screen mobile screen (no floating card).
-       * Utility classes mirror DOM hooks; #jobDetailModal rules apply without JS changes.
+       * Job detail (mobile): full-screen app shell — flex column, bounded notes/activity, sticky actions.
+       * Visual tokens unchanged (match base .job-detail-modal bar/body styles).
        */
       .job-detail-container {
         position: fixed;
@@ -4696,7 +4760,11 @@
       .job-detail-header,
       #jobDetailModal .job-detail-modal__bar {
         flex: 0 0 auto;
-        background: #f8fafc;
+        position: relative;
+        z-index: 40;
+        background: #fff;
+        border-bottom: 1px solid #e5e7eb;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
         padding-top: calc(10px + env(safe-area-inset-top, 0px));
       }
 
@@ -4744,26 +4812,49 @@
 
       .job-detail-body,
       #jobDetailModal .job-detail-modal__body .job-detail-screen-main {
-        flex: 1 1 auto;
+        flex: 1;
         min-height: 0;
         overflow-y: auto;
         overflow-x: hidden;
-        padding: 16px;
+        padding: 16px 16px;
+        padding-bottom: 16px;
         -webkit-overflow-scrolling: touch;
         overscroll-behavior: contain;
       }
 
+      /* Add-note composer: between scroll and sticky actions (not inside scroll) */
+      #jobDetailModal .job-detail-composer--modal {
+        flex: 0 0 auto;
+        padding: 12px 16px 8px;
+        margin: 0;
+        background: #fff;
+        border-top: 1px solid #e5e7eb;
+        box-sizing: border-box;
+      }
+
+      #jobDetailModal .job-detail-composer--modal.add-note-block .comment-save-row {
+        margin-bottom: 12px !important;
+      }
+
+      .add-note-block {
+        margin-bottom: 0;
+      }
+
       .job-detail-actions,
+      .bottom-actions,
       #jobDetailModal .job--modal-detail .job-actions,
       #jobDetailModal .job--modal-detail .job-actions-single,
       #jobDetailModal .job--modal-detail .job-actions-deleted {
         flex: 0 0 auto;
         position: sticky;
         bottom: 0;
-        z-index: 2;
+        z-index: 10;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
         margin-top: 0 !important;
-        padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
-        background: #f8fafc;
+        padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+        background: #fff;
         box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
         border-top: 1px solid rgba(226, 232, 240, 0.85);
       }
@@ -4776,17 +4867,7 @@
         overflow: hidden !important;
       }
 
-      #jobDetailModal .job-notes-scroll {
-        max-height: 150px !important;
-        overflow-y: auto !important;
-      }
-
-      #jobDetailModal .job-activity-scroll,
-      #jobDetailModal .job-activity-scroll.activity-log,
-      #jobDetailModal .job-detail .job-activity-list {
-        max-height: 160px !important;
-        overflow-y: auto !important;
-      }
+      /* Preview lists use .job-notes-preview / .job-activity-preview (single row); full history in bottom sheets */
 
       .job-photo-wrap img,
       .form-photo-preview {
@@ -6452,6 +6533,28 @@
       <div class="reassign-sheet__actions">
         <button type="button" class="reassign-sheet__btn reassign-sheet__btn--secondary" onclick="closeReassignSheet()">Cancel</button>
         <button type="button" class="reassign-sheet__btn reassign-sheet__btn--primary" onclick="confirmReassignSheet()">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="jobNotesHistorySheet" class="reassign-sheet" hidden role="dialog" aria-modal="true" aria-labelledby="jobNotesHistoryTitle">
+    <div class="reassign-sheet__backdrop" onclick="closeJobNotesHistorySheet()"></div>
+    <div class="reassign-sheet__panel reassign-sheet__panel--history">
+      <h2 id="jobNotesHistoryTitle" class="reassign-sheet__title">All notes</h2>
+      <div id="jobNotesHistoryBody" class="job-history-sheet__scroll"></div>
+      <div class="reassign-sheet__actions">
+        <button type="button" class="reassign-sheet__btn reassign-sheet__btn--secondary" onclick="closeJobNotesHistorySheet()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="jobActivityHistorySheet" class="reassign-sheet" hidden role="dialog" aria-modal="true" aria-labelledby="jobActivityHistoryTitle">
+    <div class="reassign-sheet__backdrop" onclick="closeJobActivityHistorySheet()"></div>
+    <div class="reassign-sheet__panel reassign-sheet__panel--history">
+      <h2 id="jobActivityHistoryTitle" class="reassign-sheet__title">Activity</h2>
+      <div id="jobActivityHistoryBody" class="job-history-sheet__scroll"></div>
+      <div class="reassign-sheet__actions">
+        <button type="button" class="reassign-sheet__btn reassign-sheet__btn--secondary" onclick="closeJobActivityHistorySheet()">Close</button>
       </div>
     </div>
   </div>

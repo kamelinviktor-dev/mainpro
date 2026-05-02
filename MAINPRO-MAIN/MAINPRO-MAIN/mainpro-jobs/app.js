@@ -2921,7 +2921,7 @@ function renderEngineerNotesSavedSection(j) {
   return `<div class="job-log-stack">${engineerBlock}${activityBlock}${toggleBtn}</div>`;
 }
 
-/** Full notes + full activity, no “show all” (mobile detail). */
+/** Job detail modal: latest note + latest activity in main view; full history in bottom sheets (same data as before). */
 function renderEngineerNotesForModal(j) {
   const list = getCommentsSortedNewestFirst(j);
   const tone = getCommentLogToneClass(j);
@@ -2933,24 +2933,108 @@ function renderEngineerNotesForModal(j) {
       new Date(b.time || b.date || b.createdAt).getTime() -
       new Date(a.time || a.date || a.createdAt).getTime()
   );
-  let engineerBlock = "";
-  if (!engineerList.length) {
-    engineerBlock = `<h4 class="log-title section-title">Engineer notes</h4><div class="engineer-notes-wrapper notes-wrapper"><div class="notes-container engineer-notes engineer-notes-list notes-list job-notes-list job-notes notes"><div class="job-notes-scroll"><div class="comment-log comment-log--empty job-log--timeline no-notes ${tone}">No notes yet</div></div></div></div>`;
-  } else {
-    engineerBlock = `<h4 class="log-title section-title">Engineer notes</h4><div class="engineer-notes-wrapper notes-wrapper"><div class="notes-container engineer-notes engineer-notes-list notes-list job-notes-list job-notes notes"><div class="job-notes-scroll"><div class="comment-log job-log--timeline job-log--engineer-notes job-log--modal ${tone} expanded" role="list">${engineerList
-      .map((c) => renderEngineerLogItemHtml(c))
-      .join("")}</div></div></div></div>`;
-  }
+
+  const previewNotesInner =
+    engineerList.length === 0
+      ? `<div class="comment-log comment-log--empty job-log--timeline no-notes ${tone}">No notes yet</div>`
+      : `<div class="comment-log job-log--timeline job-log--engineer-notes job-log--modal ${tone} expanded" role="list">${renderEngineerLogItemHtml(
+          engineerList[0]
+        )}</div>`;
+
+  const notesMoreLink =
+    engineerList.length > 1
+      ? `<button type="button" class="job-log-open-sheet" onclick="openJobNotesHistorySheet()" aria-label="View all notes">View all notes</button>`
+      : "";
+
+  const engineerBlock = `<h4 class="log-title section-title">Engineer notes</h4><div class="engineer-notes-wrapper notes-wrapper"><div class="notes-container engineer-notes engineer-notes-list notes-list job-notes-list job-notes notes"><div class="job-notes-preview">${previewNotesInner}</div>${notesMoreLink}</div></div>`;
+
   let activityBlock = "";
   if (sortedActivity.length) {
-    activityBlock = `<h4 class="log-title section-title system">Activity</h4><div class="activity-wrapper notes-wrapper"><div class="job-activity-scroll activity-log"><div class="activity-timeline activity activity-list job-activity-list job-activity expanded" role="list">${sortedActivity
-      .map((c) => renderSystemLogItemHtml(c))
-      .join("")}</div></div></div>`;
+    const previewAct = `<div class="activity-timeline activity activity-list job-activity-list job-activity expanded" role="list">${renderSystemLogItemHtml(
+      sortedActivity[0]
+    )}</div>`;
+    const activityMoreLink =
+      sortedActivity.length > 1
+        ? `<button type="button" class="job-log-open-sheet" onclick="openJobActivityHistorySheet()" aria-label="View activity history">View activity</button>`
+        : "";
+    activityBlock = `<h4 class="log-title section-title system">Activity</h4><div class="activity-wrapper notes-wrapper"><div class="job-activity-preview activity-log">${previewAct}${activityMoreLink}</div></div>`;
   }
+
   if (!list.length) {
-    return `<div class="job-log-stack job-log-stack--modal"><h4 class="log-title section-title">Engineer notes</h4><div class="engineer-notes-wrapper notes-wrapper"><div class="notes-container engineer-notes engineer-notes-list notes-list job-notes-list job-notes notes"><div class="job-notes-scroll"><div class="comment-log--empty no-notes">No notes or activity</div></div></div></div></div>`;
+    return `<div class="job-log-stack job-log-stack--modal"><h4 class="log-title section-title">Engineer notes</h4><div class="engineer-notes-wrapper notes-wrapper"><div class="notes-container engineer-notes engineer-notes-list notes-list job-notes-list job-notes notes"><div class="job-notes-preview"><div class="comment-log--empty no-notes">No notes or activity</div></div></div></div></div>`;
   }
   return `<div class="job-log-stack job-log-stack--modal">${engineerBlock}${activityBlock}</div>`;
+}
+
+function openJobNotesHistorySheet() {
+  const id = mobileJobDetailId;
+  if (id == null || id === "") return;
+  const j = jobs.find((x) => String(x.id) === String(id));
+  if (!j) return;
+  const modal = document.getElementById("jobNotesHistorySheet");
+  const host = document.getElementById("jobNotesHistoryBody");
+  if (!modal || !host) return;
+  const engineerList = sortCommentsNewestFirst(
+    getCommentsSortedNewestFirst(j).filter((c) => !isSystemLogComment(c))
+  );
+  const tone = getCommentLogToneClass(j);
+  if (!engineerList.length) {
+    host.innerHTML = `<div class="comment-log comment-log--empty job-log--timeline no-notes ${tone}">No notes yet</div>`;
+  } else {
+    host.innerHTML = `<div class="comment-log job-log--timeline job-log--engineer-notes ${tone} expanded" role="list">${engineerList
+      .map((c) => renderEngineerLogItemHtml(c))
+      .join("")}</div>`;
+  }
+  modal.hidden = false;
+  hapticNarrow();
+  syncAppBodyScrollLock();
+  updateMobileFormFab();
+  updateMobileScrollTopBtn();
+}
+
+function closeJobNotesHistorySheet() {
+  const modal = document.getElementById("jobNotesHistorySheet");
+  if (modal) modal.hidden = true;
+  syncAppBodyScrollLock();
+  updateMobileFormFab();
+  updateMobileScrollTopBtn();
+}
+
+function openJobActivityHistorySheet() {
+  const id = mobileJobDetailId;
+  if (id == null || id === "") return;
+  const j = jobs.find((x) => String(x.id) === String(id));
+  if (!j) return;
+  const modal = document.getElementById("jobActivityHistorySheet");
+  const host = document.getElementById("jobActivityHistoryBody");
+  if (!modal || !host) return;
+  const list = getCommentsSortedNewestFirst(j);
+  const sortedActivity = list.filter((c) => isSystemLogComment(c)).sort(
+    (a, b) =>
+      new Date(b.time || b.date || b.createdAt).getTime() -
+      new Date(a.time || a.date || a.createdAt).getTime()
+  );
+  if (!sortedActivity.length) {
+    host.innerHTML =
+      '<div class="activity-history-empty">No activity yet</div>';
+  } else {
+    host.innerHTML = `<div class="activity-timeline activity activity-list job-activity expanded" role="list">${sortedActivity
+      .map((c) => renderSystemLogItemHtml(c))
+      .join("")}</div>`;
+  }
+  modal.hidden = false;
+  hapticNarrow();
+  syncAppBodyScrollLock();
+  updateMobileFormFab();
+  updateMobileScrollTopBtn();
+}
+
+function closeJobActivityHistorySheet() {
+  const modal = document.getElementById("jobActivityHistorySheet");
+  if (modal) modal.hidden = true;
+  syncAppBodyScrollLock();
+  updateMobileFormFab();
+  updateMobileScrollTopBtn();
 }
 
 function getLatestSystemCommentObject(j) {
@@ -3229,7 +3313,14 @@ function renderActiveCardFull(j, forModal) {
   const notesBlock = forModal
     ? renderEngineerNotesForModal(j)
     : renderEngineerNotesSavedSection(j);
-  const detailScrollBody = `
+  const composerModalBlock = `
+        <label class="comment-label">Add a note <span class="comment-shortcut-hint" aria-hidden="true">· Ctrl/⌘+S</span></label>
+        <textarea class="comment-field comment-new" rows="2" placeholder="Type a note, then tap Save note" title="Ctrl+S or ⌘+S to save (desktop)"></textarea>
+        <div class="comment-save-row">
+          <button type="button" class="btn-save-note" onclick="saveEngineerNote(this)">Save note</button>
+          <span class="comment-saved-hint" data-saved-hint="1" hidden>Saved</span>
+        </div>`;
+  const detailScrollMain = `
         ${photoBlock}
         <div class="job-body job-meta">
           <div class="job-title"><strong>${hl(
@@ -3241,13 +3332,8 @@ function renderActiveCardFull(j, forModal) {
           ${renderJobPrioritySlaBlock(j)}
           ${statusInfoBlock}
         </div>
-        ${notesBlock}
-        <label class="comment-label">Add a note <span class="comment-shortcut-hint" aria-hidden="true">· Ctrl/⌘+S</span></label>
-        <textarea class="comment-field comment-new" rows="2" placeholder="Type a note, then tap Save note" title="Ctrl+S or ⌘+S to save (desktop)"></textarea>
-        <div class="comment-save-row">
-          <button type="button" class="btn-save-note" onclick="saveEngineerNote(this)">Save note</button>
-          <span class="comment-saved-hint" data-saved-hint="1" hidden>Saved</span>
-        </div>`;
+        ${notesBlock}`;
+  const fullScrollWithComposer = `${detailScrollMain}${composerModalBlock}`;
   const actionsInner = `
         <div class="job-actions">
           ${progressBtnNew}
@@ -3256,9 +3342,12 @@ function renderActiveCardFull(j, forModal) {
           <button type="button" class="btn-done" onclick='setStatus(${qid}, ${sDone})'>Done</button>
           <button type="button" class="btn-del" onclick='deleteJob(${qid})'>Delete</button>
         </div>`;
-  const modalMain = forModal
-    ? `<div class="job-detail-screen-main">${detailScrollBody}</div>${actionsInner}`
-    : `${detailScrollBody}${actionsInner}`;
+  const modalMain =
+    forModal && isNarrowLayout()
+      ? `<div class="job-detail-screen-main">${detailScrollMain}</div><div class="job-detail-composer job-detail-composer--modal add-note-block">${composerModalBlock}</div>${actionsInner}`
+      : forModal && !isNarrowLayout()
+        ? `<div class="job-detail-screen-main">${fullScrollWithComposer}</div>${actionsInner}`
+        : `${fullScrollWithComposer}${actionsInner}`;
   return `
       <div class="job job-card ${vis.cardClass}${logClass}" data-job-id="${idForAttr}" data-status="${escapeHtml(
     st
@@ -3463,9 +3552,19 @@ function getJobsOpenLayers() {
   const onboardingModal = document.getElementById("onboardingModal");
   const mobileReportModal = document.getElementById("mobileReportJobModal");
   const reassignSheetModal = document.getElementById("reassignSheetModal");
+  const jobNotesHistorySheet = document.getElementById("jobNotesHistorySheet");
+  const jobActivityHistorySheet = document.getElementById(
+    "jobActivityHistorySheet"
+  );
   return {
     jobDetail: !!(jobDetailModal && !jobDetailModal.hidden),
     reassignSheet: !!(reassignSheetModal && !reassignSheetModal.hidden),
+    notesHistorySheet: !!(
+      jobNotesHistorySheet && !jobNotesHistorySheet.hidden
+    ),
+    activityHistorySheet: !!(
+      jobActivityHistorySheet && !jobActivityHistorySheet.hidden
+    ),
     park: !!(parkModal && !parkModal.hidden),
     photo: !!(photoLightbox && !photoLightbox.hidden),
     tips: !!(jobsTipsModal && !jobsTipsModal.hidden),
@@ -3482,6 +3581,10 @@ function getJobsOpenLayers() {
 function syncAppBodyScrollLock() {
   const L = getJobsOpenLayers();
   if (L.jobDetail) {
+    document.body.style.overflow = "hidden";
+    return;
+  }
+  if (L.notesHistorySheet || L.activityHistorySheet) {
     document.body.style.overflow = "hidden";
     return;
   }
@@ -3526,6 +3629,8 @@ function updateMobileFormFab() {
     L.newJobSheet ||
     L.jobDetail ||
     L.reassignSheet ||
+    L.notesHistorySheet ||
+    L.activityHistorySheet ||
     L.tips ||
     L.settings ||
     L.onboarding ||
@@ -3604,6 +3709,8 @@ function updateMobileScrollTopBtn() {
   if (
     L.jobDetail ||
     L.reassignSheet ||
+    L.notesHistorySheet ||
+    L.activityHistorySheet ||
     L.newJobSheet ||
     L.park ||
     L.photo ||
@@ -3669,6 +3776,8 @@ function onMobileFabScroll() {
     L.newJobSheet ||
     L.jobDetail ||
     L.reassignSheet ||
+    L.notesHistorySheet ||
+    L.activityHistorySheet ||
     L.tips ||
     L.settings
   ) {
@@ -3741,6 +3850,8 @@ function syncMobileJobListActiveHighlight() {
 }
 
 function closeJobDetailModal() {
+  closeJobNotesHistorySheet();
+  closeJobActivityHistorySheet();
   mobileJobDetailId = null;
   const modal = document.getElementById("jobDetailModal");
   if (modal) modal.hidden = true;
@@ -4569,6 +4680,10 @@ window.toggleMyJobsFilter = toggleMyJobsFilter;
 window.onJobReassignApply = onJobReassignApply;
 window.openReassignSheetFromEl = openReassignSheetFromEl;
 window.closeReassignSheet = closeReassignSheet;
+window.openJobNotesHistorySheet = openJobNotesHistorySheet;
+window.closeJobNotesHistorySheet = closeJobNotesHistorySheet;
+window.openJobActivityHistorySheet = openJobActivityHistorySheet;
+window.closeJobActivityHistorySheet = closeJobActivityHistorySheet;
 window.confirmReassignSheet = confirmReassignSheet;
 window.onJobAssignBlockClick = onJobAssignBlockClick;
 window.resetFiltersAndSearch = resetFiltersAndSearch;
@@ -4866,6 +4981,8 @@ document.addEventListener("keydown", function (e) {
         if (
           L.jobDetail ||
           L.reassignSheet ||
+          L.notesHistorySheet ||
+          L.activityHistorySheet ||
           L.tips ||
           L.settings ||
           L.park ||
@@ -4927,6 +5044,18 @@ document.addEventListener("keydown", function (e) {
     const tipsM = document.getElementById("jobsTipsModal");
     if (tipsM && !tipsM.hidden) {
       closeJobsTipsDialog();
+      return;
+    }
+    const jnhs = document.getElementById("jobNotesHistorySheet");
+    if (jnhs && !jnhs.hidden) {
+      e.preventDefault();
+      closeJobNotesHistorySheet();
+      return;
+    }
+    const jahs = document.getElementById("jobActivityHistorySheet");
+    if (jahs && !jahs.hidden) {
+      e.preventDefault();
+      closeJobActivityHistorySheet();
       return;
     }
     const jdm = document.getElementById("jobDetailModal");
@@ -5048,6 +5177,8 @@ window.addEventListener("resize", function () {
     return (
       L.jobDetail ||
       L.reassignSheet ||
+      L.notesHistorySheet ||
+      L.activityHistorySheet ||
       L.park ||
       L.photo ||
       L.tips ||
