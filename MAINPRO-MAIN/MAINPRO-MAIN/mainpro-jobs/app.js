@@ -5378,7 +5378,30 @@ function closePhotoLightbox() {
   updateMobileScrollTopBtn();
 }
 
+function snapshotJobsForRollback() {
+  try {
+    return JSON.stringify(jobs);
+  } catch (e) {
+    console.warn("[snapshotJobsForRollback]", e);
+    return null;
+  }
+}
+
+function restoreJobsFromSnapshot(snap) {
+  if (snap == null || snap === "") return false;
+  try {
+    const parsed = JSON.parse(snap);
+    if (!Array.isArray(parsed)) return false;
+    jobs = parsed;
+    return true;
+  } catch (e) {
+    console.warn("[restoreJobsFromSnapshot]", e);
+    return false;
+  }
+}
+
 function deleteJob(id) {
+  console.log("[deleteJob]", id);
   if (
     !confirm(
       "Move this job to Deleted? You can restore it from the Deleted filter."
@@ -5388,18 +5411,33 @@ function deleteJob(id) {
   }
   const j = jobs.find((x) => String(x.id) === String(id));
   if (!j) return;
+  const snap = snapshotJobsForRollback();
   j.previousStatus = j.status;
   j.deleted = true;
   j.deletedAt = new Date().toISOString();
   appendSystemComment(j, "Job moved to Deleted");
-  save();
+  var ok = false;
+  try {
+    ok = save(true);
+  } catch (e) {
+    console.error("[deleteJob] save", e);
+    ok = false;
+  }
+  if (!ok) {
+    restoreJobsFromSnapshot(snap);
+    alert("Could not save changes. Storage may be full.");
+    render();
+    return;
+  }
   showJobsToast("Job moved to Deleted");
   render();
 }
 
 function restoreJob(id) {
+  console.log("[restoreJob]", id);
   const j = jobs.find((x) => String(x.id) === String(id));
   if (!j || !j.deleted) return;
+  const snap = snapshotJobsForRollback();
   const st = (j.previousStatus && String(j.previousStatus).trim()) || "New";
   j.deleted = false;
   j.deletedAt = "";
@@ -5409,7 +5447,19 @@ function restoreJob(id) {
     j.completedAt = "";
   }
   appendSystemComment(j, "Job restored");
-  save();
+  var ok = false;
+  try {
+    ok = save(true);
+  } catch (e) {
+    console.error("[restoreJob] save", e);
+    ok = false;
+  }
+  if (!ok) {
+    restoreJobsFromSnapshot(snap);
+    alert("Could not save changes. Storage may be full.");
+    render();
+    return;
+  }
   historyViewFilter = "all";
   if (st === "Done") {
     statusFilter = "All";
@@ -5429,14 +5479,73 @@ function restoreJob(id) {
 }
 
 function deleteJobPermanently(id) {
+  console.log("[deletePermanent]", id);
   if (!confirm("Permanently delete this job?")) return;
+  const snap = snapshotJobsForRollback();
   jobs = jobs.filter((x) => String(x.id) !== String(id));
-  save();
+  var ok = false;
+  try {
+    ok = save(true);
+  } catch (e) {
+    console.error("[deleteJobPermanently] save", e);
+    ok = false;
+  }
+  if (!ok) {
+    restoreJobsFromSnapshot(snap);
+    alert("Could not save changes. Storage may be full.");
+    render();
+    return;
+  }
+  if (mobileJobDetailId != null && String(mobileJobDetailId) === String(id)) {
+    closeJobDetailModal();
+  }
+  render();
+  showJobsToast("Job deleted permanently");
+}
+
+/** Reopen a completed job (active workflow). */
+function restartJob(id) {
+  console.log("[restartJob]", id);
+  const j = jobs.find((x) => String(x.id) === String(id));
+  if (!j || j.deleted || String(j.status) !== "Done") return;
+  const snap = snapshotJobsForRollback();
+  j.status = "New";
+  j.completedAt = "";
+  j.deleted = false;
+  j.deletedAt = "";
+  j.previousStatus = "";
+  j.pendingUntil = "";
+  j.pendingReason = "";
+  j.dueAt = computeDueAtIso(
+    j.createdAt && String(j.createdAt).trim()
+      ? j.createdAt
+      : new Date().toISOString(),
+    j.priority
+  );
+  appendSystemComment(j, "Job restarted");
+  var ok = false;
+  try {
+    ok = save(true);
+  } catch (e) {
+    console.error("[restartJob] save", e);
+    ok = false;
+  }
+  if (!ok) {
+    restoreJobsFromSnapshot(snap);
+    alert("Could not save changes. Storage may be full.");
+    render();
+    return;
+  }
+  historyViewFilter = "all";
+  statusFilter = "New";
+  setTab("active");
   render();
 }
 
+window.deleteJob = deleteJob;
 window.restoreJob = restoreJob;
 window.deleteJobPermanently = deleteJobPermanently;
+window.restartJob = restartJob;
 
 function setTab(tab) {
   const a = document.getElementById("panel-active");
@@ -5541,11 +5650,10 @@ bindPhotoPreview();
   });
 })();
 
-(function bindActiveJobsPanelActions() {
-  const root = document.getElementById("jobs-active");
-  if (!root || root._mainproJobsPanelClickBound) return;
-  root._mainproJobsPanelClickBound = true;
-  root.addEventListener("click", function (e) {
+(function bindRestorePermanentJobActions() {
+  if (bindRestorePermanentJobActions._done) return;
+  bindRestorePermanentJobActions._done = true;
+  function onRestorePermanentClick(e) {
     let t = e.target;
     if (!t) return;
     if (t.nodeType !== 1) {
@@ -5561,12 +5669,18 @@ bindPhotoPreview();
     const jid = jobIdFromDomAttr(rawId);
     if (jid == null) return;
     e.preventDefault();
+    e.stopPropagation();
     if (restoreBtn) {
       restoreJob(jid);
     } else {
       deleteJobPermanently(jid);
     }
-  });
+  }
+  const roots = ["jobs-active", "jobDetailModalBody"];
+  for (let i = 0; i < roots.length; i++) {
+    const root = document.getElementById(roots[i]);
+    if (root) root.addEventListener("click", onRestorePermanentClick);
+  }
 })();
 
 setInterval(function () {
