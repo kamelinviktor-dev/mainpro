@@ -2690,6 +2690,44 @@
       border-radius: 999px;
     }
 
+    /* Scroll hint: iOS-style depth — sits UNDER modal body (z-6) so blur never hits buttons */
+    #jobDetailModal .job-detail-fade {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 72px;
+      height: 60px;
+      pointer-events: none;
+      z-index: 5;
+      -webkit-backdrop-filter: blur(6px);
+      backdrop-filter: blur(6px);
+      background: linear-gradient(
+        to bottom,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.4) 40%,
+        rgba(255, 255, 255, 0.9) 75%,
+        rgba(255, 255, 255, 1) 100%
+      );
+    }
+
+    /* Body paints above fade (6 > 5): crisp Save / actions; transparent bg lets gradient show through scroll area */
+    #jobDetailModal .job-detail-modal__body {
+      position: relative;
+      z-index: 6;
+      background: transparent;
+    }
+
+    #jobDetailModal .job-detail-composer--modal {
+      position: relative;
+      z-index: 10;
+      isolation: isolate;
+    }
+
+    #jobDetailModal .job-detail-composer--modal .btn-save-note {
+      position: relative;
+      z-index: 11;
+    }
+
     #jobDetailModal .job-notes-preview,
     #jobDetailModal .job-activity-preview {
       overflow: visible;
@@ -5306,6 +5344,9 @@
       /* Add-note composer: between scroll and sticky actions (not inside scroll) */
       #jobDetailModal .job-detail-composer--modal {
         flex: 0 0 auto;
+        position: relative;
+        z-index: 10;
+        isolation: isolate;
         padding: 12px 16px 8px;
         margin: 0;
         background: #fff;
@@ -5330,6 +5371,7 @@
         position: sticky;
         bottom: 0;
         z-index: 10;
+        isolation: isolate;
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 10px;
@@ -7016,6 +7058,7 @@
       <span id="jobDetailModalBadge" class="job-detail-modal__badge" role="status" aria-label=""></span>
     </div>
     <div id="jobDetailModalBody" class="job-detail-modal__body"></div>
+    <div class="job-detail-fade" aria-hidden="true"></div>
   </div>
 
   <div id="reassignSheetModal" class="reassign-sheet" hidden role="dialog" aria-modal="true" aria-labelledby="reassignSheetTitle">
