@@ -109,6 +109,11 @@ const MAINPRO_I18N = {
     restoreBrowserBackup: "Restore from browser backup",
     lastBrowserBackup: "Last backup: {t}",
     noBrowserBackup: "No browser backup yet",
+    backupNow: "Backup now",
+    backupCreatedToast: "Backup created",
+    restoredSuccessfully: "Restored successfully",
+    restoreBrowserConfirm:
+      "Are you sure? This will overwrite current data.",
     importSchemaNewer:
       "This file needs a newer app version. Update MainPro Jobs, then import again.",
     onboardingTitle: "Welcome",
@@ -226,6 +231,11 @@ const MAINPRO_I18N = {
     restoreBrowserBackup: "Восстановить из копии в браузере",
     lastBrowserBackup: "Копия: {t}",
     noBrowserBackup: "Копии в браузере ещё нет",
+    backupNow: "Создать копию сейчас",
+    backupCreatedToast: "Копия создана",
+    restoredSuccessfully: "Восстановление выполнено",
+    restoreBrowserConfirm:
+      "Вы уверены? Текущие данные будут заменены.",
     importSchemaNewer:
       "Файл требует более новой версии приложения. Обновите MainPro Jobs и импортируйте снова.",
     onboardingTitle: "Добро пожаловать",
@@ -462,6 +472,8 @@ function applyMainproI18n() {
   if (abH) abH.textContent = t("autobackupHint");
   const bRB = document.getElementById("btnRestoreBrowserBackup");
   if (bRB) bRB.textContent = t("restoreBrowserBackup");
+  const bBN = document.getElementById("btnBackupBrowserNow");
+  if (bBN) bBN.textContent = t("backupNow");
   updateOnboardingFooterButton();
   updateSettingsBackupInfo();
   if (hasMainproLogin()) {
@@ -492,6 +504,7 @@ function onAutobackupToggle() {
 }
 window.onAutobackupToggle = onAutobackupToggle;
 window.restoreFromBrowserBackup = restoreFromBrowserBackup;
+window.backupBrowserNowFromSettings = backupBrowserNowFromSettings;
 window.onboardingNext = onboardingNext;
 window.onboardingDone = onboardingDone;
 window.onboardingSkip = onboardingSkip;
@@ -2687,20 +2700,56 @@ function getBrowserBackupSavedAt() {
   }
 }
 
+/** Display like "02 May, 22:15" (locale-aware month/time). */
+function formatBackupTimestampForUi(iso) {
+  try {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return String(iso);
+    const ru = getUiLang() === "ru";
+    const day = String(d.getDate()).padStart(2, "0");
+    const monthsEn = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+    const monthsRu = [
+      "янв",
+      "фев",
+      "мар",
+      "апр",
+      "мая",
+      "июн",
+      "июл",
+      "авг",
+      "сен",
+      "окт",
+      "ноя",
+      "дек",
+    ];
+    const mo = ru ? monthsRu[d.getMonth()] : monthsEn[d.getMonth()];
+    const hh = String(d.getHours()).padStart(2, "0");
+    const mm = String(d.getMinutes()).padStart(2, "0");
+    return day + " " + mo + ", " + hh + ":" + mm;
+  } catch (e) {
+    return String(iso);
+  }
+}
+
 function updateSettingsBackupInfo() {
   const meta = document.getElementById("autobackupMeta");
   if (meta) {
     const s = getBrowserBackupSavedAt();
     if (s) {
-      let label = s;
-      try {
-        const d = new Date(s);
-        if (!isNaN(d.getTime())) {
-          label = d.toLocaleString();
-        }
-      } catch (e) {
-        /* keep raw */
-      }
+      const label = formatBackupTimestampForUi(s);
       meta.textContent = t("lastBrowserBackup").replace("{t}", label);
     } else {
       meta.textContent = t("noBrowserBackup");
@@ -2711,6 +2760,29 @@ function updateSettingsBackupInfo() {
   const btnR = document.getElementById("btnRestoreBrowserBackup");
   if (btnR) {
     btnR.disabled = !getBrowserBackupSavedAt();
+  }
+  const btnN = document.getElementById("btnBackupBrowserNow");
+  if (btnN) {
+    btnN.disabled = !hasMainproLogin();
+  }
+}
+
+function backupBrowserNowFromSettings() {
+  if (!hasMainproLogin()) {
+    showJobsToast("Select a role first");
+    return;
+  }
+  try {
+    const payload = buildBrowserSnapshotPayload();
+    localStorage.setItem(
+      MAINPRO_BROWSER_BACKUP_KEY,
+      JSON.stringify(payload)
+    );
+    updateSettingsBackupInfo();
+    showJobsToast(t("backupCreatedToast"));
+  } catch (e) {
+    console.warn("Manual browser backup failed", e);
+    showJobsToast("Storage full or blocked");
   }
 }
 
@@ -2748,13 +2820,17 @@ function restoreFromBrowserBackup() {
   return importJobsFromArrayAfterConfirm(
     o.jobs,
     "browser backup",
-    t("backupRestored")
+    t("restoredSuccessfully"),
+    t("restoreBrowserConfirm")
   );
 }
 
-function importJobsFromArrayAfterConfirm(arr, sourceLabel, toastMsg) {
+function importJobsFromArrayAfterConfirm(arr, sourceLabel, toastMsg, confirmOverride) {
   const n = arr.length;
-  if (
+  let confirmed = false;
+  if (confirmOverride != null && String(confirmOverride).trim() !== "") {
+    confirmed = confirm(String(confirmOverride));
+  } else if (
     !confirm(
       n === 0
         ? (sourceLabel
@@ -2769,6 +2845,11 @@ function importJobsFromArrayAfterConfirm(arr, sourceLabel, toastMsg) {
             "? This cannot be undone."
     )
   ) {
+    confirmed = false;
+  } else {
+    confirmed = true;
+  }
+  if (!confirmed) {
     return false;
   }
   try {
