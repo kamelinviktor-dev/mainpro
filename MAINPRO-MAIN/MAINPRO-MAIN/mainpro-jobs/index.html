@@ -6703,10 +6703,10 @@
       <div class="form-field">
         <div class="form-hint">Photo (optional)</div>
         <p class="form-photo-help">
-          <strong>Phone or tablet:</strong> tap “Choose file” — your device will offer the <strong>camera</strong> or your <strong>photo library</strong>.
-          <strong>Computer:</strong> pick an image from your files. The picture is stored with the job in this device’s browser.
+          <strong>Phone or tablet:</strong> tap “Choose file” — you can use the <strong>camera</strong>, <strong>photo library</strong>, or <strong>files</strong> (e.g. PDF, documents).
+          <strong>Computer:</strong> pick an image or file. Attachments are stored with the job in this device’s browser.
         </p>
-        <input id="jobPhoto" type="file" accept="image/*" capture="environment">
+        <input id="jobPhoto" type="file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt">
         <div id="jobPhotoPreview"></div>
       </div>
       <button type="button" class="btn-submit" onclick="addJob()">Submit</button>

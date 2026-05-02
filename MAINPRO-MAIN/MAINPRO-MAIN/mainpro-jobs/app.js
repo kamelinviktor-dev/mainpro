@@ -4809,7 +4809,13 @@ function bindPhotoPreview() {
   input.addEventListener("change", function () {
     prev.innerHTML = "";
     const f = input.files && input.files[0];
-    if (!f || !f.type || !f.type.startsWith("image/")) return;
+    if (!f) return;
+    if (!f.type || !f.type.startsWith("image/")) {
+      prev.textContent = f.name
+        ? "Attached: " + String(f.name)
+        : "Attached file";
+      return;
+    }
     const r = new FileReader();
     r.onload = function () {
       if (typeof r.result !== "string") return;
