@@ -269,54 +269,6 @@
       cursor: pointer;
     }
 
-    .jobs-settings-autobackup {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      margin-top: 4px;
-      padding-top: 10px;
-      border-top: 1px solid #e2e8f0;
-    }
-
-    .jobs-settings-autobackup-row {
-      display: flex;
-      flex-direction: row;
-      align-items: flex-start;
-      gap: 10px;
-      cursor: pointer;
-      text-align: left;
-      font-size: 0.9rem;
-      line-height: 1.4;
-    }
-
-    .jobs-settings-autobackup-row input {
-      margin-top: 3px;
-      flex: 0 0 auto;
-    }
-
-    .jobs-settings-autobackup-text {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .autobackup-line {
-      font-weight: 600;
-      color: #0f172a;
-    }
-
-    .autobackup-hint {
-      font-size: 0.78rem;
-      color: #64748b;
-    }
-
-    .autobackup-meta {
-      font-size: 0.8rem;
-      color: #64748b;
-      margin: 0;
-      padding: 0 0 0 30px;
-    }
-
     .app-wrap {
       --mp-pad-h: 16px;
       --mp-ink: #0f172a;
@@ -434,132 +386,261 @@
       border-radius: 12px;
     }
 
-    .jobs-settings-modal {
+    /* —— Settings modal (bottom sheet, mobile-first) —— */
+    .settings-modal-overlay {
       position: fixed;
       inset: 0;
+      background: transparent;
       z-index: 18920;
-      display: flex;
-      align-items: center;
+      display: none;
+      align-items: stretch !important;
       justify-content: center;
-      padding: 24px 16px;
+      padding: 0 !important;
+      margin: 0 !important;
       box-sizing: border-box;
     }
 
-    .jobs-settings-modal[hidden] {
+    .settings-modal-overlay:not([hidden]) {
+      display: flex;
+    }
+
+    .settings-modal-overlay[hidden] {
       display: none !important;
     }
 
-    .jobs-settings-backdrop {
+    .settings-modal-backdrop {
       position: absolute;
       inset: 0;
       background: rgba(15, 23, 42, 0.45);
     }
 
-    .jobs-settings-card {
+    .settings-panel {
       position: relative;
       z-index: 1;
       width: 100%;
-      max-width: 360px;
-      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-      border-radius: 18px;
-      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.95) inset, 0 16px 48px rgba(15, 23, 42, 0.14);
-      border: 1px solid rgba(148, 163, 184, 0.3);
-      margin-top: 0;
+      max-width: 430px;
+      min-height: 100vh;
+      max-height: 100vh;
+      min-height: 100dvh;
+      max-height: 100dvh;
+      margin: 0 !important;
+      overflow-x: hidden;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      background: #fff;
+      border-radius: 0 !important;
+      padding-top: 0;
+      padding-left: 18px;
+      padding-right: 18px;
+      padding-bottom: calc(32px + env(safe-area-inset-bottom, 0px));
+      box-sizing: border-box;
     }
 
-    @media (min-width: 601px) {
-      .jobs-settings-card {
-        position: fixed;
-        top: 88px;
-        right: 24px;
-        left: auto;
-        width: min(300px, calc(100vw - 32px));
-        margin: 0;
-      }
+    .settings-panel * {
+      box-sizing: border-box;
+      max-width: 100%;
     }
 
-    .jobs-settings-head {
+    .settings-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
       display: flex;
-      align-items: center;
       justify-content: space-between;
-      gap: 8px;
-      padding: 14px 16px 6px;
-      border-bottom: 1px solid #f1f5f9;
-    }
-
-    .jobs-settings-title {
-      margin: 0;
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: #0f172a;
-    }
-
-    .jobs-settings-x {
-      width: 36px;
-      height: 36px;
-      display: flex;
       align-items: center;
-      justify-content: center;
-      border: none;
-      background: #f1f5f9;
-      border-radius: 10px;
-      font-size: 1.3rem;
+      gap: 12px;
+      min-width: 0;
+      margin: 0;
+      padding-top: calc(16px + env(safe-area-inset-top, 0px));
+      padding-bottom: 14px;
+      padding-left: 0;
+      padding-right: 0;
+      background: #fff;
+    }
+
+    .settings-title {
+      margin: 0;
+      font-size: 26px;
+      font-weight: 800;
+      color: #111827;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .settings-close {
+      flex-shrink: 0;
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      border: 1px solid #e5e7eb;
+      background: #f8fafc;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+      font-size: 22px;
       line-height: 1;
       color: #64748b;
       cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: inherit;
+      padding: 0;
     }
 
-    .jobs-settings-list {
+    .settings-section {
+      margin-top: 16px;
+      min-width: 0;
+    }
+
+    /* First section follows <header>; :first-child would not match (header is first child). */
+    .settings-panel > .settings-section:first-of-type {
+      margin-top: 12px;
+      scroll-margin-top: 12px;
+    }
+
+    .settings-section-title {
+      font-size: 12px;
+      font-weight: 900;
+      color: #7f8da0;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin: 0 0 8px;
+    }
+
+    .settings-card {
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      border-radius: 18px;
+      padding: 12px;
+      min-width: 0;
+      box-shadow: 0 8px 22px rgba(15, 23, 42, 0.035);
+    }
+
+    .settings-card--stack {
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      padding: 12px 16px 16px;
+      gap: 10px;
+      padding: 12px;
     }
 
-    .jobs-settings-btn {
+    .settings-card--stack .settings-btn {
+      margin-bottom: 0;
+    }
+
+    .settings-btn {
       display: block;
       width: 100%;
-      padding: 10px 12px;
-      font-size: 14px;
-      font-weight: 600;
-      text-align: left;
-      border: 1px solid rgba(148, 163, 184, 0.35);
-      border-radius: 11px;
-      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+      min-height: 52px;
+      border-radius: 14px;
+      border: 1px solid #dbe3ea;
+      background: #fff;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.025);
       color: #334155;
+      font-size: 16px;
+      font-weight: 700;
+      text-align: left;
+      padding: 0 16px;
+      margin-bottom: 10px;
       cursor: pointer;
-      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset;
+      font-family: inherit;
     }
 
-    .jobs-settings-btn:active {
-      background: #f1f5f9;
+    .settings-btn:last-child {
+      margin-bottom: 0;
     }
 
-    .jobs-settings-lang {
+    .settings-row {
       display: flex;
-      flex-wrap: wrap;
       align-items: center;
       justify-content: space-between;
-      gap: 8px;
-      margin-top: 4px;
-      padding-top: 8px;
-      border-top: 1px solid #f1f5f9;
+      gap: 12px;
+      min-width: 0;
     }
 
-    .jobs-settings-lang-label {
-      font-size: 13px;
-      font-weight: 600;
-      color: #64748b;
+    .settings-row-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #334155;
+      min-width: 0;
+      flex: 1;
     }
 
-    .jobs-settings-btn--lang {
-      flex: 0 0 auto;
-      min-width: 52px;
-      width: auto;
-      text-align: center;
+    .settings-pill {
+      flex-shrink: 0;
+      min-width: 64px;
+      min-height: 48px;
+      border-radius: 16px;
+      border: 1px solid #a7f3d0;
       background: #ecfdf5;
-      border-color: #a7f3d0;
-      color: #065f46;
+      color: #047857;
+      font-size: 17px;
+      font-weight: 800;
+      cursor: pointer;
+      font-family: inherit;
+      padding: 0 12px;
+    }
+
+    .settings-description {
+      font-size: 14px;
+      line-height: 1.45;
+      color: #64748b;
+      margin: 6px 0 0;
+      overflow-wrap: break-word;
+      word-break: break-word;
+      white-space: normal;
+      max-width: 100%;
+    }
+
+    .settings-checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 14px;
+      color: #334155;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: left;
+      min-width: 0;
+    }
+
+    .settings-checkbox-row input {
+      width: 20px;
+      height: 20px;
+      flex: 0 0 auto;
+      margin: 0;
+    }
+
+    .settings-checkbox-row span {
+      flex: 1;
+      min-width: 0;
+      overflow-wrap: break-word;
+      word-break: break-word;
+      white-space: normal;
+    }
+
+    .settings-status {
+      margin-top: 12px;
+      font-size: 14px;
+      color: #64748b;
+      overflow-wrap: break-word;
+      word-break: break-word;
+      white-space: normal;
+      max-width: 100%;
+    }
+
+    .settings-primary-btn {
+      width: 100%;
+      min-height: 54px;
+      margin-top: 12px;
+      border-radius: 16px;
+      border: 1px solid #dbe3ea;
+      background: #fff;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.025);
+      color: #334155;
+      font-size: 16px;
+      font-weight: 800;
+      cursor: pointer;
+      font-family: inherit;
+      padding: 0 16px;
     }
 
     .search-hit {
@@ -4224,12 +4305,12 @@
         font-size: 17px;
       }
 
-      .jobs-settings-btn:hover {
+      .settings-btn:hover {
         background: #f8fafc;
         border-color: #cbd5e1;
       }
 
-      .jobs-settings-x:hover {
+      .settings-close:hover {
         background: #e2e8f0;
         color: #334155;
       }
@@ -5298,7 +5379,7 @@
       .btn-header-primary,
       .btn-header-settings,
       .btn-change-user,
-      .jobs-settings-btn {
+      .settings-btn {
         transition: none !important;
       }
 
@@ -6367,7 +6448,6 @@
     .onboarding-card,
     .login-card,
     .park-modal-card,
-    .jobs-settings-card,
     .job.job-card,
     .jobs-controls-panel,
     .control-panel,
@@ -6378,7 +6458,6 @@
 
     .login-card:hover,
     .park-modal-card:hover,
-    .jobs-settings-card:hover,
     .job.job-card:hover {
       transform: translateY(-4px);
       box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08), 0 6px 12px rgba(0, 0, 0, 0.06);
@@ -6545,35 +6624,47 @@
     </div>
   </div>
 
-  <div id="jobsSettingsModal" class="jobs-settings-modal" hidden role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle">
-    <div class="jobs-settings-backdrop" onclick="closeJobsSettings()"></div>
-    <div class="jobs-settings-card">
-      <div class="jobs-settings-head">
-        <h2 id="settingsModalTitle" class="jobs-settings-title">Settings</h2>
-        <button type="button" class="jobs-settings-x" onclick="closeJobsSettings()" aria-label="Close">×</button>
-      </div>
-      <div class="jobs-settings-list">
-        <button type="button" class="jobs-settings-btn" id="btnSettingsHelp" onclick="closeJobsSettings(); openJobsTipsDialog();">Help</button>
-        <button type="button" class="jobs-settings-btn" id="btnExportBackup" onclick="exportJobsBackup(); closeJobsSettings();" title="Download JSON backup of jobs (and current role)">Export JSON</button>
-        <button type="button" class="jobs-settings-btn" id="btnExportCsv" onclick="exportJobsCsv(); closeJobsSettings();" title="Download CSV (Excel)">Export CSV</button>
-        <button type="button" class="jobs-settings-btn" id="btnImportBackup" onclick="closeJobsSettings(); triggerImportBackup();" title="Replace all jobs from JSON file">Import JSON</button>
-        <button type="button" class="jobs-settings-btn" id="btnImportMerge" onclick="closeJobsSettings(); triggerImportMerge();" title="Merge jobs from JSON (same id = replace)">Merge JSON</button>
-        <div class="jobs-settings-lang" role="group" aria-label="UI language">
-          <span class="jobs-settings-lang-label" id="settingsLangLabel">Language</span>
-          <button type="button" class="jobs-settings-btn jobs-settings-btn--lang" id="btnUiLang" onclick="toggleUiLang()" title="Switch language" aria-label="Language">EN</button>
+  <div id="jobsSettingsModal" class="settings-modal-overlay jobs-settings-modal" hidden role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle">
+    <div class="settings-modal-backdrop" onclick="closeJobsSettings()" aria-hidden="true"></div>
+    <div class="settings-panel" role="document">
+      <header class="settings-header">
+        <h2 id="settingsModalTitle" class="settings-title">Settings</h2>
+        <button type="button" class="settings-close" onclick="closeJobsSettings()" aria-label="Close">×</button>
+      </header>
+
+      <section class="settings-section" aria-labelledby="settingsSectionData">
+        <h3 id="settingsSectionData" class="settings-section-title">Data tools</h3>
+        <div class="settings-card settings-card--stack">
+          <button type="button" class="settings-btn" id="btnSettingsHelp" onclick="closeJobsSettings(); openJobsTipsDialog();">Help</button>
+          <button type="button" class="settings-btn" id="btnExportBackup" onclick="exportJobsBackup(); closeJobsSettings();" title="Download JSON backup of jobs (and current role)">Export JSON</button>
+          <button type="button" class="settings-btn" id="btnExportCsv" onclick="exportJobsCsv(); closeJobsSettings();" title="Download CSV (Excel)">Export CSV</button>
+          <button type="button" class="settings-btn" id="btnImportBackup" onclick="closeJobsSettings(); triggerImportBackup();" title="Replace all jobs from JSON file">Import JSON</button>
+          <button type="button" class="settings-btn" id="btnImportMerge" onclick="closeJobsSettings(); triggerImportMerge();" title="Merge jobs from JSON (same id = replace)">Merge JSON</button>
         </div>
-        <div class="jobs-settings-autobackup">
-          <label class="jobs-settings-autobackup-row" for="cbAutobackup">
+      </section>
+
+      <section class="settings-section" aria-labelledby="settingsSectionLang">
+        <h3 id="settingsSectionLang" class="settings-section-title">Language</h3>
+        <div class="settings-card">
+          <div class="settings-row">
+            <span class="settings-row-title" id="settingsLangLabel">Language</span>
+            <button type="button" class="settings-pill" id="btnUiLang" onclick="toggleUiLang()" title="Switch language" aria-label="Language">EN</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-section" aria-labelledby="settingsSectionBackup">
+        <h3 id="settingsSectionBackup" class="settings-section-title">Browser backup</h3>
+        <div class="settings-card">
+          <p class="settings-description" id="autobackupHint">Keeps a local backup of your jobs on this device. Useful before updates or testing.</p>
+          <label class="settings-checkbox-row" for="cbAutobackup">
             <input type="checkbox" id="cbAutobackup" onchange="onAutobackupToggle()" />
-            <span class="jobs-settings-autobackup-text">
-              <span class="autobackup-line" id="autobackupLabel">Browser backup</span>
-              <span class="autobackup-hint" id="autobackupHint">Keeps a copy in this device.</span>
-            </span>
+            <span id="autobackupLabel">Enable browser backup</span>
           </label>
-          <p class="autobackup-meta" id="autobackupMeta"></p>
-          <button type="button" class="jobs-settings-btn" id="btnRestoreBrowserBackup" disabled onclick="restoreFromBrowserBackup()">Restore from browser backup</button>
+          <p class="settings-status" id="autobackupMeta"></p>
+          <button type="button" class="settings-primary-btn" id="btnRestoreBrowserBackup" disabled onclick="restoreFromBrowserBackup()">Restore from browser backup</button>
         </div>
-      </div>
+      </section>
     </div>
   </div>
 
