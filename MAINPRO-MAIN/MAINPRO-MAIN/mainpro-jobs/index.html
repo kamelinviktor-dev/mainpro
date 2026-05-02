@@ -2229,6 +2229,117 @@
       font-style: italic;
     }
 
+    .reassign-sheet__subtitle {
+      margin: 0 0 12px;
+      padding: 0 18px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #64748b;
+      line-height: 1.4;
+    }
+
+    .reassign-sheet__handle {
+      display: none;
+    }
+
+    /* Notes & Activity history sheets — premium panel (mobile ≤600px; job detail unchanged) */
+    @media (max-width: 600px) {
+      #jobNotesHistorySheet .reassign-sheet__handle,
+      #jobActivityHistorySheet .reassign-sheet__handle {
+        display: block;
+        width: 44px;
+        height: 4px;
+        margin: 6px auto 14px;
+        border-radius: 999px;
+        background: #d1d5db;
+        flex-shrink: 0;
+      }
+
+      #jobNotesHistorySheet .reassign-sheet__panel--history,
+      #jobActivityHistorySheet .reassign-sheet__panel--history {
+        max-height: 75dvh;
+        padding-top: 8px;
+        border-radius: 16px 16px 0 0;
+        background: #fff;
+      }
+
+      #jobNotesHistorySheet .reassign-sheet__panel--history .reassign-sheet__title,
+      #jobActivityHistorySheet .reassign-sheet__panel--history .reassign-sheet__title {
+        margin: 0 0 6px;
+        padding: 0 18px;
+        font-size: 22px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: #0f172a;
+      }
+
+      #jobNotesHistorySheet .reassign-sheet__subtitle,
+      #jobActivityHistorySheet .reassign-sheet__subtitle {
+        margin: 0 0 14px;
+      }
+
+      #jobNotesHistorySheet .job-history-sheet__scroll,
+      #jobActivityHistorySheet .job-history-sheet__scroll {
+        padding-top: 4px;
+      }
+
+      /* Notes list: accent cards + breathing room */
+      #jobNotesHistorySheet .job-log--timeline .comment-log-item--engineer.note-card,
+      #jobNotesHistorySheet .job-log--timeline .note-card {
+        border-left: 4px solid #10b981;
+        box-shadow:
+          0 8px 22px rgba(15, 23, 42, 0.08),
+          0 2px 8px rgba(15, 23, 42, 0.05);
+        margin-bottom: 12px !important;
+      }
+
+      #jobNotesHistorySheet .job-log--timeline .comment-log-item--engineer.note-card:last-child,
+      #jobNotesHistorySheet .job-log--timeline .note-card:last-child {
+        margin-bottom: 0 !important;
+      }
+
+      /* Activity sheet: full-height scroll (override global job-activity-list cap) */
+      #jobActivityHistorySheet .activity-timeline.job-activity-list,
+      #jobActivityHistorySheet .activity-timeline.expanded {
+        max-height: none !important;
+        overflow-y: visible !important;
+        margin-bottom: 4px;
+      }
+
+      #jobActivityHistorySheet .activity-item {
+        margin-bottom: 12px;
+        opacity: 1;
+      }
+
+      #jobActivityHistorySheet .activity-item:last-child {
+        margin-bottom: 0;
+      }
+
+      /* Latest activity row (first = newest) slightly stronger */
+      #jobActivityHistorySheet .activity-timeline .activity-item:first-child .activity-line-text strong {
+        font-weight: 800;
+        color: #0f172a;
+      }
+
+      #jobActivityHistorySheet .activity-time {
+        color: #94a3b8;
+        font-weight: 500;
+      }
+
+      #jobActivityHistorySheet .activity-row {
+        gap: 14px;
+      }
+
+      /* Close — same placement, clearer chrome */
+      #jobNotesHistorySheet .reassign-sheet__actions .reassign-sheet__btn--secondary,
+      #jobActivityHistorySheet .reassign-sheet__actions .reassign-sheet__btn--secondary {
+        border: 1px solid #cbd5e1;
+        box-shadow:
+          0 2px 8px rgba(15, 23, 42, 0.07),
+          0 1px 2px rgba(15, 23, 42, 0.05);
+      }
+    }
+
     #jobDetailModal .job-log-open-sheet {
       display: block;
       width: 100%;
@@ -2237,13 +2348,76 @@
       border: none;
       background: none;
       font-size: 14px;
-      font-weight: 600;
-      color: #0d9488;
+      font-weight: 800;
+      color: #047857;
       text-align: left;
       text-decoration: underline;
-      text-underline-offset: 3px;
+      text-underline-offset: 4px;
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
+    }
+
+    #jobDetailModal .job-log-open-sheet::after {
+      content: " →";
+      font-weight: 800;
+      color: #047857;
+      text-decoration: none;
+      display: inline;
+    }
+
+    /* Latest engineer note — accent + depth (preview row only; layout unchanged) */
+    #jobDetailModal .job-notes-preview .note-card,
+    #jobDetailModal .job-notes-preview .comment-log-item--engineer.note-card {
+      border-left: 4px solid #10b981 !important;
+      box-shadow:
+        0 12px 32px rgba(15, 23, 42, 0.1),
+        0 4px 14px rgba(15, 23, 42, 0.07) !important;
+    }
+
+    /* Title / description / meta — typography only (single-line meta unchanged) */
+    #jobDetailModal .job--modal-detail .job-title strong {
+      font-weight: 800;
+    }
+
+    #jobDetailModal .job--modal-detail .job-problem {
+      font-weight: 600;
+      color: #374151;
+    }
+
+    #jobDetailModal .job--modal-detail .job-meta-row,
+    #jobDetailModal .job--modal-detail .job-sla-row {
+      color: #374151;
+      opacity: 1;
+    }
+
+    #jobDetailModal .job--modal-detail .comment-field.comment-new {
+      border: 1px solid #d1d5db;
+      box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+
+    #jobDetailModal .job--modal-detail .btn-save-note {
+      box-shadow:
+        0 2px 8px rgba(5, 150, 105, 0.16),
+        0 1px 3px rgba(15, 23, 42, 0.08);
+    }
+
+    /* Main job detail scroll: thin scrollbar (WebKit + Firefox) — container unchanged */
+    #jobDetailModal .job-detail-modal__body .job-detail-screen-main {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(148, 163, 184, 0.85) transparent;
+    }
+
+    #jobDetailModal .job-detail-modal__body .job-detail-screen-main::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    #jobDetailModal .job-detail-modal__body .job-detail-screen-main::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    #jobDetailModal .job-detail-modal__body .job-detail-screen-main::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.85);
+      border-radius: 999px;
     }
 
     #jobDetailModal .job-notes-preview,
@@ -6540,7 +6714,9 @@
   <div id="jobNotesHistorySheet" class="reassign-sheet" hidden role="dialog" aria-modal="true" aria-labelledby="jobNotesHistoryTitle">
     <div class="reassign-sheet__backdrop" onclick="closeJobNotesHistorySheet()"></div>
     <div class="reassign-sheet__panel reassign-sheet__panel--history">
+      <div class="reassign-sheet__handle" aria-hidden="true"></div>
       <h2 id="jobNotesHistoryTitle" class="reassign-sheet__title">All notes</h2>
+      <p class="reassign-sheet__subtitle">Latest updates from engineers</p>
       <div id="jobNotesHistoryBody" class="job-history-sheet__scroll"></div>
       <div class="reassign-sheet__actions">
         <button type="button" class="reassign-sheet__btn reassign-sheet__btn--secondary" onclick="closeJobNotesHistorySheet()">Close</button>
@@ -6551,7 +6727,9 @@
   <div id="jobActivityHistorySheet" class="reassign-sheet" hidden role="dialog" aria-modal="true" aria-labelledby="jobActivityHistoryTitle">
     <div class="reassign-sheet__backdrop" onclick="closeJobActivityHistorySheet()"></div>
     <div class="reassign-sheet__panel reassign-sheet__panel--history">
+      <div class="reassign-sheet__handle" aria-hidden="true"></div>
       <h2 id="jobActivityHistoryTitle" class="reassign-sheet__title">Activity</h2>
+      <p class="reassign-sheet__subtitle">Job timeline</p>
       <div id="jobActivityHistoryBody" class="job-history-sheet__scroll"></div>
       <div class="reassign-sheet__actions">
         <button type="button" class="reassign-sheet__btn reassign-sheet__btn--secondary" onclick="closeJobActivityHistorySheet()">Close</button>
