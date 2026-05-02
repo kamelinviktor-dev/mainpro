@@ -1142,7 +1142,170 @@
       display: block;
     }
 
+    #jobPhotoPreview {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: flex-start;
+    }
+
+    #jobPhotoPreview .form-photo-preview {
+      margin-top: 0;
+      max-height: 100px;
+      object-fit: cover;
+    }
+
     #jobPhotoPreview:empty { margin: 0; }
+
+    .new-job-pending-item {
+      position: relative;
+      display: inline-block;
+      vertical-align: top;
+    }
+    .new-job-pending-remove {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      width: 22px;
+      height: 22px;
+      padding: 0;
+      line-height: 20px;
+      font-size: 14px;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      background: rgba(15, 23, 42, 0.72);
+      color: #fff;
+    }
+    .new-job-pending-doc {
+      display: inline-block;
+      max-width: 140px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: rgba(148, 163, 184, 0.22);
+      font-size: 12px;
+      word-break: break-word;
+    }
+    #jobPhotoPickBtn {
+      margin-top: 8px;
+      margin-bottom: 4px;
+    }
+
+    .job-detail-attachments {
+      margin-bottom: 12px;
+    }
+    .job-detail-files-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .job-detail-attach-add {
+      margin-top: 10px;
+    }
+    .btn-attach-job-file {
+      font-size: 13px;
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      background: rgba(248, 250, 252, 0.9);
+      cursor: pointer;
+      color: #0f172a;
+    }
+    .job-file-chip {
+      display: inline-flex;
+      align-items: center;
+      max-width: 100%;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      background: rgba(241, 245, 249, 0.95);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      color: #0f172a;
+      text-decoration: none;
+      word-break: break-all;
+    }
+    .job-list-photo--doc {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 6px;
+      font-size: 12px;
+      color: #475569;
+    }
+    .job-list-doc-name {
+      max-width: 120px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .note-composer-tools {
+      margin-top: 8px;
+      margin-bottom: 4px;
+    }
+    .btn-note-attach {
+      font-size: 13px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      background: #fff;
+      cursor: pointer;
+      color: #0f172a;
+    }
+    .note-pending-attachments {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .note-pending-item {
+      position: relative;
+      display: inline-block;
+    }
+    .note-pending-thumb {
+      width: 72px;
+      height: 72px;
+      object-fit: cover;
+      border-radius: 10px;
+      display: block;
+    }
+    .note-pending-remove {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      width: 22px;
+      height: 22px;
+      padding: 0;
+      line-height: 20px;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      background: rgba(15, 23, 42, 0.72);
+      color: #fff;
+      font-size: 13px;
+    }
+    .comment-attachments-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .comment-attach-thumb {
+      border: none;
+      padding: 0;
+      background: transparent;
+      cursor: pointer;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .comment-attach-thumb img {
+      width: 72px;
+      height: 72px;
+      object-fit: cover;
+      display: block;
+      vertical-align: middle;
+    }
 
     .btn-submit {
       width: 100%;
@@ -2661,6 +2824,43 @@
       border-radius: 12px;
       overflow: hidden;
       background: #f1f5f9;
+    }
+
+    .job-list-photo--stack {
+      position: relative;
+    }
+
+    .job-list-photo__more {
+      position: absolute;
+      bottom: 3px;
+      right: 3px;
+      min-width: 22px;
+      padding: 2px 6px;
+      font-size: 10px;
+      font-weight: 800;
+      line-height: 1.2;
+      color: #fff;
+      background: rgba(15, 23, 42, 0.78);
+      border-radius: 8px;
+      pointer-events: none;
+    }
+
+    .job-photo-gallery {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 10px;
+      align-items: flex-start;
+    }
+
+    .job-photo-thumb--gallery {
+      width: 76px;
+      height: 76px;
+      object-fit: cover;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
     }
 
     .job-list-photo__img,
@@ -6701,12 +6901,13 @@
         <div class="form-hint reporting-as-line">Reporting as: <strong id="reportingAsDisplay">—</strong></div>
       </div>
       <div class="form-field">
-        <div class="form-hint">Photo (optional)</div>
+        <div class="form-hint">Attachments (optional, max 5)</div>
         <p class="form-photo-help">
-          <strong>Phone or tablet:</strong> tap “Choose file” — you can use the <strong>camera</strong>, <strong>photo library</strong>, or <strong>files</strong> (e.g. PDF, documents).
-          <strong>Computer:</strong> pick an image or file. Attachments are stored with the job in this device’s browser.
+          <strong>Phone or tablet:</strong> tap “Add photo / file” — use the <strong>camera</strong>, <strong>photo library</strong>, or <strong>files</strong> (e.g. PDF). Each pick <strong>adds</strong> to the list (nothing is replaced).
+          <strong>Computer:</strong> choose multiple files or add in several passes. Stored in this browser only.
         </p>
-        <input id="jobPhoto" type="file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt">
+        <button type="button" class="btn-sec" id="jobPhotoPickBtn">Add photo / file</button>
+        <input id="jobPhoto" type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" aria-label="Add job attachments" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none">
         <div id="jobPhotoPreview"></div>
       </div>
       <button type="button" class="btn-submit" onclick="addJob()">Submit</button>
@@ -6764,6 +6965,9 @@
   </div>
 
   <div id="jobsToast" class="jobs-toast" role="status" aria-live="polite" hidden></div>
+
+  <input type="file" id="jobDetailAttachmentInput" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" aria-hidden="true" tabindex="-1" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none">
+  <input type="file" id="noteComposerAttachmentInput" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" aria-hidden="true" tabindex="-1" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none">
 
   <script src="app.js"></script>
   <script>

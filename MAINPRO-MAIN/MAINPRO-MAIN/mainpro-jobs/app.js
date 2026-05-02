@@ -784,6 +784,10 @@ function loadJobs() {
       x.photo = "";
       changed = true;
     }
+    if (x.attachments != null && !Array.isArray(x.attachments)) {
+      delete x.attachments;
+      changed = true;
+    }
     if (x.completedAt == null) {
       x.completedAt = "";
       changed = true;
@@ -875,6 +879,9 @@ function loadJobs() {
       changed = true;
     }
     delete x.isOverdue;
+    if (migrateJobAttachmentsOnJob(x)) {
+      changed = true;
+    }
     return x;
   });
   {
@@ -903,7 +910,8 @@ function loadJobs() {
   return list;
 }
 
-function save() {
+/** @param {boolean} [suppressQuotaAlert] if true, caller handles user-facing quota message */
+function save(suppressQuotaAlert) {
   const out = jobs.map((j) => {
     const o = { ...j };
     delete o.isOverdue;
@@ -912,8 +920,414 @@ function save() {
     if (!Array.isArray(o.comments)) o.comments = [];
     return o;
   });
-  localStorage.setItem("jobs", JSON.stringify(out));
+  let serialized = "";
+  try {
+    serialized = JSON.stringify(out);
+  } catch (e) {
+    console.error("Save failed:", e);
+    if (!suppressQuotaAlert) {
+      alert("Storage limit reached. Please remove some photos.");
+    }
+    return false;
+  }
+  console.log("Storage size:", serialized.length);
+  try {
+    localStorage.setItem("jobs", serialized);
+  } catch (e) {
+    console.error("Save failed:", e);
+    if (!suppressQuotaAlert) {
+      alert("Storage limit reached. Please remove some photos.");
+    }
+    return false;
+  }
   maybeWriteBrowserAutobackup();
+  return true;
+}
+
+const MAX_NEW_JOB_PENDING_ATTACHMENTS = 5;
+const MAX_JOB_ATTACHMENTS_TOTAL = 10;
+const MAX_NOTE_PENDING_ATTACHMENTS = 5;
+
+function newAttachmentId() {
+  return "att-" + Date.now() + "-" + String(Math.floor(Math.random() * 1e9));
+}
+
+function normalizeJobAttachmentRow(raw, defaults) {
+  const d = defaults || {};
+  if (!raw || typeof raw !== "object") return null;
+  const dataUrl =
+    typeof raw.dataUrl === "string" ? String(raw.dataUrl).trim() : "";
+  if (!dataUrl) return null;
+  let source = "job";
+  if (raw.source === "note") source = "note";
+  else if (raw.source === "job") source = "job";
+  else if (d.source === "note" || d.source === "job") source = d.source;
+  return {
+    id:
+      typeof raw.id === "string" && raw.id.trim()
+        ? String(raw.id)
+        : newAttachmentId(),
+    name:
+      raw.name != null && String(raw.name).trim()
+        ? String(raw.name)
+        : "file",
+    type: raw.type != null ? String(raw.type) : "",
+    dataUrl,
+    createdAt:
+      raw.createdAt && String(raw.createdAt).trim()
+        ? String(raw.createdAt)
+        : d.createdAt && String(d.createdAt).trim()
+          ? String(d.createdAt)
+          : new Date().toISOString(),
+    addedBy:
+      raw.addedBy != null && String(raw.addedBy).trim()
+        ? String(raw.addedBy)
+        : d.addedBy != null
+          ? String(d.addedBy)
+          : "",
+    source,
+  };
+}
+
+function migrateJobAttachmentsOnJob(x) {
+  let changed = false;
+  if (Array.isArray(x.attachments)) {
+    const filtered = [];
+    for (let i = 0; i < x.attachments.length; i++) {
+      const n = normalizeJobAttachmentRow(x.attachments[i], {
+        source: "job",
+        addedBy: x.reportedBy || "",
+        createdAt: x.createdAt || "",
+      });
+      if (n) filtered.push(n);
+      else changed = true;
+    }
+    if (filtered.length !== x.attachments.length) changed = true;
+    x.attachments = filtered;
+  }
+  if (Array.isArray(x.comments)) {
+    for (let ci = 0; ci < x.comments.length; ci++) {
+      const c = x.comments[ci];
+      if (!c || typeof c !== "object") continue;
+      if (!Array.isArray(c.attachments)) continue;
+      const filtered = [];
+      for (let i = 0; i < c.attachments.length; i++) {
+        const n = normalizeJobAttachmentRow(c.attachments[i], {
+          source: "note",
+          addedBy: (c.author && String(c.author)) || "",
+          createdAt: c.createdAt || "",
+        });
+        if (n) filtered.push(n);
+        else changed = true;
+      }
+      if (filtered.length !== c.attachments.length) changed = true;
+      c.attachments = filtered;
+    }
+  }
+  return changed;
+}
+
+/** New Job form: append picks (max 5). */
+let _newJobPendingAttachments = [];
+/** Active FileReader/compress chains for new-job picks — Submit waits until this is 0. */
+let _newJobAttachmentReadsPending = 0;
+
+/** Note composer pending files keyed by job id. */
+const _pendingNoteAttachmentsByJobId = {};
+
+function getPendingNoteAttachments(jobId) {
+  const k = String(jobId);
+  if (!_pendingNoteAttachmentsByJobId[k]) {
+    _pendingNoteAttachmentsByJobId[k] = [];
+  }
+  return _pendingNoteAttachmentsByJobId[k];
+}
+
+function clearPendingNoteAttachments(jobId) {
+  delete _pendingNoteAttachmentsByJobId[String(jobId)];
+}
+
+function readFileAsJobAttachment(file, done) {
+  const r = new FileReader();
+  r.onload = function () {
+    const src = typeof r.result === "string" ? r.result : "";
+    const mime = file.type || "";
+    const fname = file.name || "file";
+    if (mime.startsWith("image/")) {
+      compressDataUrlWithCanvas(src, 800, 800, 0.6, function (out) {
+        done(null, {
+          name: fname,
+          type: mime || "image/jpeg",
+          dataUrl: out || src,
+        });
+      });
+    } else {
+      done(null, {
+        name: fname,
+        type: mime || "application/octet-stream",
+        dataUrl: src,
+      });
+    }
+  };
+  r.onerror = function () {
+    done(new Error("read"));
+  };
+  r.readAsDataURL(file);
+}
+
+function removePendingNoteAttachment(jobId, idx) {
+  const arr = getPendingNoteAttachments(jobId);
+  if (idx >= 0 && idx < arr.length) arr.splice(idx, 1);
+  refreshNoteComposerPendingDom(jobId);
+}
+
+function removeNewJobPendingAttachment(idx) {
+  if (idx < 0 || idx >= _newJobPendingAttachments.length) return;
+  _newJobPendingAttachments.splice(idx, 1);
+  refreshNewJobPendingPreview();
+}
+
+function refreshNewJobPendingPreview() {
+  const prev = document.getElementById("jobPhotoPreview");
+  if (!prev) return;
+  prev.innerHTML = "";
+  _newJobPendingAttachments.forEach(function (item, ix) {
+    const wrap = document.createElement("div");
+    wrap.className = "new-job-pending-item";
+    if (String(item.dataUrl || "").indexOf("data:image/") === 0) {
+      const img = document.createElement("img");
+      img.className = "form-photo-preview";
+      img.src = item.dataUrl;
+      img.alt = "";
+      wrap.appendChild(img);
+    } else {
+      const span = document.createElement("span");
+      span.className = "new-job-pending-doc";
+      span.textContent = item.name || "file";
+      wrap.appendChild(span);
+    }
+    const rm = document.createElement("button");
+    rm.type = "button";
+    rm.className = "new-job-pending-remove";
+    rm.setAttribute("aria-label", "Remove");
+    rm.textContent = "×";
+    (function (i) {
+      rm.addEventListener("click", function () {
+        removeNewJobPendingAttachment(i);
+      });
+    })(ix);
+    wrap.appendChild(rm);
+    prev.appendChild(wrap);
+  });
+}
+
+function tryAppendNewJobPendingFromFiles(fileArr) {
+  const files = Array.isArray(fileArr) ? fileArr : [];
+  if (!files.length) return;
+  const room = MAX_NEW_JOB_PENDING_ATTACHMENTS - _newJobPendingAttachments.length;
+  if (room <= 0) {
+    showJobsToast("Maximum 5 attachments when creating a job.");
+    return;
+  }
+  const slice = files.slice(0, room);
+  if (files.length > slice.length) {
+    showJobsToast(
+      "Only " +
+        room +
+        " more attachment(s) allowed (max 5 when creating a job)."
+    );
+  }
+  if (!slice.length) return;
+  _newJobAttachmentReadsPending++;
+  let i = 0;
+  function step() {
+    if (i >= slice.length) {
+      _newJobAttachmentReadsPending--;
+      refreshNewJobPendingPreview();
+      return;
+    }
+    readFileAsJobAttachment(slice[i++], function (err, payload) {
+      if (err) {
+        console.warn("[addJob] attachment skipped (read failed)", err);
+      }
+      if (!err && payload) {
+        _newJobPendingAttachments.push(payload);
+      }
+      step();
+    });
+  }
+  step();
+}
+
+function processFilesForJobAppend(jobId, files) {
+  const j = jobs.find(function (x) {
+    return String(x.id) === String(jobId);
+  });
+  if (!j) {
+    showJobsToast("Could not find this job.");
+    return;
+  }
+  const arr = Array.isArray(files) ? files : [];
+  if (!arr.length) return;
+  let idx = 0;
+  function next() {
+    if (idx >= arr.length) {
+      render();
+      hapticNarrow();
+      return;
+    }
+    ensureJobAttachmentsMaterialized(j);
+    const current = jobAttachmentsList(j).length;
+    if (current >= MAX_JOB_ATTACHMENTS_TOTAL) {
+      showJobsToast("Maximum 10 attachments per job.");
+      render();
+      return;
+    }
+    readFileAsJobAttachment(arr[idx++], function (err, payload) {
+      if (err || !payload) {
+        next();
+        return;
+      }
+      ensureJobAttachmentsMaterialized(j);
+      if (jobAttachmentsList(j).length >= MAX_JOB_ATTACHMENTS_TOTAL) {
+        showJobsToast("Maximum 10 attachments per job.");
+        render();
+        return;
+      }
+      const row = normalizeJobAttachmentRow(payload, {
+        source: "job",
+        addedBy: getMainproUser(),
+        createdAt: new Date().toISOString(),
+      });
+      if (!row) {
+        next();
+        return;
+      }
+      const backupAttachments = JSON.parse(JSON.stringify(j.attachments || []));
+      const backupPhoto = j.photo != null ? String(j.photo) : "";
+      const backupComments = JSON.parse(JSON.stringify(j.comments || []));
+      j.attachments.push(row);
+      syncJobPhotoFromAttachments(j);
+      appendSystemComment(j, "Added attachment: " + (payload.name || "file"));
+      var ok = false;
+      try {
+        ok = save(true);
+      } catch (e) {
+        console.error("[processFilesForJobAppend] save", e);
+        ok = false;
+      }
+      if (!ok) {
+        j.attachments = backupAttachments;
+        j.photo = backupPhoto;
+        j.comments = backupComments;
+        render();
+        alert("Storage limit reached. Photo was not saved.");
+        return;
+      }
+      next();
+    });
+  }
+  next();
+}
+
+function processFilesForNotePending(jobId, files) {
+  const arr = getPendingNoteAttachments(jobId);
+  const list = Array.isArray(files) ? files : [];
+  if (!list.length) return;
+  const room = MAX_NOTE_PENDING_ATTACHMENTS - arr.length;
+  if (room <= 0) {
+    showJobsToast("Maximum 5 attachments per note.");
+    return;
+  }
+  const slice = list.slice(0, room);
+  if (list.length > slice.length) {
+    showJobsToast(
+      "Only " + room + " more attachment(s) allowed for this note."
+    );
+  }
+  let i = 0;
+  function step() {
+    if (i >= slice.length) {
+      refreshNoteComposerPendingDom(jobId);
+      return;
+    }
+    readFileAsJobAttachment(slice[i++], function (err, payload) {
+      if (!err && payload) arr.push(payload);
+      step();
+    });
+  }
+  step();
+}
+
+function openJobAttachmentPicker(jobId) {
+  if (!hasMainproLogin()) {
+    showJobsToast("Select your role first.");
+    return;
+  }
+  const inp = document.getElementById("jobDetailAttachmentInput");
+  if (!inp) return;
+  inp.setAttribute("data-job-id", jobIdForDomAttr(jobId));
+  inp.click();
+}
+
+function openNoteAttachmentPicker(jobId) {
+  if (!hasMainproLogin()) {
+    showJobsToast("Select your role first.");
+    return;
+  }
+  const inp = document.getElementById("noteComposerAttachmentInput");
+  if (!inp) return;
+  inp.setAttribute("data-job-id", jobIdForDomAttr(jobId));
+  inp.click();
+}
+
+function renderNoteComposerPendingHtml(j) {
+  const rawId = j && j.id != null ? j.id : "";
+  const arr = getPendingNoteAttachments(rawId);
+  if (!arr.length) return "";
+  const chips = arr
+    .map(function (a, ix) {
+      const label = escapeHtml(a.name || "file");
+      const thumb =
+        String(a.dataUrl || "").indexOf("data:image/") === 0
+          ? `<img class="note-pending-thumb" src="${escapeAttr(
+              a.dataUrl
+            )}" alt="" />`
+          : `<span class="note-pending-doc">${label}</span>`;
+      return `<div class="note-pending-item">${thumb}<button type="button" class="note-pending-remove" aria-label="Remove" onclick='removePendingNoteAttachment(${idAttr(
+        rawId
+      )}, ${ix})'>×</button></div>`;
+    })
+    .join("");
+  return `<div class="note-pending-attachments">${chips}</div>`;
+}
+
+/** Update pending-attachment chips without full render (keeps note textarea text). */
+function refreshNoteComposerPendingDom(jobId) {
+  const want = String(jobId);
+  let card = null;
+  document.querySelectorAll(".job[data-job-id]").forEach(function (el) {
+    if (jobIdFromDomAttr(el.getAttribute("data-job-id")) === want) {
+      card = el;
+    }
+  });
+  if (!card) return;
+  const label = card.querySelector(".comment-label");
+  let row = card.querySelector(".note-pending-attachments");
+  const html = renderNoteComposerPendingHtml({ id: jobId });
+  if (!html) {
+    if (row) row.remove();
+    return;
+  }
+  const holder = document.createElement("div");
+  holder.innerHTML = html;
+  const newRow = holder.firstElementChild;
+  if (!newRow) return;
+  if (row && row.parentNode) {
+    row.parentNode.replaceChild(newRow, row);
+  } else if (label && label.parentNode) {
+    label.insertAdjacentElement("afterend", newRow);
+  }
 }
 
 function escapeHtml(s) {
@@ -2759,8 +3173,11 @@ function getJobLastActivityMs(j) {
 }
 
 function getCommentsSortedNewestFirst(j) {
-  const arr = (Array.isArray(j.comments) ? j.comments : [])
-    .filter((c) => c && String(c.text || "").trim());
+  const arr = (Array.isArray(j.comments) ? j.comments : []).filter(function (c) {
+    if (!c) return false;
+    if (String(c.text || "").trim()) return true;
+    return Array.isArray(c.attachments) && c.attachments.length > 0;
+  });
   return arr
     .map((c, i) => ({ c, i }))
     .sort((a, b) => {
@@ -2840,6 +3257,10 @@ function renderEngineerLogItemHtml(c) {
           label
         )}</span></div>`
       : "";
+  const attachBlock =
+    Array.isArray(c.attachments) && c.attachments.length
+      ? renderCommentAttachmentsHtml(c.attachments)
+      : "";
   return `<div class="comment-log-item comment-log-item--engineer note-card engineer-note" role="listitem">
       <div class="comment-log-time note-date">${escapeHtml(
         formatDateClean(d.time || d.date || d.createdAt) || "—"
@@ -2851,6 +3272,7 @@ function renderEngineerLogItemHtml(c) {
       <div class="comment-log-text note-text">${escapeHtml(
         String(d.text == null ? "" : d.text).trim()
       )}</div>
+      ${attachBlock}
     </div>`;
 }
 
@@ -3116,11 +3538,7 @@ function renderJobListMetaCompact(j) {
 function renderActiveCardCompact(j) {
   const st = j.status;
   const vis = getJobCardStatusVisual(j);
-  const safePhoto =
-    j.photo && String(j.photo).indexOf("data:image/") === 0 ? j.photo : "";
-  const photoBlock = safePhoto
-    ? `<div class="job-list-photo" aria-hidden="true"><img class="job-photo-thumb job-list-photo__img" src="${safePhoto}" alt="Fault photo" tabindex="-1" /></div>`
-    : "";
+  const photoBlock = renderJobListPhotoThumb(j, false);
   const idForAttr = jobIdForDomAttr(j.id);
   const isParkOverDueAttr = st === "Pending" && j.isOverdue;
   const slaO = isSlaOverdue(j) ? "1" : "0";
@@ -3156,11 +3574,7 @@ function renderActiveCardCompact(j) {
 
 function renderHistoryCardCompact(j) {
   const vis = getJobCardStatusVisual(j);
-  const safePhoto =
-    j.photo && String(j.photo).indexOf("data:image/") === 0 ? j.photo : "";
-  const photoBlock = safePhoto
-    ? `<div class="job-list-photo" aria-hidden="true"><img class="job-photo-thumb job-list-photo__img" src="${safePhoto}" alt="Fault photo" tabindex="0" role="button" /></div>`
-    : "";
+  const photoBlock = renderJobListPhotoThumb(j, true);
   const when = formatDateClean(j.completedAt);
   const p = normalizePriorityValue(j.priority);
   const slug = p.toLowerCase();
@@ -3195,11 +3609,7 @@ function renderHistoryCardCompact(j) {
 function renderDeletedCardCompact(j) {
   const idForAttr = jobIdForDomAttr(j.id);
   const visClass = "job-card-shell";
-  const safePhoto =
-    j.photo && String(j.photo).indexOf("data:image/") === 0 ? j.photo : "";
-  const photoBlock = safePhoto
-    ? `<div class="job-list-photo" aria-hidden="true"><img class="job-photo-thumb job-list-photo__img" src="${safePhoto}" alt="Fault photo" tabindex="0" role="button" /></div>`
-    : "";
+  const photoBlock = renderJobListPhotoThumb(j, true);
   const delWhen = formatDateClean(j.deletedAt) || "—";
   const p = normalizePriorityValue(j.priority);
   const slug = p.toLowerCase();
@@ -3291,11 +3701,7 @@ function renderActiveCardFull(j, forModal) {
   const st = j.status;
   const vis = getJobCardStatusVisual(j);
   const qid = idAttr(j.id);
-  const safePhoto =
-    j.photo && String(j.photo).indexOf("data:image/") === 0 ? j.photo : "";
-  const photoBlock = safePhoto
-    ? `<div class="job-photo-wrap"><img class="job-photo-thumb" src="${safePhoto}" alt="Fault photo" tabindex="0" role="button"></div>`
-    : "";
+  const photoBlock = renderJobDetailPhotoSection(j);
   const sInProgress = JSON.stringify("In Progress");
   const sDone = JSON.stringify("Done");
   const progressBtnNew =
@@ -3330,7 +3736,11 @@ function renderActiveCardFull(j, forModal) {
     : renderEngineerNotesSavedSection(j);
   const composerModalBlock = `
         <label class="comment-label">Add a note <span class="comment-shortcut-hint" aria-hidden="true">· Ctrl/⌘+S</span></label>
+        ${renderNoteComposerPendingHtml(j)}
         <textarea class="comment-field comment-new" rows="2" placeholder="Add a note..." title="Ctrl+S or ⌘+S to save (desktop)"></textarea>
+        <div class="note-composer-tools">
+          <button type="button" class="btn-note-attach" onclick='openNoteAttachmentPicker(${qid})'>Attach</button>
+        </div>
         <div class="comment-save-row">
           <button type="button" class="btn-save-note" onclick="saveEngineerNote(this)">Save note</button>
           <span class="comment-saved-hint" data-saved-hint="1" hidden>Saved</span>
@@ -3385,11 +3795,7 @@ function renderActiveCard(j) {
 function renderHistoryCardFull(j, forModal) {
   const vis = getJobCardStatusVisual(j);
   const qid = idAttr(j.id);
-  const safePhoto =
-    j.photo && String(j.photo).indexOf("data:image/") === 0 ? j.photo : "";
-  const photoBlock = safePhoto
-    ? `<div class="job-photo-wrap"><img class="job-photo-thumb" src="${safePhoto}" alt="Fault photo" tabindex="0" role="button"></div>`
-    : "";
+  const photoBlock = renderJobDetailPhotoSection(j);
   const when = formatDateClean(j.completedAt);
   const logClass = forModal ? " job--modal-detail job-detail" : jobCardLogsExpandedClass(j);
   const notesBlock = forModal
@@ -3436,11 +3842,7 @@ function renderHistoryCard(j) {
 
 function renderDeletedCardFull(j, forModal) {
   const idForAttr = jobIdForDomAttr(j.id);
-  const safePhoto =
-    j.photo && String(j.photo).indexOf("data:image/") === 0 ? j.photo : "";
-  const photoBlock = safePhoto
-    ? `<div class="job-photo-wrap"><img class="job-photo-thumb" src="${safePhoto}" alt="Fault photo" tabindex="0" role="button"></div>`
-    : "";
+  const photoBlock = renderJobDetailPhotoSection(j);
   const delWhen = formatDateClean(j.deletedAt) || "—";
   const prev = (j.previousStatus && String(j.previousStatus).trim()) || "—";
   const logClass = forModal ? " job--modal-detail job-detail" : jobCardLogsExpandedClass(j);
@@ -4021,7 +4423,7 @@ function exportJobsCsv() {
   showJobsToast("CSV downloaded");
 }
 
-function compressDataUrlWithCanvas(dataUrl, maxW, q, next) {
+function compressDataUrlWithCanvas(dataUrl, maxW, maxH, q, next) {
   if (!dataUrl || String(dataUrl).indexOf("data:image/") !== 0) {
     next(dataUrl);
     return;
@@ -4038,10 +4440,13 @@ function compressDataUrlWithCanvas(dataUrl, maxW, q, next) {
       next(dataUrl);
       return;
     }
-    if (w > maxW) {
-      h = Math.max(1, Math.round((h * maxW) / w));
-      w = maxW;
-    }
+    const mw = maxW > 0 ? maxW : w;
+    const mh = maxH > 0 ? maxH : h;
+    const scaleW = mw / w;
+    const scaleH = mh / h;
+    let r = Math.min(scaleW, scaleH, 1);
+    w = Math.max(1, Math.round(w * r));
+    h = Math.max(1, Math.round(h * r));
     const c = document.createElement("canvas");
     c.width = w;
     c.height = h;
@@ -4063,6 +4468,163 @@ function compressDataUrlWithCanvas(dataUrl, maxW, q, next) {
     next(dataUrl);
   };
   im.src = dataUrl;
+}
+
+/** Raw attachment list: `attachments[]` or legacy `photo` only (virtual merge, no mutation). */
+function jobAttachmentsList(j) {
+  if (!j) return [];
+  if (Array.isArray(j.attachments) && j.attachments.length > 0) {
+    return j.attachments.filter(function (a) {
+      return a && typeof a.dataUrl === "string" && String(a.dataUrl).trim();
+    });
+  }
+  const p = j.photo && String(j.photo).trim() ? String(j.photo) : "";
+  if (!p) return [];
+  return [
+    {
+      id: "__legacy-photo__",
+      name: "Photo",
+      type: "",
+      dataUrl: p,
+      createdAt: j.createdAt || "",
+      addedBy: "",
+      source: "job",
+    },
+  ];
+}
+
+function jobImageAttachments(j) {
+  return jobAttachmentsList(j).filter(function (a) {
+    return String(a.dataUrl || "").indexOf("data:image/") === 0;
+  });
+}
+
+function ensureJobAttachmentsMaterialized(j) {
+  if (!j) return;
+  if (!Array.isArray(j.attachments)) j.attachments = [];
+  if (j.attachments.length > 0) return;
+  const p = j.photo && String(j.photo).trim() ? String(j.photo) : "";
+  if (!p) return;
+  j.attachments.push(
+    normalizeJobAttachmentRow(
+      {
+        name: "Photo",
+        type: String(p).indexOf("data:image/") === 0 ? "image/jpeg" : "",
+        dataUrl: p,
+      },
+      {
+        source: "job",
+        addedBy: j.reportedBy || "",
+        createdAt: j.createdAt || new Date().toISOString(),
+      }
+    )
+  );
+}
+
+function syncJobPhotoFromAttachments(j) {
+  if (!j) return;
+  const list = jobAttachmentsList(j);
+  const imgs = list.filter(function (a) {
+    return String(a.dataUrl || "").indexOf("data:image/") === 0;
+  });
+  if (imgs.length) {
+    j.photo = imgs[0].dataUrl;
+  } else if (list.length) {
+    j.photo = list[0].dataUrl;
+  } else {
+    j.photo = "";
+  }
+}
+
+function renderJobFileChipHtml(a) {
+  const name = escapeHtml(a.name || "file");
+  const u = escapeAttr(a.dataUrl);
+  return `<a class="job-file-chip" href="${u}" download="${name}" target="_blank" rel="noopener">${name}</a>`;
+}
+
+function renderCommentAttachmentsHtml(attachments) {
+  if (!attachments || !attachments.length) return "";
+  const parts = attachments.map(function (a) {
+    if (!a || typeof a.dataUrl !== "string" || !String(a.dataUrl).trim()) {
+      return "";
+    }
+    const u = escapeAttr(a.dataUrl);
+    if (String(a.dataUrl).indexOf("data:image/") === 0) {
+      return `<button type="button" class="comment-attach-thumb" data-u="${u}" onclick="openPhotoLightbox(this.getAttribute('data-u'))"><img src="${u}" alt="" /></button>`;
+    }
+    return renderJobFileChipHtml(a);
+  });
+  const joined = parts.filter(Boolean).join("");
+  if (!joined) return "";
+  return `<div class="comment-attachments-row">${joined}</div>`;
+}
+
+/** Compact list: first image thumb + "+N" for extra attachments (any type). */
+function renderJobListPhotoThumb(j, interactiveImg) {
+  const all = jobAttachmentsList(j);
+  const imgs = jobImageAttachments(j);
+  const firstImg = imgs.length ? imgs[0].dataUrl : "";
+  const totalExtra = all.length > 1 ? all.length - 1 : 0;
+  if (firstImg) {
+    const badge =
+      totalExtra > 0
+        ? `<span class="job-list-photo__more" aria-hidden="true">+${totalExtra}</span>`
+        : "";
+    const imgAttr =
+      interactiveImg === true
+        ? ' tabindex="0" role="button"'
+        : ' tabindex="-1"';
+    const srcEsc = escapeAttr(firstImg);
+    return `<div class="job-list-photo job-list-photo--stack" aria-hidden="true"><img class="job-photo-thumb job-list-photo__img" src="${srcEsc}" alt=""${imgAttr} />${badge}</div>`;
+  }
+  if (all.length > 0) {
+    const badge =
+      all.length > 1
+        ? `<span class="job-list-photo__more" aria-hidden="true">+${all.length - 1}</span>`
+        : "";
+    const label = escapeHtml(all[0].name || "File");
+    return `<div class="job-list-photo job-list-photo--doc" aria-hidden="true"><span class="job-list-doc-icon">📄</span><span class="job-list-doc-name">${label}</span>${badge}</div>`;
+  }
+  return "";
+}
+
+/** Detail: image gallery + file chips + add control (opens lightbox for images). */
+function renderJobDetailPhotoSection(j) {
+  const qid = idAttr(j.id);
+  const all = jobAttachmentsList(j);
+  const imgs = all.filter(function (a) {
+    return String(a.dataUrl || "").indexOf("data:image/") === 0;
+  });
+  const files = all.filter(function (a) {
+    return String(a.dataUrl || "").indexOf("data:image/") !== 0;
+  });
+  const addBtn = `<div class="job-detail-attach-add"><button type="button" class="btn-attach-job-file" onclick='openJobAttachmentPicker(${qid})'>+ Add photo / file</button></div>`;
+
+  let galleryBlock = "";
+  if (imgs.length === 1) {
+    const u = escapeAttr(imgs[0].dataUrl);
+    galleryBlock = `<div class="job-photo-wrap"><img class="job-photo-thumb" src="${u}" alt="Fault photo" tabindex="0" role="button" onclick="openPhotoLightbox(this.src)"></div>`;
+  } else if (imgs.length > 1) {
+    const cells = imgs
+      .map(function (a) {
+        const u = escapeAttr(a.dataUrl);
+        return `<img class="job-photo-thumb job-photo-thumb--gallery" src="${u}" alt="" tabindex="0" role="button" onclick="openPhotoLightbox(this.src)">`;
+      })
+      .join("");
+    galleryBlock = `<div class="job-photo-gallery" role="group" aria-label="Job photos">${cells}</div>`;
+  }
+
+  const filesBlock =
+    files.length > 0
+      ? `<div class="job-detail-files-row" role="group" aria-label="Attached files">${files
+          .map(renderJobFileChipHtml)
+          .join("")}</div>`
+      : "";
+
+  if (!galleryBlock && !filesBlock) {
+    return `<div class="job-detail-attachments">${addBtn}</div>`;
+  }
+  return `<div class="job-detail-attachments">${galleryBlock}${filesBlock}${addBtn}</div>`;
 }
 
 /**
@@ -4201,11 +4763,18 @@ function triggerImportMerge() {
 }
 
 function addJob() {
-  const location = document.getElementById("location").value.trim();
-  const problem = document.getElementById("problem").value.trim();
-  const priority = document.getElementById("priority").value;
+  console.log("[addJob] start");
+  const locEl = document.getElementById("location");
+  const probEl = document.getElementById("problem");
+  const priEl = document.getElementById("priority");
   const fileInput = document.getElementById("jobPhoto");
+  const location = locEl ? String(locEl.value || "").trim() : "";
+  const problem = probEl ? String(probEl.value || "").trim() : "";
+  const priority = priEl ? String(priEl.value || "Low") : "Low";
   const reportedBy = getMainproUser();
+
+  console.log("[addJob] location/problem", location, problem);
+
   if (!hasMainproLogin()) {
     alert("Select your role first.");
     return;
@@ -4216,15 +4785,41 @@ function addJob() {
     return;
   }
 
-  const file = fileInput && fileInput.files && fileInput.files[0];
-  const done = (photo) => {
+  const finishCreateJob = function (attachmentsIn) {
+    const raw = Array.isArray(attachmentsIn) ? attachmentsIn : [];
+    if (raw.length > 5) {
+      alert("Max 5 attachments");
+      return;
+    }
+    const attachments = [];
+    const createdAt = new Date().toISOString();
+    for (let i = 0; i < raw.length; i++) {
+      const p = raw[i];
+      if (!p || typeof p.dataUrl !== "string" || !String(p.dataUrl).trim()) {
+        continue;
+      }
+      try {
+        const row = normalizeJobAttachmentRow(p, {
+          source: "job",
+          addedBy: reportedBy || "",
+          createdAt: createdAt,
+        });
+        if (row) attachments.push(row);
+      } catch (e) {
+        console.warn("[addJob] skipped invalid attachment row", e);
+      }
+    }
+    if (attachments.length > MAX_JOB_ATTACHMENTS_TOTAL) {
+      showJobsToast("Maximum 10 attachments per job.");
+      return;
+    }
+
     const scrollY =
       typeof window !== "undefined"
         ? window.scrollY || window.pageYOffset || 0
         : 0;
     const assignedTo = getNewJobAssignedToValue();
     const pNorm = normalizePriorityValue(priority);
-    const createdAt = new Date().toISOString();
     const job = {
       id: String(Date.now()) + "-" + String(Math.floor(Math.random() * 1e9)),
       location,
@@ -4233,7 +4828,8 @@ function addJob() {
       reportedBy: reportedBy || "",
       status: "New",
       comments: [],
-      photo: photo || "",
+      photo: "",
+      attachments: attachments,
       completedAt: "",
       createdAt: createdAt,
       dueAt: computeDueAtIso(createdAt, pNorm),
@@ -4245,19 +4841,21 @@ function addJob() {
       assignedTo,
       slaBecameOverdueLogged: false,
     };
+    syncJobPhotoFromAttachments(job);
     if (assignedTo !== "Unassigned") {
       appendSystemComment(job, "Assigned to " + assignedTo);
     }
     jobs.unshift(job);
-    save();
+    if (!save()) {
+      jobs.shift();
+      return;
+    }
     hapticNarrow();
-    const locEl = document.getElementById("location");
-    const probEl = document.getElementById("problem");
-    const priEl = document.getElementById("priority");
-    const assignEl = document.getElementById("newJobAssignedTo");
+    _newJobPendingAttachments = [];
     if (locEl) locEl.value = "";
     if (probEl) probEl.value = "";
     if (priEl) priEl.value = "Low";
+    const assignEl = document.getElementById("newJobAssignedTo");
     if (assignEl) assignEl.value = "Unassigned";
     if (fileInput) fileInput.value = "";
     const prev = document.getElementById("jobPhotoPreview");
@@ -4295,21 +4893,39 @@ function addJob() {
     }
   };
 
-  if (file) {
-    const r = new FileReader();
-    r.onload = function () {
-      const src = typeof r.result === "string" ? r.result : "";
-      compressDataUrlWithCanvas(src, 1280, 0.82, function (out) {
-        done(out);
-      });
-    };
-    r.onerror = function () {
-      done("");
-    };
-    r.readAsDataURL(file);
-  } else {
-    done("");
+  const runFinish = function () {
+    const pendingAttachments = _newJobPendingAttachments.slice();
+    console.log("[addJob] pending attachments", pendingAttachments);
+    try {
+      finishCreateJob(pendingAttachments);
+    } catch (e) {
+      console.error("[addJob] unexpected error in finishCreateJob", e);
+      alert("Could not create the job. Check the console for details.");
+    }
+  };
+
+  if (_newJobAttachmentReadsPending > 0) {
+    let attempts = 0;
+    const maxAttempts = 600;
+    (function waitReads() {
+      if (_newJobAttachmentReadsPending <= 0) {
+        runFinish();
+        return;
+      }
+      attempts++;
+      if (attempts >= maxAttempts) {
+        console.warn(
+          "[addJob] attachment reads still pending after wait; submitting with current queue"
+        );
+        runFinish();
+        return;
+      }
+      setTimeout(waitReads, 50);
+    })();
+    return;
   }
+
+  runFinish();
 }
 
 function setStatus(id, status) {
@@ -4559,7 +5175,8 @@ function saveEngineerNote(btn) {
   if (id == null) return;
   const ta = job.querySelector("textarea.comment-new");
   const text = ta ? String(ta.value).trim() : "";
-  if (!text) return;
+  const pendingSnap = getPendingNoteAttachments(id).slice();
+  if (!text && !pendingSnap.length) return;
   const saveB = job.querySelector("button.btn-save-note");
   if (saveB) {
     saveB.disabled = true;
@@ -4572,15 +5189,45 @@ function saveEngineerNote(btn) {
     alert("Could not find this job. Try refreshing the page.");
     return;
   }
+  const backupComments = JSON.parse(JSON.stringify(j.comments || []));
+  const createdAt = new Date().toISOString();
+  const noteAttachments = [];
+  for (let i = 0; i < pendingSnap.length; i++) {
+    const row = normalizeJobAttachmentRow(pendingSnap[i], {
+      source: "note",
+      addedBy: getMainproUser(),
+      createdAt: createdAt,
+    });
+    if (row) noteAttachments.push(row);
+  }
   if (!Array.isArray(j.comments)) j.comments = [];
-  j.comments.push({
+  const comment = {
     text,
-    createdAt: new Date().toISOString(),
+    createdAt: createdAt,
     author: "Engineer",
     type: "info",
-  });
+  };
+  if (noteAttachments.length) comment.attachments = noteAttachments;
+  j.comments.push(comment);
+  var ok = false;
+  try {
+    ok = save(true);
+  } catch (e) {
+    console.error("[saveEngineerNote] save", e);
+    ok = false;
+  }
+  if (!ok) {
+    j.comments = backupComments;
+    _pendingNoteAttachmentsByJobId[String(id)] = pendingSnap.slice();
+    render();
+    alert("Storage limit reached. Photo was not saved.");
+    if (saveB) {
+      saveB.disabled = false;
+    }
+    return;
+  }
+  clearPendingNoteAttachments(id);
   if (ta) ta.value = "";
-  save();
   render();
   hapticNarrow();
   setTimeout(function () {
@@ -4689,7 +5336,11 @@ function scrollToReportJob(ev) {
   updateMobileScrollTopBtn();
 }
 
+window.addJob = addJob;
 window.saveEngineerNote = saveEngineerNote;
+window.openJobAttachmentPicker = openJobAttachmentPicker;
+window.openNoteAttachmentPicker = openNoteAttachmentPicker;
+window.removePendingNoteAttachment = removePendingNoteAttachment;
 window.toggleJobLog = toggleJobLog;
 window.toggleMyJobsFilter = toggleMyJobsFilter;
 window.onJobReassignApply = onJobReassignApply;
@@ -4806,29 +5457,58 @@ function bindPhotoPreview() {
   const input = document.getElementById("jobPhoto");
   const prev = document.getElementById("jobPhotoPreview");
   if (!input || !prev) return;
-  input.addEventListener("change", function () {
-    prev.innerHTML = "";
-    const f = input.files && input.files[0];
-    if (!f) return;
-    if (!f.type || !f.type.startsWith("image/")) {
-      prev.textContent = f.name
-        ? "Attached: " + String(f.name)
-        : "Attached file";
-      return;
-    }
-    const r = new FileReader();
-    r.onload = function () {
-      if (typeof r.result !== "string") return;
-      prev.innerHTML =
-        '<img class="form-photo-preview" src="' +
-        r.result +
-        '" alt="Preview">';
-    };
-    r.readAsDataURL(f);
-  });
+  if (!input._mainproAppendBound) {
+    input._mainproAppendBound = true;
+    input.addEventListener("change", function () {
+      const files = input.files ? Array.from(input.files) : [];
+      input.value = "";
+      if (files.length === 0) return;
+      tryAppendNewJobPendingFromFiles(files);
+    });
+  }
+  const pickBtn = document.getElementById("jobPhotoPickBtn");
+  if (pickBtn && !pickBtn._mainproBound) {
+    pickBtn._mainproBound = true;
+    pickBtn.addEventListener("click", function (e) {
+      e.preventDefault();
+      input.click();
+    });
+  }
 }
 
 bindPhotoPreview();
+
+(function bindJobDetailAttachmentInput() {
+  const inp = document.getElementById("jobDetailAttachmentInput");
+  if (!inp || inp._mainproBound) return;
+  inp._mainproBound = true;
+  inp.addEventListener("change", function () {
+    const raw = inp.getAttribute("data-job-id");
+    inp.removeAttribute("data-job-id");
+    const files = inp.files ? Array.from(inp.files) : [];
+    inp.value = "";
+    if (!raw || !files.length) return;
+    const jobId = jobIdFromDomAttr(raw);
+    if (jobId == null) return;
+    processFilesForJobAppend(jobId, files);
+  });
+})();
+
+(function bindNoteComposerAttachmentInput() {
+  const inp = document.getElementById("noteComposerAttachmentInput");
+  if (!inp || inp._mainproBound) return;
+  inp._mainproBound = true;
+  inp.addEventListener("change", function () {
+    const raw = inp.getAttribute("data-job-id");
+    inp.removeAttribute("data-job-id");
+    const files = inp.files ? Array.from(inp.files) : [];
+    inp.value = "";
+    if (!raw || !files.length) return;
+    const jobId = jobIdFromDomAttr(raw);
+    if (jobId == null) return;
+    processFilesForNotePending(jobId, files);
+  });
+})();
 (function bindListToolbar() {
   const s = document.getElementById("jobSearch");
   if (!s) return;
