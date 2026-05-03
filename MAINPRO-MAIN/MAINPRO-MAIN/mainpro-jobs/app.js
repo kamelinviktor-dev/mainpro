@@ -10,6 +10,107 @@ let myJobsFilterActive = false;
 let historyViewFilter = "all";
 /** set when opening Park modal */
 let _parkTargetId = null;
+/** after horizontal swipe gesture, block the synthetic click that would open job detail */
+let _suppressMobileJobCardTap = false;
+
+/** swipe undo toast DOM + timers */
+let _swipeUndoToastTimer = null;
+let _swipeUndoToastEl = null;
+let _swipeUndoneToastTimer = null;
+let _swipeUndoneToastEl = null;
+
+function dismissSwipeUndoToasts() {
+  if (_swipeUndoToastTimer) {
+    clearTimeout(_swipeUndoToastTimer);
+    _swipeUndoToastTimer = null;
+  }
+  if (_swipeUndoneToastTimer) {
+    clearTimeout(_swipeUndoneToastTimer);
+    _swipeUndoneToastTimer = null;
+  }
+  if (_swipeUndoToastEl && _swipeUndoToastEl.parentNode) {
+    _swipeUndoToastEl.parentNode.removeChild(_swipeUndoToastEl);
+  }
+  _swipeUndoToastEl = null;
+  if (_swipeUndoneToastEl && _swipeUndoneToastEl.parentNode) {
+    _swipeUndoneToastEl.parentNode.removeChild(_swipeUndoneToastEl);
+  }
+  _swipeUndoneToastEl = null;
+}
+
+function captureSwipeJobSnapshot(id) {
+  const j = jobs.find((x) => String(x.id) === String(id));
+  if (!j || j.deleted) return null;
+  return {
+    id: j.id,
+    status: j.status,
+    completedAt: j.completedAt != null ? String(j.completedAt) : "",
+    pendingUntil: j.pendingUntil != null ? String(j.pendingUntil) : "",
+    pendingReason: j.pendingReason != null ? String(j.pendingReason) : "",
+  };
+}
+
+function applySwipeUndo(snapshot) {
+  const j = jobs.find((x) => String(x.id) === String(snapshot.id));
+  if (!j) return;
+  j.status = snapshot.status;
+  j.completedAt = snapshot.completedAt != null ? snapshot.completedAt : "";
+  j.pendingUntil = snapshot.pendingUntil != null ? snapshot.pendingUntil : "";
+  j.pendingReason = snapshot.pendingReason != null ? snapshot.pendingReason : "";
+  save();
+  render();
+  hapticNarrow();
+}
+
+function showSwipeUndoneToast() {
+  if (typeof document === "undefined" || !document.body) return;
+  dismissSwipeUndoToasts();
+  const wrap = document.createElement("div");
+  wrap.className = "swipe-toast swipe-toast--undone";
+  wrap.setAttribute("role", "status");
+  wrap.setAttribute("aria-live", "polite");
+  wrap.textContent = "Action undone";
+  document.body.appendChild(wrap);
+  _swipeUndoneToastEl = wrap;
+  _swipeUndoneToastTimer = window.setTimeout(function () {
+    dismissSwipeUndoToasts();
+  }, 2400);
+}
+
+function showSwipeToast(message, previousJobState) {
+  if (!isNarrowLayout()) return;
+  if (typeof document === "undefined" || !document.body) return;
+  dismissSwipeUndoToasts();
+
+  const wrap = document.createElement("div");
+  wrap.className = "swipe-toast";
+  wrap.setAttribute("role", "status");
+  wrap.setAttribute("aria-live", "polite");
+
+  const msg = document.createElement("span");
+  msg.className = "swipe-toast__msg";
+  msg.textContent = String(message || "");
+
+  const undoBtn = document.createElement("button");
+  undoBtn.type = "button";
+  undoBtn.className = "swipe-toast__undo";
+  undoBtn.textContent = "Undo";
+
+  undoBtn.addEventListener("click", function () {
+    dismissSwipeUndoToasts();
+    applySwipeUndo(previousJobState);
+    showSwipeUndoneToast();
+  });
+
+  wrap.appendChild(msg);
+  wrap.appendChild(undoBtn);
+  document.body.appendChild(wrap);
+  _swipeUndoToastEl = wrap;
+
+  _swipeUndoToastTimer = window.setTimeout(function () {
+    dismissSwipeUndoToasts();
+  }, 4000);
+}
 
 /** in-memory only: job id string → show full log */
 const jobLogExpanded = Object.create(null);
@@ -3601,7 +3702,7 @@ function getJobListDueShortText(j) {
 function renderJobListMetaCompact(j) {
   const p = normalizePriorityValue(j.priority);
   const slug = p.toLowerCase();
-  const pill = `<span class="job-priority-pill job-priority-pill--${slug}">${escapeHtml(
+  const pill = `<span class="job-priority-pill priority-pill job-priority-pill--${slug}">${escapeHtml(
     p
   )}</span>`;
   const eng = escapeHtml(normalizeAssignedTo(j));
@@ -3624,30 +3725,38 @@ function renderActiveCardCompact(j) {
   const isParkOverDueAttr = st === "Pending" && j.isOverdue;
   const slaO = isSlaOverdue(j) ? "1" : "0";
   return `
-      <div class="job job-card job-card--list-compact mobile-job-card ${vis.cardClass}" data-job-id="${idForAttr}" data-status="${escapeHtml(
+      <div class="swipe-wrap swipe-wrap--compact">
+        <div class="swipe-bg" aria-hidden="true">
+          <div class="swipe-right">✓ DONE</div>
+          <div class="swipe-left">⏸ HOLD</div>
+        </div>
+        <div class="job job-card job-card--list-compact mobile-job-card ${vis.cardClass}" data-job-id="${idForAttr}" data-status="${escapeHtml(
     st
   )}" data-sla-overdue="${slaO}" data-park-overdue="${
     isParkOverDueAttr ? "1" : "0"
   }">
-        <div class="job-card-tap" role="button" tabindex="0" aria-label="Open full job">
-          <div class="job-list-card__row-head job-card-top">
-            <div class="job-list-card__room job-title mobile-job-title"><strong>${hl(
-              j.location
-            )}</strong></div>
-            <span class="job-status-badge job-status-badge--${
-              vis.badgeMod
-            }">${vis.badgeText}</span>
+          <div class="job-card-tap" role="button" tabindex="0" aria-label="Open full job">
+            <div class="card-content job-card__content mobile-job-card__content">
+              <div class="card-main job-card__main">
+                <div class="job-list-card__room job-title mobile-job-title mobile-job-card__room job-card__room room-title"><strong>${hl(
+                  j.location
+                )}</strong></div>
+                <div class="job-problem job-problem--compact job-problem--list-clamp mobile-job-problem mobile-job-card__problem job-card__problem problem-title">${hl(
+                  j.problem
+                )}</div>
+                ${renderJobListMetaCompact(j).replace(
+                  'class="job-list-meta-line meta job-card-meta"',
+                  'class="job-list-meta-line meta job-card-meta mobile-job-meta mobile-job-card__meta job-card__meta meta-row"'
+                )}
+              </div>
+              <div class="card-side job-card__side">
+                <span class="job-status-badge status-badge job-status-badge--${
+                  vis.badgeMod
+                }">${vis.badgeText}</span>
+                ${photoBlock}
+              </div>
+            </div>
           </div>
-          <div class="job-list-card__row-problem">
-            <div class="job-problem job-problem--compact job-problem--list-clamp mobile-job-problem">${hl(
-              j.problem
-            )}</div>
-            ${photoBlock}
-          </div>
-          ${renderJobListMetaCompact(j).replace(
-            'class="job-list-meta-line meta job-card-meta"',
-            'class="job-list-meta-line meta job-card-meta mobile-job-meta"'
-          )}
         </div>
       </div>
     `;
@@ -3659,29 +3768,31 @@ function renderHistoryCardCompact(j) {
   const when = formatDateClean(j.completedAt);
   const p = normalizePriorityValue(j.priority);
   const slug = p.toLowerCase();
-  const pill = `<span class="job-priority-pill job-priority-pill--${slug}">${escapeHtml(
+  const pill = `<span class="job-priority-pill priority-pill job-priority-pill--${slug}">${escapeHtml(
     p
   )}</span>`;
   const eng = escapeHtml(normalizeAssignedTo(j));
   const whenEsc = when ? escapeHtml(when) : "—";
-  const metaLine = `<div class="job-list-meta-line meta job-card-meta mobile-job-meta">${pill}<span class="job-list-meta-eng">${eng}</span><span class="job-list-meta-due">${whenEsc}</span></div>`;
+  const metaLine = `<div class="job-list-meta-line meta job-card-meta mobile-job-meta mobile-job-card__meta job-card__meta meta-row">${pill}<span class="job-list-meta-eng">${eng}</span><span class="job-list-meta-due">${whenEsc}</span></div>`;
   return `
       <div class="job job-card job-card--list-compact mobile-job-card done job-history ${vis.cardClass
     }" data-job-id="${jobIdForDomAttr(j.id)}" data-status="Done">
         <div class="job-card-tap" role="button" tabindex="0" aria-label="Open full job">
-          <div class="job-list-card__row-head job-card-top">
-            <div class="job-list-card__room job-title mobile-job-title"><strong>${hl(
-              j.location
-            )}</strong></div>
-            <span class="job-status-badge job-status-badge--${vis.badgeMod}">${vis.badgeText}</span>
+          <div class="card-content job-card__content mobile-job-card__content">
+            <div class="card-main job-card__main">
+              <div class="job-list-card__room job-title mobile-job-title mobile-job-card__room job-card__room room-title"><strong>${hl(
+                j.location
+              )}</strong></div>
+              <div class="job-problem job-problem--compact job-problem--list-clamp mobile-job-problem mobile-job-card__problem job-card__problem problem-title">${hl(
+                j.problem
+              )}</div>
+              ${metaLine}
+            </div>
+            <div class="card-side job-card__side">
+              <span class="job-status-badge status-badge job-status-badge--${vis.badgeMod}">${vis.badgeText}</span>
+              ${photoBlock}
+            </div>
           </div>
-          <div class="job-list-card__row-problem">
-            <div class="job-problem job-problem--compact job-problem--list-clamp mobile-job-problem">${hl(
-              j.problem
-            )}</div>
-            ${photoBlock}
-          </div>
-          ${metaLine}
         </div>
       </div>
     `;
@@ -3694,30 +3805,32 @@ function renderDeletedCardCompact(j) {
   const delWhen = formatDateClean(j.deletedAt) || "—";
   const p = normalizePriorityValue(j.priority);
   const slug = p.toLowerCase();
-  const pill = `<span class="job-priority-pill job-priority-pill--${slug}">${escapeHtml(
+  const pill = `<span class="job-priority-pill priority-pill job-priority-pill--${slug}">${escapeHtml(
     p
   )}</span>`;
   const eng = escapeHtml(normalizeAssignedTo(j));
-  const metaLine = `<div class="job-list-meta-line meta job-card-meta mobile-job-meta">${pill}<span class="job-list-meta-eng">${eng}</span><span class="job-list-meta-due">Del ${escapeHtml(
+  const metaLine = `<div class="job-list-meta-line meta job-card-meta mobile-job-meta mobile-job-card__meta job-card__meta meta-row">${pill}<span class="job-list-meta-eng">${eng}</span><span class="job-list-meta-due">Del ${escapeHtml(
     delWhen
   )}</span></div>`;
   return `
       <div class="job job-card job-card--list-compact mobile-job-card deleted ${visClass
     }" data-job-id="${idForAttr}" data-status="Deleted">
         <div class="job-card-tap" role="button" tabindex="0" aria-label="Open full job">
-          <div class="job-list-card__row-head job-card-top">
-            <div class="job-list-card__room job-title mobile-job-title"><strong>${hl(
-              j.location
-            )}</strong></div>
-            <span class="job-status-badge job-status-badge--deleted">DELETED</span>
+          <div class="card-content job-card__content mobile-job-card__content">
+            <div class="card-main job-card__main">
+              <div class="job-list-card__room job-title mobile-job-title mobile-job-card__room job-card__room room-title"><strong>${hl(
+                j.location
+              )}</strong></div>
+              <div class="job-problem job-problem--compact job-problem--list-clamp mobile-job-problem mobile-job-card__problem job-card__problem problem-title">${hl(
+                j.problem
+              )}</div>
+              ${metaLine}
+            </div>
+            <div class="card-side job-card__side">
+              <span class="job-status-badge status-badge job-status-badge--deleted">DELETED</span>
+              ${photoBlock}
+            </div>
           </div>
-          <div class="job-list-card__row-problem">
-            <div class="job-problem job-problem--compact job-problem--list-clamp mobile-job-problem">${hl(
-              j.problem
-            )}</div>
-            ${photoBlock}
-          </div>
-          ${metaLine}
         </div>
       </div>
     `;
@@ -4310,6 +4423,10 @@ function onMobileFabScroll() {
 
 function onJobCardTapOpen(e) {
   if (!isNarrowLayout()) return;
+  if (_suppressMobileJobCardTap) {
+    e.preventDefault();
+    return;
+  }
   if (e.target.closest(".btn-job-log-toggle")) return;
   if (e.target.closest(".job-photo-thumb")) return;
   if (e.target.closest(".job-actions")) return;
@@ -4658,22 +4775,22 @@ function renderJobListPhotoThumb(j, interactiveImg) {
   if (firstImg) {
     const badge =
       totalExtra > 0
-        ? `<span class="job-list-photo__more" aria-hidden="true">+${totalExtra}</span>`
+        ? `<span class="job-list-photo__more photo-count thumb-count attachment-count" aria-hidden="true">+${totalExtra}</span>`
         : "";
     const imgAttr =
       interactiveImg === true
         ? ' tabindex="0" role="button"'
         : ' tabindex="-1"';
     const srcEsc = escapeAttr(firstImg);
-    return `<div class="job-list-photo job-list-photo--stack" aria-hidden="true"><img class="job-photo-thumb job-list-photo__img" src="${srcEsc}" alt=""${imgAttr} />${badge}</div>`;
+    return `<div class="thumb-wrap job-list-photo job-list-photo--stack" aria-hidden="true"><img class="job-photo-thumb job-list-photo__img card-thumb job-card__thumb mobile-job-card__thumb" src="${srcEsc}" alt=""${imgAttr} />${badge}</div>`;
   }
   if (all.length > 0) {
     const badge =
       all.length > 1
-        ? `<span class="job-list-photo__more" aria-hidden="true">+${all.length - 1}</span>`
+        ? `<span class="job-list-photo__more photo-count thumb-count attachment-count" aria-hidden="true">+${all.length - 1}</span>`
         : "";
     const label = escapeHtml(all[0].name || "File");
-    return `<div class="job-list-photo job-list-photo--doc" aria-hidden="true"><span class="job-list-doc-icon">📄</span><span class="job-list-doc-name">${label}</span>${badge}</div>`;
+    return `<div class="thumb-wrap job-list-photo job-list-photo--doc" aria-hidden="true"><span class="job-list-doc-icon">📄</span><span class="job-list-doc-name">${label}</span>${badge}</div>`;
   }
   return "";
 }
@@ -5048,6 +5165,28 @@ function setStatus(id, status) {
   hapticNarrow();
 }
 
+function markJobDone(id) {
+  setStatus(id, "Done");
+}
+
+/**
+ * Quick park from list swipe: default +24h hold, no modal (same Pending fields as Park dialog).
+ */
+function markJobHold(id) {
+  const j = jobs.find((x) => String(x.id) === String(id));
+  if (!j || j.deleted) return;
+  if (String(j.status) === "Done") return;
+  if (String(j.status) === "Pending") return;
+  const until = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  j.status = "Pending";
+  j.pendingUntil = until.toISOString();
+  j.pendingReason = "Parked (quick)";
+  appendSystemComment(j, "Moved to Pending");
+  save();
+  render();
+  hapticNarrow();
+}
+
 function openParkDialog(id) {
   _parkTargetId = String(id);
   const inp = document.getElementById("parkUntilInput");
@@ -5174,6 +5313,8 @@ function setParkReasonChip(btn) {
   }
 }
 
+window.markJobDone = markJobDone;
+window.markJobHold = markJobHold;
 window.openParkDialog = openParkDialog;
 window.closeParkDialog = closeParkDialog;
 window.confirmPark = confirmPark;
@@ -6019,6 +6160,254 @@ document.addEventListener("keydown", function (e) {
   if (!app || app._mobileTapBound) return;
   app._mobileTapBound = true;
   app.addEventListener("click", onJobCardTapOpen);
+})();
+
+(function bindMobileJobCardSwipe() {
+  const app = document.getElementById("appMain");
+  if (!app || app._mobileJobSwipeBound) return;
+  app._mobileJobSwipeBound = true;
+
+  const SWIPE_TRIGGER = 110;
+  const SWIPE_START_DEADZONE = 14;
+  const VERTICAL_CANCEL = 18;
+  const MAX_DRAG = 120;
+
+  let swipeState = null;
+
+  function swipeCardFromTarget(target) {
+    if (!target || !target.closest) return null;
+    const card = target.closest(".mobile-job-card.job-card--list-compact");
+    if (!card || !card.closest("#jobs-active")) return null;
+    if (
+      card.classList.contains("done") ||
+      card.classList.contains("deleted") ||
+      card.classList.contains("job-history")
+    ) {
+      return null;
+    }
+    return card;
+  }
+
+  function resetSwipeBgLayer(card) {
+    const wrap = card.closest(".swipe-wrap");
+    if (!wrap) return;
+    const bg = wrap.querySelector(".swipe-bg");
+    if (!bg) return;
+    bg.style.background = "";
+    const doneLabel = bg.querySelector(".swipe-right");
+    const holdLabel = bg.querySelector(".swipe-left");
+    if (doneLabel) {
+      doneLabel.style.opacity = "";
+    }
+    if (holdLabel) {
+      holdLabel.style.opacity = "";
+    }
+  }
+
+  function updateSwipeBgLayer(card, clampedDx) {
+    const wrap = card.closest(".swipe-wrap");
+    if (!wrap) return;
+    const bg = wrap.querySelector(".swipe-bg");
+    if (!bg) return;
+    const doneLabel = bg.querySelector(".swipe-right");
+    const holdLabel = bg.querySelector(".swipe-left");
+    const op = Math.min(1, Math.abs(clampedDx) / SWIPE_TRIGGER);
+    if (clampedDx > 0) {
+      bg.style.background =
+        "linear-gradient(to right, rgba(16,185,129,0.36) 0%, rgba(16,185,129,0.26) 42%, rgba(16,185,129,0.08) 68%, transparent 100%)";
+      if (doneLabel) doneLabel.style.opacity = String(op);
+      if (holdLabel) holdLabel.style.opacity = "0";
+    } else if (clampedDx < 0) {
+      bg.style.background =
+        "linear-gradient(to left, rgba(245,158,11,0.36) 0%, rgba(245,158,11,0.26) 42%, rgba(245,158,11,0.08) 68%, transparent 100%)";
+      if (holdLabel) holdLabel.style.opacity = String(op);
+      if (doneLabel) doneLabel.style.opacity = "0";
+    } else {
+      bg.style.background = "";
+      if (doneLabel) doneLabel.style.opacity = "0";
+      if (holdLabel) holdLabel.style.opacity = "0";
+    }
+  }
+
+  function resetSwipeVisual(card) {
+    if (!card) return;
+    card.style.transition = "";
+    card.style.transform = "";
+    card.classList.remove("swiping", "swipe-right", "swipe-left");
+    resetSwipeBgLayer(card);
+  }
+
+  function animateSwipeSnapBack(card) {
+    card.classList.remove("swiping");
+    card.style.transition = "transform 0.18s ease";
+    card.style.transform = "translateX(0)";
+    window.setTimeout(function () {
+      if (card.parentNode) {
+        resetSwipeVisual(card);
+      }
+    }, 220);
+  }
+
+  function suppressJobCardTapBriefly() {
+    _suppressMobileJobCardTap = true;
+    window.setTimeout(function () {
+      _suppressMobileJobCardTap = false;
+    }, 420);
+  }
+
+  app.addEventListener(
+    "touchstart",
+    function (e) {
+      if (!isNarrowLayout()) return;
+      const L = getJobsOpenLayers();
+      if (
+        L.jobDetail ||
+        L.park ||
+        L.photo ||
+        L.newJobSheet ||
+        L.reassignSheet ||
+        L.notesHistorySheet ||
+        L.activityHistorySheet ||
+        L.tips ||
+        L.settings ||
+        L.onboarding
+      ) {
+        return;
+      }
+      const card = swipeCardFromTarget(e.target);
+      if (!card) return;
+      const t = e.touches[0];
+      card.classList.remove("swipe-left", "swipe-right", "swiping");
+      swipeState = {
+        card: card,
+        startX: t.clientX,
+        startY: t.clientY,
+        currentX: t.clientX,
+        currentY: t.clientY,
+        lastX: t.clientX,
+        lastY: t.clientY,
+        hasLockedSwipe: false,
+      };
+    },
+    { passive: true }
+  );
+
+  app.addEventListener(
+    "touchmove",
+    function (e) {
+      if (!swipeState) return;
+      const t = e.touches[0];
+      if (!t) return;
+      const card = swipeState.card;
+      const deltaX = t.clientX - swipeState.startX;
+      const deltaY = t.clientY - swipeState.startY;
+      swipeState.lastX = t.clientX;
+      swipeState.lastY = t.clientY;
+      swipeState.currentX = t.clientX;
+      swipeState.currentY = t.clientY;
+
+      if (!swipeState.hasLockedSwipe) {
+        if (
+          Math.abs(deltaY) > VERTICAL_CANCEL &&
+          Math.abs(deltaY) > Math.abs(deltaX)
+        ) {
+          resetSwipeVisual(card);
+          swipeState = null;
+          return;
+        }
+        if (Math.abs(deltaX) < SWIPE_START_DEADZONE) {
+          return;
+        }
+        if (Math.abs(deltaX) > Math.abs(deltaY) * 1.4) {
+          swipeState.hasLockedSwipe = true;
+          card.classList.add("swiping");
+        } else {
+          return;
+        }
+      }
+
+      e.preventDefault();
+      const clamped = Math.max(-MAX_DRAG, Math.min(MAX_DRAG, deltaX));
+      card.style.transform = "translateX(" + clamped + "px)";
+      if (clamped > 0) {
+        card.classList.add("swipe-right");
+        card.classList.remove("swipe-left");
+      } else if (clamped < 0) {
+        card.classList.add("swipe-left");
+        card.classList.remove("swipe-right");
+      } else {
+        card.classList.remove("swipe-left", "swipe-right");
+      }
+      updateSwipeBgLayer(card, clamped);
+    },
+    { passive: false }
+  );
+
+  function onSwipeEnd(e) {
+    if (!swipeState) return;
+    const st = swipeState;
+    const card = st.card;
+    const hasLockedSwipe = st.hasLockedSwipe;
+    let endX = st.lastX;
+    let endY = st.lastY;
+    if (e.changedTouches && e.changedTouches[0]) {
+      endX = e.changedTouches[0].clientX;
+      endY = e.changedTouches[0].clientY;
+    }
+    const rawDeltaX = endX - st.startX;
+    swipeState = null;
+
+    if (!hasLockedSwipe) {
+      resetSwipeVisual(card);
+      return;
+    }
+
+    card.classList.remove("swiping");
+
+    const id = jobIdFromDomAttr(card.getAttribute("data-job-id"));
+
+    function tryVibrate() {
+      try {
+        if (navigator.vibrate) navigator.vibrate(12);
+      } catch (err) {
+        /* ignore */
+      }
+    }
+
+    if (rawDeltaX >= SWIPE_TRIGGER && id != null) {
+      const snap = captureSwipeJobSnapshot(id);
+      if (snap && String(snap.status) !== "Done") {
+        tryVibrate();
+        markJobDone(id);
+        showSwipeToast("Job marked Done", snap);
+        resetSwipeVisual(card);
+        suppressJobCardTapBriefly();
+        return;
+      }
+    }
+
+    if (rawDeltaX <= -SWIPE_TRIGGER && id != null) {
+      const snap = captureSwipeJobSnapshot(id);
+      if (
+        snap &&
+        String(snap.status) !== "Pending" &&
+        String(snap.status) !== "Done"
+      ) {
+        tryVibrate();
+        markJobHold(id);
+        showSwipeToast("Job moved to Hold", snap);
+        resetSwipeVisual(card);
+        suppressJobCardTapBriefly();
+        return;
+      }
+    }
+
+    animateSwipeSnapBack(card);
+    suppressJobCardTapBriefly();
+  }
+
+  app.addEventListener("touchend", onSwipeEnd, { passive: true });
+  app.addEventListener("touchcancel", onSwipeEnd, { passive: true });
 })();
 
 document.addEventListener("keydown", function (e) {
