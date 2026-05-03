@@ -693,6 +693,19 @@ function isSlaOverdue(j) {
   return Date.now() > t;
 }
 
+/**
+ * True when the list shows OVERDUE (same rules as getJobCardStatusVisual): SLA past dueAt,
+ * or Pending with park timer overdue (j.isOverdue from syncOverdueFlags). Use for KPI count
+ * and Overdue filter only — SLA-only audit still uses isSlaOverdue.
+ */
+function isJobOverdue(j) {
+  if (!j || j.deleted) return false;
+  if (String(j.status || "") === "Done") return false;
+  if (isSlaOverdue(j)) return true;
+  if (j.status === "Pending" && j.isOverdue === true) return true;
+  return false;
+}
+
 function normalizeAssignedTo(j) {
   if (!j) return "Unassigned";
   const v = String(j.assignedTo == null ? "" : j.assignedTo).trim();
@@ -2037,10 +2050,10 @@ function getDashboardCounts() {
     if (isActiveStatus(st)) nAll++;
     if (st === "New") nNew++;
     else if (st === "In Progress") nInProgress++;
-    else if (st === "Pending" && !j.isOverdue && !isSlaOverdue(j)) {
+    else if (st === "Pending" && !isJobOverdue(j)) {
       nPending++;
     }
-    if (isSlaOverdue(j)) nOverdue++;
+    if (isJobOverdue(j)) nOverdue++;
     if (st === "Done" && isCompletedAtToday(j.completedAt)) nDoneToday++;
   }
   return {
@@ -2413,13 +2426,14 @@ function matchesJobSearch(j, q) {
 }
 
 /**
- * Active list: Overdue = SLA (dueAt passed). Pending = on-hold, not past park, not SLA overdue.
+ * Active list: Overdue = SLA past dueAt or Pending park overdue (matches card OVERDUE badge).
+ * Pending tab = on-hold, not in that overdue set.
  */
 function matchesStatusFilterForActive(j) {
   if (statusFilter === "All" || statusFilter === "Done") return true;
-  if (statusFilter === "Overdue") return isSlaOverdue(j) === true;
+  if (statusFilter === "Overdue") return isJobOverdue(j) === true;
   if (statusFilter === "Pending") {
-    return j.status === "Pending" && !j.isOverdue && !isSlaOverdue(j);
+    return j.status === "Pending" && !isJobOverdue(j);
   }
   return j.status === statusFilter;
 }
@@ -3317,8 +3331,7 @@ function countSystemLogPhrasesToday(res) {
  */
 function getCommentLogToneClass(j) {
   if (j.deleted) return "comment-log--tone-default";
-  if (isSlaOverdue(j)) return "comment-log--tone-overdue";
-  if (j.status === "Pending" && j.isOverdue) return "comment-log--tone-overdue";
+  if (isJobOverdue(j)) return "comment-log--tone-overdue";
   if (j.status === "Pending") return "comment-log--tone-pending";
   return "comment-log--tone-default";
 }
@@ -3868,7 +3881,7 @@ function getJobCardStatusVisual(j) {
   if (st === "Done") {
     return { cardClass: "job-card-shell done", badgeMod: "done", badgeText: "DONE" };
   }
-  if (isSlaOverdue(j)) {
+  if (isJobOverdue(j)) {
     return {
       cardClass: "job-card-shell overdue",
       badgeMod: "overdue",
@@ -3886,9 +3899,6 @@ function getJobCardStatusVisual(j) {
     };
   }
   if (st === "Pending") {
-    if (j.isOverdue) {
-      return { cardClass: "job-card-shell overdue", badgeMod: "overdue", badgeText: "OVERDUE" };
-    }
     return { cardClass: "job-card-shell pending on-hold", badgeMod: "pending", badgeText: "ON HOLD" };
   }
   return { cardClass: "job-card-shell new", badgeMod: "new", badgeText: "NEW" };
