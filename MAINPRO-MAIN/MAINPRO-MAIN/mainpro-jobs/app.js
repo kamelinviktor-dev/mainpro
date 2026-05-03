@@ -3819,19 +3819,22 @@ function renderActiveCardFull(j, forModal) {
         <label class="comment-label">Add a note <span class="comment-shortcut-hint" aria-hidden="true">· Ctrl/⌘+S</span></label>
         ${renderNoteComposerPendingHtml(j)}
         <textarea class="comment-field comment-new" rows="2" placeholder="Add a note..." title="Ctrl+S or ⌘+S to save (desktop)"></textarea>
-        <div class="note-composer-tools">
-          <button type="button" class="btn-note-attach" onclick='openNoteAttachmentPicker(${qid})'>Attach</button>
-        </div>
-        <div class="comment-save-row">
-          <button type="button" class="btn-save-note" onclick="saveEngineerNote(this)">Save note</button>
-          <span class="comment-saved-hint" data-saved-hint="1" hidden>Saved</span>
+        <div class="note-action-row">
+          <button type="button" class="btn-note-attach attach-btn" onclick='openNoteAttachmentPicker(${qid})'>Attach</button>
+          <div class="comment-save-row">
+            <button type="button" class="btn-save-note save-note-btn" onclick="saveEngineerNote(this)">Save note</button>
+            <span class="comment-saved-hint" data-saved-hint="1" hidden>Saved</span>
+          </div>
         </div>`;
   const detailScrollMain = `
         ${photoBlock}
         <div class="job-body job-meta">
-          <div class="job-title"><strong>${hl(
-            j.location
-          )}</strong></div>
+          <div class="job-title-row">
+            <div class="job-title job-room-title"><strong>${hl(
+              j.location
+            )}</strong></div>
+            ${renderJobDetailTopPhotoButton(j)}
+          </div>
           <div class="job-problem">${hl(j.problem)}</div>
           ${renderJobMetaRow(j)}
           ${renderJobAssignBlock(j, { modal: forModal, disabled: false })}
@@ -3885,9 +3888,12 @@ function renderHistoryCardFull(j, forModal) {
   const detailScrollBody = `
         ${photoBlock}
         <div class="job-body job-meta">
-          <div class="job-title"><strong>${hl(
-            j.location
-          )}</strong></div>
+          <div class="job-title-row">
+            <div class="job-title job-room-title"><strong>${hl(
+              j.location
+            )}</strong></div>
+            ${renderJobDetailTopPhotoButton(j)}
+          </div>
           <div class="job-problem">${hl(j.problem)}</div>
           ${renderJobMetaRow(j)}
           ${renderJobAssignBlock(j, { modal: forModal, disabled: true })}
@@ -3933,9 +3939,12 @@ function renderDeletedCardFull(j, forModal) {
   const detailScrollBody = `
         ${photoBlock}
         <div class="job-body job-meta">
-          <div class="job-title"><strong>${hl(
-            j.location
-          )}</strong></div>
+          <div class="job-title-row">
+            <div class="job-title job-room-title"><strong>${hl(
+              j.location
+            )}</strong></div>
+            ${renderJobDetailTopPhotoButton(j)}
+          </div>
           <div class="job-problem">${hl(j.problem)}</div>
           ${renderJobMetaRow(j)}
           ${renderJobAssignBlock(j, { modal: forModal, disabled: true })}
@@ -4669,9 +4678,14 @@ function renderJobListPhotoThumb(j, interactiveImg) {
   return "";
 }
 
-/** Detail: image gallery + file chips + add control (opens lightbox for images). */
-function renderJobDetailPhotoSection(j) {
+/** Top bar: same picker as attachments (compact label). Render beside room title in detail. */
+function renderJobDetailTopPhotoButton(j) {
   const qid = idAttr(j.id);
+  return `<button type="button" class="btn-attach-job-file top-photo-btn" onclick='openJobAttachmentPicker(${qid})'>+ Photo</button>`;
+}
+
+/** Detail: image gallery + file chips (add control is in .job-title-row). */
+function renderJobDetailPhotoSection(j) {
   const all = jobAttachmentsList(j);
   const imgs = all.filter(function (a) {
     return String(a.dataUrl || "").indexOf("data:image/") === 0;
@@ -4679,7 +4693,6 @@ function renderJobDetailPhotoSection(j) {
   const files = all.filter(function (a) {
     return String(a.dataUrl || "").indexOf("data:image/") !== 0;
   });
-  const addBtn = `<div class="job-detail-attach-add"><button type="button" class="btn-attach-job-file" onclick='openJobAttachmentPicker(${qid})'>+ Add photo / file</button></div>`;
 
   let galleryBlock = "";
   if (imgs.length === 1) {
@@ -4703,9 +4716,9 @@ function renderJobDetailPhotoSection(j) {
       : "";
 
   if (!galleryBlock && !filesBlock) {
-    return `<div class="job-detail-attachments">${addBtn}</div>`;
+    return "";
   }
-  return `<div class="job-detail-attachments">${galleryBlock}${filesBlock}${addBtn}</div>`;
+  return `<div class="job-detail-attachments">${galleryBlock}${filesBlock}</div>`;
 }
 
 /**
