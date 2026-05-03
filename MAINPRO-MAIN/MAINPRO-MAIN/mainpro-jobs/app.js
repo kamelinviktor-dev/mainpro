@@ -1,6 +1,9 @@
 /**
  * statusFilter: KPI row + dashboard (All, New, In Progress, …). "Done" kept for old localStorage.
  */
+/** Set `true` only when debugging — avoids noisy console output in production */
+const DEBUG = false;
+
 let statusFilter = "All";
 /** "All" | engineer name — filter by job.assignedTo */
 let engineerFilter = "All";
@@ -1044,7 +1047,7 @@ function save(suppressQuotaAlert) {
     }
     return false;
   }
-  console.log("Storage size:", serialized.length);
+  if (DEBUG) console.log("Storage size:", serialized.length);
   try {
     localStorage.setItem("jobs", serialized);
   } catch (e) {
@@ -1262,7 +1265,7 @@ function tryAppendNewJobPendingFromFiles(fileArr) {
     }
     readFileAsJobAttachment(slice[i++], function (err, payload) {
       if (err) {
-        console.warn("[addJob] attachment skipped (read failed)", err);
+        if (DEBUG) console.warn("[addJob] attachment skipped (read failed)", err);
       }
       if (!err && payload) {
         _newJobPendingAttachments.push(payload);
@@ -4974,7 +4977,7 @@ function triggerImportMerge() {
 }
 
 function addJob() {
-  console.log("[addJob] start");
+  if (DEBUG) console.log("[addJob] start");
   const locEl = document.getElementById("location");
   const probEl = document.getElementById("problem");
   const priEl = document.getElementById("priority");
@@ -4984,7 +4987,7 @@ function addJob() {
   const priority = priEl ? String(priEl.value || "Low") : "Low";
   const reportedBy = getMainproUser();
 
-  console.log("[addJob] location/problem", location, problem);
+  if (DEBUG) console.log("[addJob] location/problem", location, problem);
 
   if (!hasMainproLogin()) {
     alert("Select your role first.");
@@ -5017,7 +5020,7 @@ function addJob() {
         });
         if (row) attachments.push(row);
       } catch (e) {
-        console.warn("[addJob] skipped invalid attachment row", e);
+        if (DEBUG) console.warn("[addJob] skipped invalid attachment row", e);
       }
     }
     if (attachments.length > MAX_JOB_ATTACHMENTS_TOTAL) {
@@ -5106,7 +5109,7 @@ function addJob() {
 
   const runFinish = function () {
     const pendingAttachments = _newJobPendingAttachments.slice();
-    console.log("[addJob] pending attachments", pendingAttachments);
+    if (DEBUG) console.log("[addJob] pending attachments", pendingAttachments);
     try {
       finishCreateJob(pendingAttachments);
     } catch (e) {
@@ -5125,9 +5128,11 @@ function addJob() {
       }
       attempts++;
       if (attempts >= maxAttempts) {
-        console.warn(
-          "[addJob] attachment reads still pending after wait; submitting with current queue"
-        );
+        if (DEBUG) {
+          console.warn(
+            "[addJob] attachment reads still pending after wait; submitting with current queue"
+          );
+        }
         runFinish();
         return;
       }
@@ -5636,7 +5641,7 @@ function restoreJobsFromSnapshot(snap) {
 }
 
 function deleteJob(id) {
-  console.log("[deleteJob]", id);
+  if (DEBUG) console.log("[deleteJob]", id);
   if (
     !confirm(
       "Move this job to Deleted? You can restore it from the Deleted filter."
@@ -5669,7 +5674,7 @@ function deleteJob(id) {
 }
 
 function restoreJob(id) {
-  console.log("[restoreJob]", id);
+  if (DEBUG) console.log("[restoreJob]", id);
   const j = jobs.find((x) => String(x.id) === String(id));
   if (!j || !j.deleted) return;
   const snap = snapshotJobsForRollback();
@@ -5714,7 +5719,7 @@ function restoreJob(id) {
 }
 
 function deleteJobPermanently(id) {
-  console.log("[deletePermanent]", id);
+  if (DEBUG) console.log("[deletePermanent]", id);
   if (!confirm("Permanently delete this job?")) return;
   const snap = snapshotJobsForRollback();
   jobs = jobs.filter((x) => String(x.id) !== String(id));
@@ -5740,7 +5745,7 @@ function deleteJobPermanently(id) {
 
 /** Reopen a completed job (active workflow). */
 function restartJob(id) {
-  console.log("[restartJob]", id);
+  if (DEBUG) console.log("[restartJob]", id);
   const j = jobs.find((x) => String(x.id) === String(id));
   if (!j || j.deleted || String(j.status) !== "Done") return;
   const snap = snapshotJobsForRollback();
