@@ -55,7 +55,7 @@ function captureSwipeJobSnapshot(id) {
 
 function applySwipeUndo(snapshot) {
   const j = jobs.find((x) => String(x.id) === String(snapshot.id));
-  if (!j) return;
+  if (!j) return false;
   j.status = snapshot.status;
   j.completedAt = snapshot.completedAt != null ? snapshot.completedAt : "";
   j.pendingUntil = snapshot.pendingUntil != null ? snapshot.pendingUntil : "";
@@ -63,25 +63,11 @@ function applySwipeUndo(snapshot) {
   save();
   render();
   hapticNarrow();
+  return true;
 }
 
-function showSwipeUndoneToast() {
-  if (typeof document === "undefined" || !document.body) return;
-  dismissSwipeUndoToasts();
-  const wrap = document.createElement("div");
-  wrap.className = "swipe-toast swipe-toast--undone";
-  wrap.setAttribute("role", "status");
-  wrap.setAttribute("aria-live", "polite");
-  wrap.textContent = "Action undone";
-  document.body.appendChild(wrap);
-  _swipeUndoneToastEl = wrap;
-  _swipeUndoneToastTimer = window.setTimeout(function () {
-    dismissSwipeUndoToasts();
-  }, 2400);
-}
-
-function showSwipeToast(message, previousJobState) {
-  if (!isNarrowLayout()) return;
+/** Same DOM/style as swipe toast; works on all layouts. Replaces any prior undo toast. */
+function showActionUndoToast(message, undoCallback) {
   if (typeof document === "undefined" || !document.body) return;
   dismissSwipeUndoToasts();
 
@@ -89,6 +75,7 @@ function showSwipeToast(message, previousJobState) {
   wrap.className = "swipe-toast";
   wrap.setAttribute("role", "status");
   wrap.setAttribute("aria-live", "polite");
+  wrap.style.zIndex = "36000";
 
   const msg = document.createElement("span");
   msg.className = "swipe-toast__msg";
@@ -101,8 +88,10 @@ function showSwipeToast(message, previousJobState) {
 
   undoBtn.addEventListener("click", function () {
     dismissSwipeUndoToasts();
-    applySwipeUndo(previousJobState);
-    showSwipeUndoneToast();
+    var r = typeof undoCallback === "function" ? undoCallback() : undefined;
+    if (r !== false) {
+      showSwipeUndoneToast();
+    }
   });
 
   wrap.appendChild(msg);
@@ -113,6 +102,29 @@ function showSwipeToast(message, previousJobState) {
   _swipeUndoToastTimer = window.setTimeout(function () {
     dismissSwipeUndoToasts();
   }, 4000);
+}
+
+function showSwipeUndoneToast() {
+  if (typeof document === "undefined" || !document.body) return;
+  dismissSwipeUndoToasts();
+  const wrap = document.createElement("div");
+  wrap.className = "swipe-toast swipe-toast--undone";
+  wrap.setAttribute("role", "status");
+  wrap.setAttribute("aria-live", "polite");
+  wrap.style.zIndex = "36000";
+  wrap.textContent = "Action undone";
+  document.body.appendChild(wrap);
+  _swipeUndoneToastEl = wrap;
+  _swipeUndoneToastTimer = window.setTimeout(function () {
+    dismissSwipeUndoToasts();
+  }, 2400);
+}
+
+function showSwipeToast(message, previousJobState) {
+  if (!isNarrowLayout()) return;
+  showActionUndoToast(message, function () {
+    return applySwipeUndo(previousJobState);
+  });
 }
 
 /** in-memory only: job id string → show full log */
@@ -5650,6 +5662,17 @@ function restoreJobsFromSnapshot(snap) {
   }
 }
 
+function captureUiFilterSnapshot() {
+  const ph = document.getElementById("panel-history");
+  var tab = "active";
+  if (ph && !ph.hidden) tab = "history";
+  return {
+    tab: tab,
+    statusFilter: statusFilter,
+    historyViewFilter: historyViewFilter,
+  };
+}
+
 function deleteJob(id) {
   if (DEBUG) console.log("[deleteJob]", id);
   if (
@@ -5687,6 +5710,14 @@ function restoreJob(id) {
   if (DEBUG) console.log("[restoreJob]", id);
   const j = jobs.find((x) => String(x.id) === String(id));
   if (!j || !j.deleted) return;
+  var beforeRestoreSnapshot = null;
+  try {
+    beforeRestoreSnapshot = JSON.parse(JSON.stringify(j));
+  } catch (e) {
+    console.warn("[restoreJob] snapshot", e);
+    return;
+  }
+  const uiBeforeRestore = captureUiFilterSnapshot();
   const snap = snapshotJobsForRollback();
   const st = (j.previousStatus && String(j.previousStatus).trim()) || "New";
   j.deleted = false;
@@ -5726,13 +5757,47 @@ function restoreJob(id) {
     setTab("active");
   }
   render();
+  showActionUndoToast("Job restored", function () {
+    const snapBeforeUndo = snapshotJobsForRollback();
+    const idx = jobs.findIndex((x) => String(x.id) === String(id));
+    if (idx < 0) return false;
+    jobs[idx] = JSON.parse(JSON.stringify(beforeRestoreSnapshot));
+    statusFilter = uiBeforeRestore.statusFilter;
+    historyViewFilter = uiBeforeRestore.historyViewFilter;
+    setTab(uiBeforeRestore.tab);
+    var ok2 = false;
+    try {
+      ok2 = save(true);
+    } catch (e2) {
+      console.error("[restoreJob undo] save", e2);
+      ok2 = false;
+    }
+    if (!ok2) {
+      restoreJobsFromSnapshot(snapBeforeUndo);
+      showJobsToast("Could not save changes. Storage may be full.");
+      render();
+      return false;
+    }
+    render();
+    hapticNarrow();
+    return true;
+  });
 }
 
 function deleteJobPermanently(id) {
   if (DEBUG) console.log("[deletePermanent]", id);
   if (!confirm("Permanently delete this job?")) return;
+  const deletedJobIndex = jobs.findIndex((j) => String(j.id) === String(id));
+  if (deletedJobIndex < 0) return;
+  var deletedJobSnapshot = null;
+  try {
+    deletedJobSnapshot = JSON.parse(JSON.stringify(jobs[deletedJobIndex]));
+  } catch (e) {
+    console.warn("[deleteJobPermanently] snapshot", e);
+    return;
+  }
   const snap = snapshotJobsForRollback();
-  jobs = jobs.filter((x) => String(x.id) !== String(id));
+  jobs.splice(deletedJobIndex, 1);
   var ok = false;
   try {
     ok = save(true);
@@ -5742,7 +5807,7 @@ function deleteJobPermanently(id) {
   }
   if (!ok) {
     restoreJobsFromSnapshot(snap);
-    alert("Could not save changes. Storage may be full.");
+    showJobsToast("Could not save changes. Storage may be full.");
     render();
     return;
   }
@@ -5750,7 +5815,37 @@ function deleteJobPermanently(id) {
     closeJobDetailModal();
   }
   render();
-  showJobsToast("Job deleted permanently");
+  showActionUndoToast("Job deleted permanently", function () {
+    const sid = String(deletedJobSnapshot.id);
+    const exists = jobs.some((j) => String(j.id) === sid);
+    if (exists) return false;
+    const snapBeforeUndo = snapshotJobsForRollback();
+    const insertAt = Math.min(deletedJobIndex, jobs.length);
+    var restored = null;
+    try {
+      restored = JSON.parse(JSON.stringify(deletedJobSnapshot));
+    } catch (e2) {
+      console.warn("[deleteJobPermanently undo] clone", e2);
+      return false;
+    }
+    jobs.splice(insertAt, 0, restored);
+    var ok2 = false;
+    try {
+      ok2 = save(true);
+    } catch (e3) {
+      console.error("[deleteJobPermanently undo] save", e3);
+      ok2 = false;
+    }
+    if (!ok2) {
+      restoreJobsFromSnapshot(snapBeforeUndo);
+      showJobsToast("Could not save changes. Storage may be full.");
+      render();
+      return false;
+    }
+    render();
+    hapticNarrow();
+    return true;
+  });
 }
 
 /** Reopen a completed job (active workflow). */
@@ -6182,10 +6277,22 @@ document.addEventListener("keydown", function (e) {
   if (!app || app._mobileJobSwipeBound) return;
   app._mobileJobSwipeBound = true;
 
-  const SWIPE_TRIGGER = 110;
   const SWIPE_START_DEADZONE = 14;
   const VERTICAL_CANCEL = 18;
-  const MAX_DRAG = 120;
+
+  function computeSwipeMetrics(card) {
+    const w = card && card.offsetWidth ? card.offsetWidth : 320;
+    const swipePreview = Math.min(Math.max(w * 0.22, 70), 95);
+    const swipeCommit = Math.min(Math.max(w * 0.62, 190), 260);
+    const maxDrag = Math.min(Math.max(w * 0.82, 220), 360);
+    const span = Math.max(swipeCommit - swipePreview, 1);
+    return {
+      maxDrag: maxDrag,
+      swipePreview: swipePreview,
+      swipeCommit: swipeCommit,
+      swipeSpan: span,
+    };
+  }
 
   let swipeState = null;
 
@@ -6206,6 +6313,7 @@ document.addEventListener("keydown", function (e) {
   function resetSwipeBgLayer(card) {
     const wrap = card.closest(".swipe-wrap");
     if (!wrap) return;
+    wrap.classList.remove("swipe-ready-left", "swipe-ready-right");
     const bg = wrap.querySelector(".swipe-bg");
     if (!bg) return;
     bg.style.background = "";
@@ -6213,34 +6321,68 @@ document.addEventListener("keydown", function (e) {
     const holdLabel = bg.querySelector(".swipe-left");
     if (doneLabel) {
       doneLabel.style.opacity = "";
+      doneLabel.style.transform = "";
     }
     if (holdLabel) {
       holdLabel.style.opacity = "";
+      holdLabel.style.transform = "";
     }
   }
 
-  function updateSwipeBgLayer(card, clampedDx) {
+  function updateSwipeBgLayer(card, clampedDx, rawDx, preview, commit, span) {
     const wrap = card.closest(".swipe-wrap");
     if (!wrap) return;
     const bg = wrap.querySelector(".swipe-bg");
     if (!bg) return;
     const doneLabel = bg.querySelector(".swipe-right");
     const holdLabel = bg.querySelector(".swipe-left");
-    const op = Math.min(1, Math.abs(clampedDx) / SWIPE_TRIGGER);
+    const absc = Math.abs(clampedDx);
+    const progress = Math.min(1, Math.max(0, (absc - preview) / span));
+    const scale = 0.94 + progress * 0.06;
+    const scaleStr = "scale(" + scale + ")";
+    const idleScale = "scale(0.94)";
+
+    wrap.classList.remove("swipe-ready-left", "swipe-ready-right");
+    if (Math.abs(rawDx) >= commit) {
+      if (rawDx > 0) {
+        wrap.classList.add("swipe-ready-right");
+      } else if (rawDx < 0) {
+        wrap.classList.add("swipe-ready-left");
+      }
+    }
+
     if (clampedDx > 0) {
       bg.style.background =
-        "linear-gradient(to right, rgba(16,185,129,0.36) 0%, rgba(16,185,129,0.26) 42%, rgba(16,185,129,0.08) 68%, transparent 100%)";
-      if (doneLabel) doneLabel.style.opacity = String(op);
-      if (holdLabel) holdLabel.style.opacity = "0";
+        "linear-gradient(to right, rgba(16,185,129,0.42) 0%, rgba(16,185,129,0.28) 38%, rgba(16,185,129,0.10) 68%, transparent 100%)";
+      if (doneLabel) {
+        doneLabel.style.opacity = String(progress);
+        doneLabel.style.transform = scaleStr;
+      }
+      if (holdLabel) {
+        holdLabel.style.opacity = "0";
+        holdLabel.style.transform = idleScale;
+      }
     } else if (clampedDx < 0) {
       bg.style.background =
-        "linear-gradient(to left, rgba(245,158,11,0.36) 0%, rgba(245,158,11,0.26) 42%, rgba(245,158,11,0.08) 68%, transparent 100%)";
-      if (holdLabel) holdLabel.style.opacity = String(op);
-      if (doneLabel) doneLabel.style.opacity = "0";
+        "linear-gradient(to left, rgba(245,158,11,0.42) 0%, rgba(245,158,11,0.28) 38%, rgba(245,158,11,0.10) 68%, transparent 100%)";
+      if (holdLabel) {
+        holdLabel.style.opacity = String(progress);
+        holdLabel.style.transform = scaleStr;
+      }
+      if (doneLabel) {
+        doneLabel.style.opacity = "0";
+        doneLabel.style.transform = idleScale;
+      }
     } else {
       bg.style.background = "";
-      if (doneLabel) doneLabel.style.opacity = "0";
-      if (holdLabel) holdLabel.style.opacity = "0";
+      if (doneLabel) {
+        doneLabel.style.opacity = "0";
+        doneLabel.style.transform = idleScale;
+      }
+      if (holdLabel) {
+        holdLabel.style.opacity = "0";
+        holdLabel.style.transform = idleScale;
+      }
     }
   }
 
@@ -6253,6 +6395,10 @@ document.addEventListener("keydown", function (e) {
   }
 
   function animateSwipeSnapBack(card) {
+    const wrapSnap = card.closest(".swipe-wrap");
+    if (wrapSnap) {
+      wrapSnap.classList.remove("swipe-ready-left", "swipe-ready-right");
+    }
     card.classList.remove("swiping");
     card.style.transition = "transform 0.18s ease";
     card.style.transform = "translateX(0)";
@@ -6292,7 +6438,12 @@ document.addEventListener("keydown", function (e) {
       const card = swipeCardFromTarget(e.target);
       if (!card) return;
       const t = e.touches[0];
+      const wrap = card.closest(".swipe-wrap");
+      if (wrap) {
+        wrap.classList.remove("swipe-ready-left", "swipe-ready-right");
+      }
       card.classList.remove("swipe-left", "swipe-right", "swiping");
+      const metrics = computeSwipeMetrics(card);
       swipeState = {
         card: card,
         startX: t.clientX,
@@ -6302,6 +6453,11 @@ document.addEventListener("keydown", function (e) {
         lastX: t.clientX,
         lastY: t.clientY,
         hasLockedSwipe: false,
+        maxDrag: metrics.maxDrag,
+        swipePreview: metrics.swipePreview,
+        swipeCommit: metrics.swipeCommit,
+        swipeSpan: metrics.swipeSpan,
+        commitHapticFired: false,
       };
     },
     { passive: true }
@@ -6342,7 +6498,19 @@ document.addEventListener("keydown", function (e) {
       }
 
       e.preventDefault();
-      const clamped = Math.max(-MAX_DRAG, Math.min(MAX_DRAG, deltaX));
+      const maxD = swipeState.maxDrag;
+      const clamped = Math.max(-maxD, Math.min(maxD, deltaX));
+      if (
+        !swipeState.commitHapticFired &&
+        Math.abs(deltaX) >= swipeState.swipeCommit
+      ) {
+        swipeState.commitHapticFired = true;
+        try {
+          if (navigator.vibrate) navigator.vibrate(10);
+        } catch (hErr) {
+          /* ignore */
+        }
+      }
       card.style.transform = "translateX(" + clamped + "px)";
       if (clamped > 0) {
         card.classList.add("swipe-right");
@@ -6353,7 +6521,14 @@ document.addEventListener("keydown", function (e) {
       } else {
         card.classList.remove("swipe-left", "swipe-right");
       }
-      updateSwipeBgLayer(card, clamped);
+      updateSwipeBgLayer(
+        card,
+        clamped,
+        deltaX,
+        swipeState.swipePreview,
+        swipeState.swipeCommit,
+        swipeState.swipeSpan
+      );
     },
     { passive: false }
   );
@@ -6370,6 +6545,8 @@ document.addEventListener("keydown", function (e) {
       endY = e.changedTouches[0].clientY;
     }
     const rawDeltaX = endX - st.startX;
+    const swipeCommit = st.swipeCommit;
+    const commitHapticFired = st.commitHapticFired;
     swipeState = null;
 
     if (!hasLockedSwipe) {
@@ -6381,7 +6558,8 @@ document.addEventListener("keydown", function (e) {
 
     const id = jobIdFromDomAttr(card.getAttribute("data-job-id"));
 
-    function tryVibrate() {
+    function tryVibrateSuccess() {
+      if (commitHapticFired) return;
       try {
         if (navigator.vibrate) navigator.vibrate(12);
       } catch (err) {
@@ -6389,10 +6567,10 @@ document.addEventListener("keydown", function (e) {
       }
     }
 
-    if (rawDeltaX >= SWIPE_TRIGGER && id != null) {
+    if (rawDeltaX >= swipeCommit && id != null) {
       const snap = captureSwipeJobSnapshot(id);
       if (snap && String(snap.status) !== "Done") {
-        tryVibrate();
+        tryVibrateSuccess();
         markJobDone(id);
         showSwipeToast("Job marked Done", snap);
         resetSwipeVisual(card);
@@ -6401,14 +6579,14 @@ document.addEventListener("keydown", function (e) {
       }
     }
 
-    if (rawDeltaX <= -SWIPE_TRIGGER && id != null) {
+    if (rawDeltaX <= -swipeCommit && id != null) {
       const snap = captureSwipeJobSnapshot(id);
       if (
         snap &&
         String(snap.status) !== "Pending" &&
         String(snap.status) !== "Done"
       ) {
-        tryVibrate();
+        tryVibrateSuccess();
         markJobHold(id);
         showSwipeToast("Job moved to Hold", snap);
         resetSwipeVisual(card);
