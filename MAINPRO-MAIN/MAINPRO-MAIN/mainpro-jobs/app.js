@@ -2005,24 +2005,21 @@ function confirmReassignSheet() {
   }
 }
 
-/** Priority pill + SLA countdown (or due date on done/deleted). */
+/** Priority (dot + label) + SLA countdown (or due date on done/deleted). */
 function renderJobPrioritySlaBlock(j) {
-  const p = normalizePriorityValue(j.priority);
-  const slug = p.toLowerCase();
-  const pill = `<span class="job-priority-pill job-priority-pill--${slug}">${escapeHtml(
-    p
-  )}</span>`;
+  const badge = renderPriorityDotBadgeHtml(j);
+  const sep = `<span class="job-meta-sep job-list-meta-sep meta-sep" aria-hidden="true">·</span>`;
   const d = (j.dueAt == null ? "" : String(j.dueAt)).trim();
   if (!d) {
-    return `<div class="job-sla-row">Priority: ${pill}</div>`;
+    return `<div class="job-sla-row">${badge}</div>`;
   }
   const dueT = new Date(d).getTime();
   if (isNaN(dueT)) {
-    return `<div class="job-sla-row">Priority: ${pill}</div>`;
+    return `<div class="job-sla-row">${badge}</div>`;
   }
   if (j.status === "Done" || j.deleted) {
     const when = formatDateTime(d) || "—";
-    return `<div class="job-sla-row">Priority: ${pill}<span class="job-sla-due">Due: ${escapeHtml(
+    return `<div class="job-sla-row">${badge}${sep}<span class="job-sla-due">Due: ${escapeHtml(
       when
     )}</span></div>`;
   }
@@ -2032,7 +2029,7 @@ function renderJobPrioritySlaBlock(j) {
   const dueText =
     diff < 0 ? "Overdue by: " + h + "h " + m + "m" : "Due in: " + h + "h " + m + "m";
   const modClass = diff < 0 ? " job-sla-due--late" : "";
-  return `<div class="job-sla-row">Priority: ${pill}<span class="job-sla-due${modClass}" aria-live="polite">${escapeHtml(
+  return `<div class="job-sla-row">${badge}${sep}<span class="job-sla-due${modClass}" aria-live="polite">${escapeHtml(
     dueText
   )}</span></div>`;
 }
@@ -2283,12 +2280,9 @@ function renderDesktopRecentJobsTable() {
       "</td></tr>";
     return;
   }
-  const prClass = { Critical: "critical", High: "high", Medium: "medium", Low: "low" };
   tb.innerHTML = list
     .map(function (j) {
       const vis = getJobDetailHeaderBadgeVisual(j);
-      const pNorm = normalizePriorityValue(j.priority);
-      const prSlug = prClass[pNorm] || "low";
       const ms = getJobLastActivityMs(j);
       const updated =
         ms > 0
@@ -2303,17 +2297,12 @@ function renderDesktopRecentJobsTable() {
       const inits = escapeHtml(engineerInitials(assignName));
       const nameEsc = escapeHtml(assignName);
       const stHtml =
-        '<span class="job-status-badge job-status-badge--' +
+        '<span class="job-status-badge status-badge job-status-badge--' +
         vis.badgeMod +
         ' desktop-status-pill">' +
         escapeHtml(vis.badgeText) +
         "</span>";
-      const prHtml =
-        '<span class="job-priority-pill job-priority-pill--' +
-        prSlug +
-        '">' +
-        escapeHtml(pNorm.toUpperCase()) +
-        "</span>";
+      const prHtml = renderPriorityDotBadgeHtml(j);
       const engCell =
         '<span class="desktop-eng"><span class="desktop-eng__avatar" aria-hidden="true">' +
         inits +
@@ -3727,20 +3716,38 @@ function getJobListDueShortText(j) {
   return "Due " + h + "h" + (m > 0 ? " " + m + "m" : "");
 }
 
-function renderJobListMetaCompact(j) {
+/**
+ * List card meta third segment only: time / hold — no words that duplicate the top-right status badge.
+ */
+function getJobListMetaDueDisplayText(j) {
+  const raw = (getJobListDueShortText(j) || "").trim();
+  if (!raw) return "";
+  if (j.status === "Done") return raw;
+  if (raw === "Overdue" || raw === "On hold") return "";
+  if (raw.startsWith("Overdue ")) return raw.slice("Overdue ".length).trim();
+  return raw;
+}
+
+/** Dot + priority label (display-only; see `.priority-badge` / `.priority-dot` in index.html). */
+function renderPriorityDotBadgeHtml(j) {
   const p = normalizePriorityValue(j.priority);
   const slug = p.toLowerCase();
-  const pill = `<span class="job-priority-pill priority-pill job-priority-pill--${slug}">${escapeHtml(
+  return `<span class="priority-badge job-priority-pill job-priority-pill--${slug} priority-badge--${slug}"><span class="priority-dot" aria-hidden="true"></span><span class="priority-badge__label">${escapeHtml(
     p
-  )}</span>`;
+  )}</span></span>`;
+}
+
+function renderJobListMetaCompact(j) {
+  const sep = `<span class="job-list-meta-sep meta-sep" aria-hidden="true">·</span>`;
   const eng = escapeHtml(normalizeAssignedTo(j));
-  const dueText = getJobListDueShortText(j);
+  const dueText = getJobListMetaDueDisplayText(j);
   const bits = [
-    pill,
+    renderPriorityDotBadgeHtml(j),
+    sep,
     `<span class="job-list-meta-eng">${eng}</span>`,
   ];
   if (dueText) {
-    bits.push(`<span class="job-list-meta-due">${escapeHtml(dueText)}</span>`);
+    bits.push(sep, `<span class="job-list-meta-due">${escapeHtml(dueText)}</span>`);
   }
   return `<div class="job-list-meta-line meta job-card-meta">${bits.join("")}</div>`;
 }
@@ -3794,14 +3801,12 @@ function renderHistoryCardCompact(j) {
   const vis = getJobCardStatusVisual(j);
   const photoBlock = renderJobListPhotoThumb(j, true);
   const when = formatDateClean(j.completedAt);
-  const p = normalizePriorityValue(j.priority);
-  const slug = p.toLowerCase();
-  const pill = `<span class="job-priority-pill priority-pill job-priority-pill--${slug}">${escapeHtml(
-    p
-  )}</span>`;
+  const sep = `<span class="job-list-meta-sep meta-sep" aria-hidden="true">·</span>`;
   const eng = escapeHtml(normalizeAssignedTo(j));
   const whenEsc = when ? escapeHtml(when) : "—";
-  const metaLine = `<div class="job-list-meta-line meta job-card-meta mobile-job-meta mobile-job-card__meta job-card__meta meta-row">${pill}<span class="job-list-meta-eng">${eng}</span><span class="job-list-meta-due">${whenEsc}</span></div>`;
+  const metaLine = `<div class="job-list-meta-line meta job-card-meta mobile-job-meta mobile-job-card__meta job-card__meta meta-row">${renderPriorityDotBadgeHtml(
+    j
+  )}${sep}<span class="job-list-meta-eng">${eng}</span>${sep}<span class="job-list-meta-due">${whenEsc}</span></div>`;
   return `
       <div class="job job-card job-card--list-compact mobile-job-card done job-history ${vis.cardClass
     }" data-job-id="${jobIdForDomAttr(j.id)}" data-status="Done">
@@ -3831,13 +3836,11 @@ function renderDeletedCardCompact(j) {
   const visClass = "job-card-shell";
   const photoBlock = renderJobListPhotoThumb(j, true);
   const delWhen = formatDateClean(j.deletedAt) || "—";
-  const p = normalizePriorityValue(j.priority);
-  const slug = p.toLowerCase();
-  const pill = `<span class="job-priority-pill priority-pill job-priority-pill--${slug}">${escapeHtml(
-    p
-  )}</span>`;
+  const sep = `<span class="job-list-meta-sep meta-sep" aria-hidden="true">·</span>`;
   const eng = escapeHtml(normalizeAssignedTo(j));
-  const metaLine = `<div class="job-list-meta-line meta job-card-meta mobile-job-meta mobile-job-card__meta job-card__meta meta-row">${pill}<span class="job-list-meta-eng">${eng}</span><span class="job-list-meta-due">Del ${escapeHtml(
+  const metaLine = `<div class="job-list-meta-line meta job-card-meta mobile-job-meta mobile-job-card__meta job-card__meta meta-row">${renderPriorityDotBadgeHtml(
+    j
+  )}${sep}<span class="job-list-meta-eng">${eng}</span>${sep}<span class="job-list-meta-due">Del ${escapeHtml(
     delWhen
   )}</span></div>`;
   return `
@@ -4001,7 +4004,7 @@ function renderActiveCardFull(j, forModal) {
   )}" data-sla-overdue="${slaO}" data-park-overdue="${
     isParkOverDueAttr ? "1" : "0"
   }">
-        <span class="job-status-badge job-status-badge--${vis.badgeMod}">${vis.badgeText}</span>
+        <span class="job-status-badge status-badge job-status-badge--${vis.badgeMod}">${vis.badgeText}</span>
         ${modalMain}
       </div>
     `;
@@ -4052,7 +4055,7 @@ function renderHistoryCardFull(j, forModal) {
       <div class="job job-card done job-history ${vis.cardClass}${logClass}" data-job-id="${jobIdForDomAttr(
     j.id
   )}" data-status="Done">
-        <span class="job-status-badge job-status-badge--${vis.badgeMod}">${vis.badgeText}</span>
+        <span class="job-status-badge status-badge job-status-badge--${vis.badgeMod}">${vis.badgeText}</span>
         ${modalMain}
       </div>
     `;
@@ -4104,7 +4107,7 @@ function renderDeletedCardFull(j, forModal) {
     : `${detailScrollBody}${actionsInner}`;
   return `
       <div class="job job-card deleted job-card-shell${logClass}" data-job-id="${idForAttr}" data-status="Deleted">
-        <span class="job-status-badge job-status-badge--deleted">DELETED</span>
+        <span class="job-status-badge status-badge job-status-badge--deleted">DELETED</span>
         ${modalMain}
       </div>
     `;
@@ -4176,7 +4179,8 @@ function updateJobDetailModal() {
   if (badgeEl) {
     const vis = getJobDetailHeaderBadgeVisual(j);
     badgeEl.className =
-      "job-detail-modal__badge job-status-badge job-status-badge--" + vis.badgeMod;
+      "job-detail-modal__badge job-status-badge status-badge job-status-badge--" +
+      vis.badgeMod;
     badgeEl.textContent = vis.badgeText;
     badgeEl.setAttribute("aria-label", "Status: " + vis.badgeText);
   }
