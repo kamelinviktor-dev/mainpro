@@ -487,13 +487,13 @@
     }
 
     .settings-section {
-      margin-top: 16px;
+      margin-top: 28px;
       min-width: 0;
     }
 
     /* First section follows <header>; :first-child would not match (header is first child). */
     .settings-panel > .settings-section:first-of-type {
-      margin-top: 12px;
+      margin-top: 20px;
       scroll-margin-top: 12px;
     }
 
@@ -510,7 +510,7 @@
       background: #f8fafc;
       border: 1px solid #e5e7eb;
       border-radius: 18px;
-      padding: 12px;
+      padding: 22px;
       min-width: 0;
       box-shadow: 0 8px 22px rgba(15, 23, 42, 0.035);
     }
@@ -518,12 +518,240 @@
     .settings-card--stack {
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      padding: 12px;
+      gap: 14px;
+      padding: 22px;
     }
 
     .settings-card--stack .settings-btn {
       margin-bottom: 0;
+    }
+
+    .settings-card--stack .settings-action {
+      margin-bottom: 0;
+    }
+
+    .settings-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 0;
+      min-width: 0;
+    }
+
+    .settings-description + .settings-actions,
+    .settings-status + .settings-actions {
+      margin-top: 14px;
+    }
+
+    #settingsDataNote.settings-description {
+      margin-bottom: 0;
+    }
+
+    .settings-actions .settings-action {
+      margin-bottom: 0;
+    }
+
+    .settings-note {
+      font-size: 13px;
+      line-height: 1.45;
+      color: #64748b;
+      margin: 6px 0 14px;
+    }
+
+    .settings-action {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      width: 100%;
+      min-height: 56px;
+      border-radius: 16px;
+      padding: 0 18px;
+      gap: 0;
+      font-size: 15px;
+      font-weight: 700;
+      border: 1px solid #e5e7eb;
+      background: #ffffff;
+      color: #1e293b;
+      box-shadow: 0 4px 10px rgba(15, 23, 42, 0.04);
+      cursor: pointer;
+      font-family: inherit;
+      box-sizing: border-box;
+      text-align: left;
+      transition: all 0.15s ease;
+    }
+
+    .settings-action span:first-child {
+      font-size: 20px;
+      margin-right: 10px;
+      line-height: 1;
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .settings-action:hover:not(:disabled) {
+      filter: brightness(0.985);
+      box-shadow: 0 5px 14px rgba(15, 23, 42, 0.06);
+    }
+
+    .settings-action:active:not(:disabled) {
+      transform: scale(0.985);
+    }
+
+    .settings-action-icon {
+      flex-shrink: 0;
+      min-width: 1.25em;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-style: normal;
+    }
+
+    .settings-action.help {
+      background: #f8fafc;
+      border-color: #e2e8f0;
+      color: #475569;
+      font-weight: 600;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+    }
+
+    .settings-action.help span:first-child {
+      font-size: 16px;
+    }
+
+    .settings-action.help:hover:not(:disabled) {
+      filter: none;
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+      box-shadow: 0 3px 10px rgba(15, 23, 42, 0.05);
+    }
+
+    .settings-action.export-json {
+      background: #f0fdf4;
+      border-color: #22c55e;
+      color: #166534;
+    }
+
+    .settings-action.export-csv {
+      background: #f8fafc;
+      border-color: #cbd5e1;
+      color: #334155;
+    }
+
+    .settings-action.backup {
+      background: #22c55e;
+      color: #ffffff;
+      border: none;
+      box-shadow: 0 6px 16px rgba(34, 197, 94, 0.25);
+    }
+
+    .settings-action.backup:hover:not(:disabled) {
+      filter: brightness(1.06);
+      box-shadow: 0 8px 20px rgba(34, 197, 94, 0.32);
+    }
+
+    .settings-action.backup:active:not(:disabled) {
+      transform: scale(0.97);
+    }
+
+    .settings-action.danger {
+      background: #fef2f2;
+      border-color: #ef4444;
+      color: #991b1b;
+    }
+
+    .settings-action.merge {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+      color: #334155;
+    }
+
+    .settings-action.restore {
+      border-color: #e5e7eb;
+      background: #ffffff;
+      color: #334155;
+    }
+
+    .settings-action.export-json:hover:not(:disabled),
+    .settings-action.export-csv:hover:not(:disabled),
+    .settings-action.danger:hover:not(:disabled),
+    .settings-action.merge:hover:not(:disabled),
+    .settings-action.restore:hover:not(:disabled) {
+      filter: brightness(0.985);
+    }
+
+    .settings-action-text {
+      flex: 1;
+      min-width: 0;
+      text-align: left;
+    }
+
+    .settings-section-card {
+      background: #ffffff;
+      border-radius: 24px;
+      padding: 22px;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 10px 28px rgba(15, 23, 42, 0.045);
+      margin-bottom: 24px;
+      min-width: 0;
+    }
+
+    .settings-section:last-of-type .settings-section-card {
+      margin-bottom: 0;
+    }
+
+    .settings-section-card > .settings-description:first-child {
+      margin-top: 0;
+    }
+
+    .settings-action:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+      filter: none;
+    }
+
+    .settings-action:disabled:hover {
+      filter: none;
+      box-shadow: none;
+    }
+
+    .settings-action:disabled:active {
+      transform: none;
+    }
+
+    .settings-limits-list {
+      margin: 0;
+      padding: 0 0 0 1.15em;
+      font-size: 14px;
+      line-height: 1.55;
+      color: #64748b;
+      overflow-wrap: break-word;
+      word-break: break-word;
+    }
+
+    .settings-limits-list li {
+      margin-bottom: 6px;
+    }
+
+    .settings-limits-list li:last-child {
+      margin-bottom: 0;
+    }
+
+    .settings-backup-lede {
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #475569;
+      margin: 0 0 8px;
+    }
+
+    .settings-section-card--backup .settings-description {
+      margin-top: 0;
     }
 
     .settings-btn {
@@ -580,10 +808,10 @@
     }
 
     .settings-description {
-      font-size: 14px;
-      line-height: 1.45;
+      font-size: 13px;
       color: #64748b;
-      margin: 6px 0 0;
+      line-height: 1.4;
+      margin: 0 0 12px;
       overflow-wrap: break-word;
       word-break: break-word;
       white-space: normal;
@@ -6070,8 +6298,13 @@
       .btn-header-primary,
       .btn-header-settings,
       .btn-change-user,
-      .settings-btn {
+      .settings-btn,
+      .settings-action {
         transition: none !important;
+      }
+
+      .settings-action:active {
+        transform: none !important;
       }
 
       .desktop-kpi,
@@ -7306,7 +7539,7 @@
         <li><kbd class="job-search-kbd">/</kbd> — focus job search (same as the <kbd class="job-search-kbd">/</kbd> chip in the field)</li>
         <li><kbd class="job-search-kbd">[</kbd> / <kbd class="job-search-kbd">]</kbd> — switch <strong>Active</strong> / <strong>History</strong> (when not typing in a field)</li>
         <li><strong>Clear filters</strong> in the list header — reset search, engineer, “My jobs”, and KPI/History filters in one go</li>
-        <li><kbd class="job-search-kbd">?</kbd> or <strong>Settings → Help</strong> — open this panel</li>
+        <li><kbd class="job-search-kbd">?</kbd> or <strong>Settings → How it works</strong> — open this panel</li>
         <li><kbd class="job-search-kbd">Esc</kbd> — close onboarding, full job, Park dialog, or photo; in search, clear text or close the keyboard if empty</li>
         <li><kbd class="job-search-kbd">Ctrl</kbd> + <kbd class="job-search-kbd">S</kbd> or <kbd class="job-search-kbd">⌘</kbd> + <kbd class="job-search-kbd">S</kbd> — save an engineer note (with the note field focused)</li>
         <li class="jobs-tips-gesture">Narrow screen: pull down at the very top to refresh the list</li>
@@ -7328,30 +7561,51 @@
 
       <section class="settings-section" aria-labelledby="settingsSectionData">
         <h3 id="settingsSectionData" class="settings-section-title">Data tools</h3>
-        <div class="settings-card settings-card--stack">
-          <button type="button" class="settings-btn" id="btnSettingsHelp" onclick="closeJobsSettings(); openJobsTipsDialog();">Help</button>
-          <button type="button" class="settings-btn" id="btnExportBackup" onclick="exportJobsBackup(); closeJobsSettings();" title="Download JSON backup of jobs (and current role)">Export JSON</button>
-          <button type="button" class="settings-btn" id="btnExportCsv" onclick="exportJobsCsv(); closeJobsSettings();" title="Download CSV (Excel)">Export CSV</button>
-          <button type="button" class="settings-btn" id="btnImportBackup" onclick="closeJobsSettings(); triggerImportBackup();" title="Replace all jobs from JSON file">Import JSON</button>
-          <button type="button" class="settings-btn" id="btnImportMerge" onclick="closeJobsSettings(); triggerImportMerge();" title="Merge jobs from JSON (same id = replace)">Merge JSON</button>
+        <div class="settings-section-card">
+          <p class="settings-description" id="settingsDataNote">
+            Data is stored locally on this device. Export JSON regularly before updates or clearing browser data.
+          </p>
+          <div class="settings-actions">
+            <button type="button" class="settings-action help" id="btnSettingsHelp" onclick="closeJobsSettings(); openJobsTipsDialog();" aria-label="How it works">
+              <span class="settings-action-icon" aria-hidden="true">❓</span>
+              <span class="settings-action-text">How it works</span>
+            </button>
+            <button type="button" class="settings-action export-json" id="btnExportBackup" onclick="exportJobsBackup(); closeJobsSettings();" title="Download JSON backup of jobs (and current role)" aria-label="Export JSON Backup">
+              <span class="settings-action-icon" aria-hidden="true">💾</span>
+              <span class="settings-action-text">Export JSON Backup</span>
+            </button>
+            <button type="button" class="settings-action export-csv" id="btnExportCsv" onclick="exportJobsCsv(); closeJobsSettings();" title="Download CSV (Excel)" aria-label="Export CSV Report">
+              <span class="settings-action-icon" aria-hidden="true">📊</span>
+              <span class="settings-action-text">Export CSV Report</span>
+            </button>
+            <button type="button" class="settings-action danger" id="btnImportBackup" onclick="confirmImportJsonReplace();" title="Replace all jobs from JSON file" aria-label="Import JSON Replace">
+              <span class="settings-action-icon" aria-hidden="true">⚠️</span>
+              <span class="settings-action-text">Import JSON Replace</span>
+            </button>
+            <button type="button" class="settings-action merge" id="btnImportMerge" onclick="confirmMergeJsonIntoJobs();" title="Merge jobs from JSON (same id = replace)" aria-label="Merge JSON Into Current Jobs">
+              <span class="settings-action-icon" aria-hidden="true">🔀</span>
+              <span class="settings-action-text">Merge JSON Into Current Jobs</span>
+            </button>
+          </div>
         </div>
       </section>
 
       <section class="settings-section" aria-labelledby="settingsSectionStorageLimits">
         <h3 id="settingsSectionStorageLimits" class="settings-section-title">Offline storage limits</h3>
-        <div class="settings-card">
-          <p class="settings-description">
-            Up to 5 files while creating a job<br />
-            Up to 10 attachments per job<br />
-            Up to 5 attachments per note<br />
-            Export backup regularly before updates
-          </p>
+        <div class="settings-section-card">
+          <ul class="settings-limits-list" id="settingsLimitsList" role="list">
+            <li id="settingsLimitFiles">Up to 5 files while creating a job</li>
+            <li id="settingsLimitJobAtt">Up to 10 attachments per job</li>
+            <li id="settingsLimitNoteAtt">Up to 5 attachments per note</li>
+            <li id="settingsLimitPhotos">Photos are stored in this browser</li>
+            <li id="settingsLimitExport">Export JSON backup regularly</li>
+          </ul>
         </div>
       </section>
 
       <section class="settings-section" aria-labelledby="settingsSectionLang">
         <h3 id="settingsSectionLang" class="settings-section-title">Language</h3>
-        <div class="settings-card">
+        <div class="settings-section-card">
           <div class="settings-row">
             <span class="settings-row-title" id="settingsLangLabel">Language</span>
             <button type="button" class="settings-pill" id="btnUiLang" onclick="toggleUiLang()" title="Switch language" aria-label="Language">EN</button>
@@ -7361,15 +7615,24 @@
 
       <section class="settings-section" aria-labelledby="settingsSectionBackup">
         <h3 id="settingsSectionBackup" class="settings-section-title">Browser backup</h3>
-        <div class="settings-card">
-          <p class="settings-description" id="autobackupHint">Keeps a local backup of your jobs on this device. Useful before updates or testing.</p>
+        <div class="settings-section-card settings-section-card--backup">
+          <p class="settings-backup-lede" id="settingsBrowserBackupLede">Extra safety copy</p>
+          <p class="settings-description" id="autobackupHint">Keeps a safe copy in this browser. Does not replace Export JSON.</p>
           <label class="settings-checkbox-row" for="cbAutobackup">
             <input type="checkbox" id="cbAutobackup" onchange="onAutobackupToggle()" />
             <span id="autobackupLabel">Enable browser backup</span>
           </label>
           <p class="settings-status" id="autobackupMeta"></p>
-          <button type="button" class="settings-btn" id="btnBackupBrowserNow" onclick="backupBrowserNowFromSettings()">Backup now</button>
-          <button type="button" class="settings-primary-btn" id="btnRestoreBrowserBackup" disabled onclick="restoreFromBrowserBackup()">Restore from browser backup</button>
+          <div class="settings-actions">
+            <button type="button" class="settings-action backup" id="btnBackupBrowserNow" onclick="backupBrowserNowFromSettings()" aria-label="Backup now">
+              <span class="settings-action-icon" aria-hidden="true">🛡</span>
+              <span class="settings-action-text">Backup now</span>
+            </button>
+            <button type="button" class="settings-action restore" id="btnRestoreBrowserBackup" disabled onclick="restoreFromBrowserBackup()" aria-label="Restore from browser backup">
+              <span class="settings-action-icon" aria-hidden="true">♻️</span>
+              <span class="settings-action-text">Restore from browser backup</span>
+            </button>
+          </div>
         </div>
       </section>
     </div>

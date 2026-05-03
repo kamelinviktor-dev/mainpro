@@ -186,14 +186,20 @@ const MAINPRO_I18N = {
     tabActive: "Active Jobs",
     tabHistory: "History",
     searchPh: "Search jobs…",
-    exportJson: "Export JSON",
-    importJson: "Import JSON",
-    importMerge: "Merge JSON",
-    exportCsv: "Export CSV",
+    exportJson: "Export JSON Backup",
+    importJson: "Import JSON Replace",
+    importMerge: "Merge JSON Into Current Jobs",
+    exportCsv: "Export CSV Report",
+    settingsDataNote:
+      "Data is stored locally on this device. Export JSON regularly before updates or clearing browser data.",
+    importJsonReplaceConfirm:
+      "⚠️ Import JSON Replace\n\nThis will replace all jobs stored on this device.\n\nExport a JSON backup first if you want to keep your current jobs.\n\nContinue?",
+    mergeJsonIntoConfirm:
+      "Merge JSON Into Current Jobs\n\nThis will add jobs from a backup file into the current list where possible.\n\nIt should not replace all current jobs.\n\nContinue?",
     changeUser: "Change user",
     newJob: "+ New Job",
     settings: "Settings",
-    help: "Help",
+    help: "How it works",
     language: "Language",
     kpiAll: "All",
     kpiNew: "New",
@@ -221,15 +227,22 @@ const MAINPRO_I18N = {
     emptyHintFilterDeleted: "Viewing deleted jobs only",
     emptyHintFilterHistoryToday: "“Done today” in History is on",
     autobackupLabel: "Browser backup (every ~4h + on user change)",
-    autobackupHint: "Keeps a second copy in this browser’s storage. Not a replacement for Export JSON.",
+    autobackupHint:
+      "Keeps a safe copy in this browser. Does not replace Export JSON.",
+    browserBackupLede: "Extra safety copy",
+    settingsLimitFiles: "Up to 5 files while creating a job",
+    settingsLimitJobAtt: "Up to 10 attachments per job",
+    settingsLimitNoteAtt: "Up to 5 attachments per note",
+    settingsLimitPhotos: "Photos are stored in this browser",
+    settingsLimitExport: "Export JSON backup regularly",
     restoreBrowserBackup: "Restore from browser backup",
     lastBrowserBackup: "Last backup: {t}",
-    noBrowserBackup: "No browser backup yet",
+    noBrowserBackup: "No backup created yet",
     backupNow: "Backup now",
     backupCreatedToast: "Backup created",
     restoredSuccessfully: "Restored successfully",
     restoreBrowserConfirm:
-      "Are you sure? This will overwrite current data.",
+      "Restore from browser backup?\n\nThis will replace the current jobs with the browser backup stored on this device.\n\nContinue?",
     importSchemaNewer:
       "This file needs a newer app version. Update MainPro Jobs, then import again.",
     onboardingTitle: "Welcome",
@@ -307,14 +320,20 @@ const MAINPRO_I18N = {
     tabActive: "Активные",
     tabHistory: "История",
     searchPh: "Поиск заявок…",
-    exportJson: "Экспорт JSON",
-    importJson: "Импорт JSON",
-    importMerge: "Слияние JSON",
-    exportCsv: "Экспорт CSV",
+    exportJson: "Экспорт JSON (резервная копия)",
+    importJson: "Импорт JSON (замена)",
+    importMerge: "Слияние JSON с текущими заявками",
+    exportCsv: "Экспорт CSV (отчёт)",
+    settingsDataNote:
+      "Данные хранятся только на этом устройстве. Регулярно экспортируйте JSON перед обновлениями или очисткой данных браузера.",
+    importJsonReplaceConfirm:
+      "⚠️ Импорт JSON (замена)\n\nВсе заявки на этом устройстве будут заменены.\n\nСначала экспортируйте JSON, если нужно сохранить текущие заявки.\n\nПродолжить?",
+    mergeJsonIntoConfirm:
+      "Слияние JSON с текущими заявками\n\nЗаявки из файла будут добавлены в текущий список, где это возможно.\n\nЭто не должно полностью заменить все текущие заявки.\n\nПродолжить?",
     changeUser: "Сменить пользователя",
     newJob: "+ Заявка",
     settings: "Настройки",
-    help: "Справка",
+    help: "Как это работает",
     language: "Язык",
     kpiAll: "Все",
     kpiNew: "Новые",
@@ -343,15 +362,21 @@ const MAINPRO_I18N = {
     emptyHintFilterHistoryToday: "В истории выбрано «Сегодня»",
     autobackupLabel: "Копия в браузере (~каждые 4 ч + при смене пользователя)",
     autobackupHint:
-      "Вторая копия в памяти браузера. Не заменяет ручной экспорт JSON.",
+      "Хранит безопасную копию в этом браузере. Не заменяет экспорт JSON.",
+    browserBackupLede: "Дополнительная защита",
+    settingsLimitFiles: "До 5 файлов при создании заявки",
+    settingsLimitJobAtt: "До 10 вложений на заявку",
+    settingsLimitNoteAtt: "До 5 вложений на заметку",
+    settingsLimitPhotos: "Фото хранятся в этом браузере",
+    settingsLimitExport: "Регулярно экспортируйте JSON",
     restoreBrowserBackup: "Восстановить из копии в браузере",
     lastBrowserBackup: "Копия: {t}",
-    noBrowserBackup: "Копии в браузере ещё нет",
+    noBrowserBackup: "Резервная копия ещё не создана",
     backupNow: "Создать копию сейчас",
     backupCreatedToast: "Копия создана",
     restoredSuccessfully: "Восстановление выполнено",
     restoreBrowserConfirm:
-      "Вы уверены? Текущие данные будут заменены.",
+      "Восстановить из копии в браузере?\n\nТекущие заявки будут заменены копией, сохранённой в этом браузере.\n\nПродолжить?",
     importSchemaNewer:
       "Файл требует более новой версии приложения. Обновите MainPro Jobs и импортируйте снова.",
     onboardingTitle: "Добро пожаловать",
@@ -437,6 +462,16 @@ function t(key) {
   return MAINPRO_I18N.en[key] != null ? MAINPRO_I18N.en[key] : key;
 }
 
+function setSettingsActionLabel(buttonId, text) {
+  const btn = document.getElementById(buttonId);
+  if (!btn) return;
+  const s = text == null ? "" : String(text);
+  const lab = btn.querySelector(".settings-action-text");
+  if (lab) lab.textContent = s;
+  else btn.textContent = s;
+  btn.setAttribute("aria-label", s);
+}
+
 function applyMainproI18n() {
   const el = function (id, html) {
     const n = document.getElementById(id);
@@ -474,14 +509,10 @@ function applyMainproI18n() {
   const th = document.querySelector('.tab[data-tab="history"]');
   if (ta) ta.textContent = t("tabActive");
   if (th) th.textContent = t("tabHistory");
-  const bEx = document.getElementById("btnExportBackup");
-  if (bEx) bEx.textContent = t("exportJson");
-  const bIm = document.getElementById("btnImportBackup");
-  if (bIm) bIm.textContent = t("importJson");
-  const bMr = document.getElementById("btnImportMerge");
-  if (bMr) bMr.textContent = t("importMerge");
-  const bCs = document.getElementById("btnExportCsv");
-  if (bCs) bCs.textContent = t("exportCsv");
+  setSettingsActionLabel("btnExportBackup", t("exportJson"));
+  setSettingsActionLabel("btnImportBackup", t("importJson"));
+  setSettingsActionLabel("btnImportMerge", t("importMerge"));
+  setSettingsActionLabel("btnExportCsv", t("exportCsv"));
   const bCh = document.getElementById("btnChangeUser");
   if (bCh) bCh.textContent = t("changeUser");
   const bNew = document.getElementById("btnNewJob");
@@ -499,8 +530,14 @@ function applyMainproI18n() {
     bLang.textContent = t("lang");
     bLang.setAttribute("title", t("langNext"));
   }
-  const bHelp = document.getElementById("btnSettingsHelp");
-  if (bHelp) bHelp.textContent = t("help");
+  setSettingsActionLabel("btnSettingsHelp", t("help"));
+  tx("settingsDataNote", t("settingsDataNote"));
+  tx("settingsBrowserBackupLede", t("browserBackupLede"));
+  tx("settingsLimitFiles", t("settingsLimitFiles"));
+  tx("settingsLimitJobAtt", t("settingsLimitJobAtt"));
+  tx("settingsLimitNoteAtt", t("settingsLimitNoteAtt"));
+  tx("settingsLimitPhotos", t("settingsLimitPhotos"));
+  tx("settingsLimitExport", t("settingsLimitExport"));
   const langLbl = document.getElementById("settingsLangLabel");
   if (langLbl) langLbl.textContent = t("language");
   const setTitle = document.getElementById("settingsModalTitle");
@@ -586,10 +623,8 @@ function applyMainproI18n() {
   }
   const abH = document.getElementById("autobackupHint");
   if (abH) abH.textContent = t("autobackupHint");
-  const bRB = document.getElementById("btnRestoreBrowserBackup");
-  if (bRB) bRB.textContent = t("restoreBrowserBackup");
-  const bBN = document.getElementById("btnBackupBrowserNow");
-  if (bBN) bBN.textContent = t("backupNow");
+  setSettingsActionLabel("btnRestoreBrowserBackup", t("restoreBrowserBackup"));
+  setSettingsActionLabel("btnBackupBrowserNow", t("backupNow"));
   updateOnboardingFooterButton();
   updateSettingsBackupInfo();
   if (hasMainproLogin()) {
@@ -2944,10 +2979,18 @@ function restoreFromBrowserBackup() {
   );
 }
 
-function importJobsFromArrayAfterConfirm(arr, sourceLabel, toastMsg, confirmOverride) {
+function importJobsFromArrayAfterConfirm(
+  arr,
+  sourceLabel,
+  toastMsg,
+  confirmOverride,
+  skipConfirm
+) {
   const n = arr.length;
   let confirmed = false;
-  if (confirmOverride != null && String(confirmOverride).trim() !== "") {
+  if (skipConfirm === true) {
+    confirmed = true;
+  } else if (confirmOverride != null && String(confirmOverride).trim() !== "") {
     confirmed = confirm(String(confirmOverride));
   } else if (
     !confirm(
@@ -4871,6 +4914,12 @@ function renderJobDetailPhotoSection(j) {
  * Восстанавливает jobs из JSON (файл Export или сырой массив). Перезаписывает localStorage.
  */
 function importJobsFromJsonText(text) {
+  const skipReplaceConfirm =
+    typeof window !== "undefined" &&
+    window._mainproSkipImportReplaceConfirm === true;
+  if (typeof window !== "undefined") {
+    window._mainproSkipImportReplaceConfirm = false;
+  }
   let o;
   try {
     o = JSON.parse(text);
@@ -4896,13 +4945,19 @@ function importJobsFromJsonText(text) {
     showJobsToast("File must contain a jobs array");
     return false;
   }
-  return importJobsFromArrayAfterConfirm(arr, "JSON file", "Import complete");
+  return importJobsFromArrayAfterConfirm(
+    arr,
+    "JSON file",
+    "Import complete",
+    null,
+    skipReplaceConfirm
+  );
 }
 
 /**
  * Слияние: id совпали — заявка заменяется нормализованной; новые id — добавляются.
  */
-function importJobsMergeFromJsonText(text) {
+function importJobsMergeFromJsonText(text, skipMergeConfirm) {
   let o;
   try {
     o = JSON.parse(text);
@@ -4928,15 +4983,10 @@ function importJobsMergeFromJsonText(text) {
     showJobsToast("File must contain a jobs array");
     return false;
   }
-  const n = arr.length;
-  if (
-    !confirm(
-      "Merge " +
-        n +
-        " job(s) into the current list? Matching id = replace, new id = add. Continue?"
-    )
-  ) {
-    return false;
+  if (!skipMergeConfirm) {
+    if (!confirm(t("mergeJsonIntoConfirm"))) {
+      return false;
+    }
   }
   const lsBackup = localStorage.getItem("jobs");
   try {
@@ -5000,6 +5050,36 @@ function triggerImportMerge() {
   }
   const inp = document.getElementById("importMergeInput");
   if (inp) inp.click();
+}
+
+function confirmImportJsonReplace() {
+  if (!hasMainproLogin()) {
+    showJobsToast("Select a role first");
+    return;
+  }
+  if (!confirm(t("importJsonReplaceConfirm"))) {
+    return;
+  }
+  if (typeof window !== "undefined") {
+    window._mainproSkipImportReplaceConfirm = true;
+  }
+  closeJobsSettings();
+  triggerImportBackup();
+}
+
+function confirmMergeJsonIntoJobs() {
+  if (!hasMainproLogin()) {
+    showJobsToast("Select a role first");
+    return;
+  }
+  if (!confirm(t("mergeJsonIntoConfirm"))) {
+    return;
+  }
+  if (typeof window !== "undefined") {
+    window._mainproSkipMergeIntoConfirm = true;
+  }
+  closeJobsSettings();
+  triggerImportMerge();
 }
 
 function addJob() {
@@ -6716,18 +6796,34 @@ window.addEventListener("resize", function () {
   inp._mainproImportBound = true;
   inp.addEventListener("change", function () {
     const f = inp.files && inp.files[0];
-    if (!f) return;
+    if (!f) {
+      if (typeof window !== "undefined") {
+        window._mainproSkipImportReplaceConfirm = false;
+      }
+      return;
+    }
     if (!hasMainproLogin()) {
       showJobsToast("Select a role first");
       inp.value = "";
+      if (typeof window !== "undefined") {
+        window._mainproSkipImportReplaceConfirm = false;
+      }
       return;
     }
     const r = new FileReader();
     r.onload = function () {
-      if (typeof r.result !== "string") return;
+      if (typeof r.result !== "string") {
+        if (typeof window !== "undefined") {
+          window._mainproSkipImportReplaceConfirm = false;
+        }
+        return;
+      }
       importJobsFromJsonText(r.result);
     };
     r.onerror = function () {
+      if (typeof window !== "undefined") {
+        window._mainproSkipImportReplaceConfirm = false;
+      }
       showJobsToast("Could not read file");
     };
     r.readAsText(f);
@@ -6741,18 +6837,37 @@ window.addEventListener("resize", function () {
   inp._mainproImportMergeBound = true;
   inp.addEventListener("change", function () {
     const f = inp.files && inp.files[0];
-    if (!f) return;
+    if (!f) {
+      if (typeof window !== "undefined") {
+        window._mainproSkipMergeIntoConfirm = false;
+      }
+      return;
+    }
     if (!hasMainproLogin()) {
       showJobsToast("Select a role first");
       inp.value = "";
+      if (typeof window !== "undefined") {
+        window._mainproSkipMergeIntoConfirm = false;
+      }
       return;
+    }
+    const skip =
+      typeof window !== "undefined" &&
+      window._mainproSkipMergeIntoConfirm === true;
+    if (typeof window !== "undefined") {
+      window._mainproSkipMergeIntoConfirm = false;
     }
     const r = new FileReader();
     r.onload = function () {
-      if (typeof r.result !== "string") return;
-      importJobsMergeFromJsonText(r.result);
+      if (typeof r.result !== "string") {
+        return;
+      }
+      importJobsMergeFromJsonText(r.result, skip);
     };
     r.onerror = function () {
+      if (typeof window !== "undefined") {
+        window._mainproSkipMergeIntoConfirm = false;
+      }
       showJobsToast("Could not read file");
     };
     r.readAsText(f);
@@ -6764,6 +6879,8 @@ window.exportJobsBackup = exportJobsBackup;
 window.exportJobsCsv = exportJobsCsv;
 window.triggerImportBackup = triggerImportBackup;
 window.triggerImportMerge = triggerImportMerge;
+window.confirmImportJsonReplace = confirmImportJsonReplace;
+window.confirmMergeJsonIntoJobs = confirmMergeJsonIntoJobs;
 window.toggleUiLang = toggleUiLang;
 window.showJobsToast = showJobsToast;
 
