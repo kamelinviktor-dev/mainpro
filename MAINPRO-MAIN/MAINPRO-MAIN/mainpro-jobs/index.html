@@ -792,6 +792,35 @@
       flex: 1;
     }
 
+    .current-user-block {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .current-user-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+      font-size: 16px;
+      font-weight: 700;
+      color: #334155;
+    }
+
+    .current-user-select {
+      width: 100%;
+      max-width: 100%;
+      margin-bottom: 10px;
+      box-sizing: border-box;
+    }
+
+    .current-user-hint {
+      font-size: 0.85rem;
+      line-height: 1.4;
+      color: #6b7280;
+    }
+
     .settings-pill {
       flex-shrink: 0;
       min-width: 64px;
@@ -7609,6 +7638,22 @@
           <div class="settings-row">
             <span class="settings-row-title" id="settingsLangLabel">Language</span>
             <button type="button" class="settings-pill" id="btnUiLang" onclick="toggleUiLang()" title="Switch language" aria-label="Language">EN</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-section" aria-labelledby="settingsCurrentUserSectionTitle">
+        <h3 id="settingsCurrentUserSectionTitle" class="settings-section-title">CURRENT USER</h3>
+        <div class="settings-section-card">
+          <div class="current-user-block">
+            <div class="current-user-label" id="settingsCurrentUserLabel">👤 Current user</div>
+            <select id="selSettingsCurrentUser" class="current-user-select" onchange="onSettingsCurrentUserChange(this)" aria-label="Current user" aria-labelledby="settingsCurrentUserLabel">
+              <option>Manager</option>
+              <option>Engineer 1</option>
+              <option>Engineer 2</option>
+              <option>Engineer 3</option>
+            </select>
+            <div class="current-user-hint" id="settingsCurrentUserHint">Used for My Jobs and default assignment.</div>
           </div>
         </div>
       </section>

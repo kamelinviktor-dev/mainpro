@@ -139,6 +139,17 @@ const MAINPRO_ROLES = [
   "Housekeeping",
   "Maintenance",
   "Manager",
+  "Engineer 1",
+  "Engineer 2",
+  "Engineer 3",
+];
+
+/** Settings “Current user” + My Jobs persona (also written to MAINPRO_USER_KEY). */
+const MAINPRO_SETTINGS_USER_VALUES = [
+  "Manager",
+  "Engineer 1",
+  "Engineer 2",
+  "Engineer 3",
 ];
 
 /** Assign dropdown + filter (temporary list). */
@@ -309,6 +320,10 @@ const MAINPRO_I18N = {
     desktopDonutTotalLabel: "Total",
     jobCreatedToast: "Job created",
     reportCancel: "Cancel",
+    settingsCurrentUserSection: "CURRENT USER",
+    settingsCurrentUserLabel: "👤 Current user",
+    settingsCurrentUserHint:
+      "Used for My Jobs and default assignment.",
   },
   ru: {
     appTitle: "MainPro — заявки",
@@ -443,6 +458,10 @@ const MAINPRO_I18N = {
     desktopDonutTotalLabel: "Всего",
     jobCreatedToast: "Заявка создана",
     reportCancel: "Отмена",
+    settingsCurrentUserSection: "ТЕКУЩИЙ ПОЛЬЗОВАТЕЛЬ",
+    settingsCurrentUserLabel: "👤 Текущий пользователь",
+    settingsCurrentUserHint:
+      "Для «Мои заявки» и назначения по умолчанию при создании.",
   },
 };
 
@@ -540,6 +559,10 @@ function applyMainproI18n() {
   tx("settingsLimitExport", t("settingsLimitExport"));
   const langLbl = document.getElementById("settingsLangLabel");
   if (langLbl) langLbl.textContent = t("language");
+  tx("settingsCurrentUserSectionTitle", t("settingsCurrentUserSection"));
+  tx("settingsCurrentUserLabel", t("settingsCurrentUserLabel"));
+  tx("settingsCurrentUserHint", t("settingsCurrentUserHint"));
+  syncSettingsCurrentUserSelect();
   const setTitle = document.getElementById("settingsModalTitle");
   if (setTitle) setTitle.textContent = t("settings");
   tx("dashLabelAll", t("kpiAll"));
@@ -654,6 +677,7 @@ function onAutobackupToggle() {
   updateSettingsBackupInfo();
 }
 window.onAutobackupToggle = onAutobackupToggle;
+window.onSettingsCurrentUserChange = onSettingsCurrentUserChange;
 window.restoreFromBrowserBackup = restoreFromBrowserBackup;
 window.backupBrowserNowFromSettings = backupBrowserNowFromSettings;
 window.onboardingNext = onboardingNext;
@@ -776,6 +800,33 @@ function isMainproRole(r) {
 
 function hasMainproLogin() {
   return isMainproRole(getMainproUser());
+}
+
+function syncSettingsCurrentUserSelect() {
+  const sel = document.getElementById("selSettingsCurrentUser");
+  if (!sel) return;
+  const u = String(getMainproUser() || "").trim();
+  if (MAINPRO_SETTINGS_USER_VALUES.indexOf(u) >= 0) {
+    sel.value = u;
+  } else {
+    sel.value = "Manager";
+  }
+}
+
+function onSettingsCurrentUserChange(sel) {
+  if (!sel) return;
+  const v = String(sel.value || "").trim();
+  if (MAINPRO_SETTINGS_USER_VALUES.indexOf(v) < 0) return;
+  try {
+    localStorage.setItem(MAINPRO_USER_KEY, v);
+  } catch (e) {
+    console.warn("Could not save mainpro_user", e);
+    return;
+  }
+  if (typeof hapticNarrow === "function") {
+    hapticNarrow();
+  }
+  render();
 }
 
 let _urlJobIdToOpen = null;
@@ -1813,16 +1864,16 @@ function renderJobMetaRow(j) {
 }
 
 function matchesMyJobsFilter(j) {
-  const u = getMainproUser();
+  const u = String(getMainproUser() || "").trim();
   if (!u) return false;
-  const asg = normalizeAssignedTo(j);
-  const rep = String(j.reportedBy || "").trim();
   if (u === "Manager") {
-    return rep === "Manager" || asg === "Manager";
+    return true;
   }
+  const asg = normalizeAssignedTo(j);
   if (u === "Engineer 1" || u === "Engineer 2" || u === "Engineer 3") {
     return asg === u;
   }
+  const rep = String(j.reportedBy == null ? "" : j.reportedBy).trim();
   return rep === u || asg === u;
 }
 
@@ -5138,7 +5189,16 @@ function addJob() {
       typeof window !== "undefined"
         ? window.scrollY || window.pageYOffset || 0
         : 0;
-    const assignedTo = getNewJobAssignedToValue();
+    let assignedTo = getNewJobAssignedToValue();
+    const curUser = String(getMainproUser() || "").trim();
+    if (
+      (curUser === "Engineer 1" ||
+        curUser === "Engineer 2" ||
+        curUser === "Engineer 3") &&
+      (!assignedTo || assignedTo === "Unassigned")
+    ) {
+      assignedTo = curUser;
+    }
     const pNorm = normalizePriorityValue(priority);
     const job = {
       id: String(Date.now()) + "-" + String(Math.floor(Math.random() * 1e9)),
@@ -5349,6 +5409,7 @@ function openJobsSettings() {
   if (!am || am.hidden || !hasMainproLogin()) return;
   m.hidden = false;
   updateSettingsBackupInfo();
+  syncSettingsCurrentUserSelect();
   syncAppBodyScrollLock();
   updateMobileFormFab();
   updateMobileScrollTopBtn();
