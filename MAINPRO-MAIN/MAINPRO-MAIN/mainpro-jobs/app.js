@@ -3838,10 +3838,16 @@ function getJobListDueShortText(j) {
  * List card meta third segment only: time / hold — no words that duplicate the top-right status badge.
  */
 function getJobListMetaDueDisplayText(j) {
+  if (j && !j.deleted && j.status !== "Done" && isJobOverdue(j)) {
+    return "Overdue";
+  }
+  if (j && !j.deleted && j.status === "Pending") {
+    return "On Hold";
+  }
   const raw = (getJobListDueShortText(j) || "").trim();
   if (!raw) return "";
   if (j.status === "Done") return raw;
-  if (raw === "Overdue" || raw === "On hold") return "";
+  if (raw === "On hold") return "";
   if (raw.startsWith("Overdue ")) return raw.slice("Overdue ".length).trim();
   return raw;
 }
