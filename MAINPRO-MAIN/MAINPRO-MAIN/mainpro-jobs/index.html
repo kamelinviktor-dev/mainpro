@@ -3479,10 +3479,10 @@
       min-width: 0;
     }
 
-    .meta-row > span:not(.job-list-meta-sep):not(.meta-sep),
-    .job-card__meta > span:not(.job-list-meta-sep):not(.meta-sep),
-    .mobile-job-card__meta > span:not(.job-list-meta-sep):not(.meta-sep),
-    .job-list-meta-line.meta-row > span:not(.job-list-meta-sep):not(.meta-sep) {
+    .meta-row > span:not(.job-list-meta-sep):not(.meta-sep):not(.priority-badge),
+    .job-card__meta > span:not(.job-list-meta-sep):not(.meta-sep):not(.priority-badge),
+    .mobile-job-card__meta > span:not(.job-list-meta-sep):not(.meta-sep):not(.priority-badge),
+    .job-list-meta-line.meta-row > span:not(.job-list-meta-sep):not(.meta-sep):not(.priority-badge) {
       min-width: 0;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -3505,16 +3505,32 @@
     .job-card__meta > .priority-badge,
     .mobile-job-card__meta > .priority-badge,
     .job-list-meta-line.meta-row > .priority-badge {
-      min-width: 0;
+      flex: 0 0 auto;
+      flex-shrink: 0;
+      white-space: nowrap;
+      overflow: visible;
+      min-width: auto;
     }
 
-    .meta-row .priority-badge__label,
-    .job-card__meta .priority-badge__label,
-    .mobile-job-card__meta .priority-badge__label,
-    .job-list-meta-line .priority-badge__label {
-      overflow: hidden;
-      text-overflow: ellipsis;
+    .meta-row > .priority-badge .priority-badge__label,
+    .job-card__meta > .priority-badge .priority-badge__label,
+    .mobile-job-card__meta > .priority-badge .priority-badge__label,
+    .job-list-meta-line.meta-row > .priority-badge .priority-badge__label {
+      overflow: visible;
+      text-overflow: clip;
       white-space: nowrap;
+      min-width: auto;
+    }
+
+    .meta-row > .job-list-meta-eng,
+    .meta-row > .job-list-meta-due,
+    .job-card__meta > .job-list-meta-eng,
+    .job-card__meta > .job-list-meta-due,
+    .mobile-job-card__meta > .job-list-meta-eng,
+    .mobile-job-card__meta > .job-list-meta-due,
+    .job-list-meta-line.meta-row > .job-list-meta-eng,
+    .job-list-meta-line.meta-row > .job-list-meta-due {
+      flex: 1 1 0;
       min-width: 0;
     }
 
