@@ -957,7 +957,10 @@
 
     .btn-change-user {
       flex: 0 0 auto;
-      padding: 9px 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 9px 10px;
       font-size: 12px;
       font-weight: 700;
       border: 1px solid rgba(148, 163, 184, 0.4);
@@ -967,6 +970,25 @@
       cursor: pointer;
       white-space: nowrap;
       box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset, 0 1px 2px rgba(15, 23, 42, 0.04);
+      min-width: 0;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+
+    #btnChangeUser.user-badge-btn,
+    .btn-change-user.user-badge-btn {
+      font-size: 13px;
+      font-weight: 800;
+      color: #334155;
+      text-align: center;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 40px;
+      min-height: 40px;
+      padding: 0 8px;
+      overflow: visible;
+      text-overflow: clip;
     }
 
     .btn-change-user:active {
@@ -1205,6 +1227,25 @@
       opacity: 0.8 !important;
     }
 
+    /* User badge: text lives on the button (not ::before); undo icon-only font-size:0 from rule above */
+    #mobileApp .mobile-header-actions #btnChangeUser.user-badge-btn {
+      font-size: 13px !important;
+      line-height: 1.1 !important;
+      font-weight: 800 !important;
+      color: #334155 !important;
+      width: auto !important;
+      min-width: 32px !important;
+      max-width: 52px !important;
+      height: 32px !important;
+      min-height: 32px !important;
+      padding: 0 6px !important;
+      overflow: visible !important;
+      opacity: 1 !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+
     #mobileApp .mobile-header-actions button:not(.btn-header-primary) span {
       position: absolute !important;
       width: 1px !important;
@@ -1227,12 +1268,6 @@
 
     #mobileApp .mobile-header-actions .btn-header-settings::before {
       content: "⚙️";
-      font-size: 14px !important;
-      line-height: 1;
-    }
-
-    #mobileApp .mobile-header-actions .btn-change-user::before {
-      content: "👤";
       font-size: 14px !important;
       line-height: 1;
     }
@@ -1280,8 +1315,7 @@
         padding: 0 8px !important;
       }
 
-      #mobileApp .mobile-header-actions .btn-header-settings::before,
-      #mobileApp .mobile-header-actions .btn-change-user::before {
+      #mobileApp .mobile-header-actions .btn-header-settings::before {
         font-size: 13px !important;
       }
     }
@@ -4983,6 +5017,14 @@
         font-size: 12px;
       }
 
+      #btnChangeUser.user-badge-btn {
+        font-size: 13px !important;
+        font-weight: 800 !important;
+        color: #334155 !important;
+        padding: 0 8px !important;
+        min-width: 40px !important;
+      }
+
       .btn-header-primary {
         padding: 8px 12px;
       }
@@ -7699,7 +7741,7 @@
       <div class="header-actions mobile-header-actions">
         <button type="button" class="btn-header-primary" id="btnNewJob" data-add-job>+ New Job</button>
         <button type="button" class="btn-header-settings" id="btnOpenSettings" onclick="openJobsSettings()"><span id="settingsBtnText">Settings</span><span class="app-settings-gear" aria-hidden="true">⚙</span></button>
-        <button type="button" class="btn-change-user" id="btnChangeUser" onclick="showChangeUser()">Change user</button>
+        <button type="button" class="btn-change-user user-badge-btn" id="btnChangeUser" onclick="showChangeUser()">👤</button>
       </div>
     </header>
 

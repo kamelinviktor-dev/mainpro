@@ -532,8 +532,6 @@ function applyMainproI18n() {
   setSettingsActionLabel("btnImportBackup", t("importJson"));
   setSettingsActionLabel("btnImportMerge", t("importMerge"));
   setSettingsActionLabel("btnExportCsv", t("exportCsv"));
-  const bCh = document.getElementById("btnChangeUser");
-  if (bCh) bCh.textContent = t("changeUser");
   const bNew = document.getElementById("btnNewJob");
   if (bNew) bNew.textContent = t("newJob");
   const bSet = document.getElementById("btnOpenSettings");
@@ -650,6 +648,7 @@ function applyMainproI18n() {
   setSettingsActionLabel("btnBackupBrowserNow", t("backupNow"));
   updateOnboardingFooterButton();
   updateSettingsBackupInfo();
+  syncHeaderUserBadge();
   if (hasMainproLogin()) {
     const c = computeFilteredListCounts();
     updateListResultCount(c.nActive, c.nHistory);
@@ -802,6 +801,29 @@ function hasMainproLogin() {
   return isMainproRole(getMainproUser());
 }
 
+function getCurrentUserBadgeLabel() {
+  const u = getMainproUser();
+  if (u === "Engineer 1") return "E1";
+  if (u === "Engineer 2") return "E2";
+  if (u === "Engineer 3") return "E3";
+  if (u === "Manager") return "MGR";
+  return "👤";
+}
+
+function syncHeaderUserBadge() {
+  const btn =
+    document.getElementById("btnChangeUser") ||
+    document.querySelector("button.btn-change-user.user-badge-btn");
+  if (!btn) {
+    console.warn("Header user badge button not found");
+    return;
+  }
+  btn.textContent = getCurrentUserBadgeLabel();
+  const raw = getMainproUser();
+  btn.setAttribute("aria-label", "Current user " + (raw || "—"));
+  btn.setAttribute("title", typeof t === "function" ? t("changeUser") : "Change user");
+}
+
 function syncSettingsCurrentUserSelect() {
   const sel = document.getElementById("selSettingsCurrentUser");
   if (!sel) return;
@@ -935,6 +957,7 @@ function applyAuthUi() {
       });
     }
   }
+  syncHeaderUserBadge();
 }
 
 function selectUserRole(role) {
@@ -3334,6 +3357,7 @@ function render() {
   updateMobileScrollTopBtn();
   updateClearFiltersButton();
   updateListResultCount(actives.length, doneList.length);
+  syncHeaderUserBadge();
   requestAnimationFrame(function () {
     restoreListFocusState();
   });
