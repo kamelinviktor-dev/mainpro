@@ -1,0 +1,11 @@
+﻿MainPro Jobs Stable Mobile v1
+Created before modular split.
+Known stable features:
+- Server launches correctly
+- Mobile UI works
+- Settings polished
+- Current User in Settings works
+- Header user badge E1/E2/E3/MGR works
+- My Jobs works
+- Swipe / undo / import/export / backup working
+- Do not break mobile layout
