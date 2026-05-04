@@ -1,0 +1,13 @@
+﻿MainPro Jobs Stable Mobile v1.1
+Update: Header mobile fix + horizontal scroll fix
+
+Verified:
+- No horizontal scroll
+- Header stable on mobile
+- User badge visible
+- Buttons not overflowing
+- Swipe still working
+- Settings working
+
+Baseline:
+- Based on v1 Stable Mobile

@@ -1,0 +1,14 @@
+﻿MainPro Jobs Stable Mobile v1.2
+Update: Action buttons UX improvement (Done = primary)
+
+Verified:
+- Buttons hierarchy clear
+- Done button full width and primary
+- Secondary actions styled correctly
+- Delete less dominant
+- Mobile layout stable
+- Swipe working
+- Settings working
+
+Baseline:
+- Based on v1.1 Header Fix
